@@ -1,0 +1,32 @@
+#pragma once
+#include <Windows.h>
+#include "Format.h"
+
+class Options
+{
+public:
+	Options(std::tstring& filePath, float currentVers);
+	Options(Options&& opts);
+	~Options();
+
+	void Load(const TCHAR* windowName);
+	void Save(const TCHAR* windowName);
+
+	void SetGeneral(bool timeStamps, bool startUp, bool flashTaskbar, UINT flashCount);
+	void SetDownloadPath(std::tstring& path);
+
+	void Reset(float currentVers);
+
+	bool TimeStamps();
+	bool AutoStartup();
+	bool FlashTaskbar();
+	UINT GetFlashCount();
+	std::tstring& GetDownloadPath();
+private:
+	std::tstring filePath;
+
+	std::tstring downloadPath;
+	float version;
+	bool timeStamps, startUp, flashTaskbar;
+	UCHAR flashCount;
+};
