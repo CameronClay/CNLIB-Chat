@@ -41,15 +41,21 @@ public:
 
 	typedef void(*const customFunc)(ClientData& data);
 
-	//compression 1-9
+	//sfunc is a message handler, compression is 1-9
 	TCPServ(USHORT maxCon, sfunc func, void* obj, int compression, customFunc conFunc, customFunc disFunc);
 	TCPServ(TCPServ&& serv);
 	~TCPServ();
 
 	void AllowConnections(const TCHAR* port);//Starts receiving as well
-	//addr functions as excluded address or single address based on single value
+
+	//addr parameter functions as both the excluded address, and as a single address, depending on the value of single
 	HANDLE SendClientData(char* data, DWORD nBytes, Socket addr, bool single);
 	HANDLE SendClientData(char* data, DWORD nBytes, std::vector<Socket>& pcs);
+
+	//send msg funtions used for requests, replies ect. they do not send data
+	void SendMsg(Socket pc, bool single, char type, char message);
+	void SendMsg(std::vector<Socket>& pcs, char type, char message);
+	void SendMsg(std::tstring& user, char type, char message);
 
 	void AddClient(Socket pc);
 	void RemoveClient(USHORT& pos);

@@ -161,29 +161,6 @@ void TransferMessage(TCPServ& serv, BYTE* dat)
 	}
 }
 
-void SendMsg(TCPServ& serv, std::tstring& user, char type, char message)
-{
-	auto& clients = serv.GetClients();
-	for (UINT i = 0; i < clients.size(); i++)
-	{
-		if (clients[i].user.compare(user) == 0)
-		{
-			char msg[] = { type, message };
-
-			HANDLE hnd = serv.SendClientData(msg, MSG_OFFSET, clients[i].pc, true);
-			TCPServ::WaitAndCloseHandle(hnd);
-		}
-	}
-}
-
-void SendMsg(TCPServ& serv, Socket& pc, char type, char message)
-{
-	char msg[] = { type, message };
-
-	HANDLE hnd = serv.SendClientData(msg, MSG_OFFSET, pc, true);
-	TCPServ::WaitAndCloseHandle(hnd);
-}
-
 void RequestTransfer(TCPServ& serv, std::tstring& srcUserName, BYTE* dat)
 {
 	auto& clients = serv.GetClients();
@@ -239,6 +216,7 @@ void ConnectHandler(TCPServ::ClientData& data)
 	DispIPMsg(data.pc, _T(" has connected!"));
 }
 
+//Handles all incoming packets
 void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj)
 {
 	TCPServ& serv = *(TCPServ*)server;
@@ -307,7 +285,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 				clients[index].user = user;
 
 				//Confirm authentication
-				SendMsg(serv, clients[index].pc, TYPE_RESPONSE, MSG_RESPONSE_AUTH_CONFIRMED);
+				serv.SendMsg(clients[index].pc, true, TYPE_RESPONSE, MSG_RESPONSE_AUTH_CONFIRMED);
 
 				//Transer currentlist of clients to new client
 				for (UINT i = 0; i < clients.size(); i++)
@@ -339,7 +317,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 			else
 			{
 				//Decline authentication
-				SendMsg(serv, clients[index].pc, TYPE_RESPONSE, MSG_RESPONSE_AUTH_DECLINED);
+				serv.SendMsg(clients[index].pc, true, TYPE_RESPONSE, MSG_RESPONSE_AUTH_DECLINED);
 			}
 
 			LeaveCriticalSection(&authentSect);
@@ -421,7 +399,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 				{
 					if (clients[index].user.compare(adminList.front()) != 0)//if the user who initiated the kick is not the super admin
 					{
-						SendMsg(serv, clients[index].user, TYPE_ADMIN, MSG_ADMIN_CANNOTKICK);
+						serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_CANNOTKICK);
 						break;
 					}
 
@@ -454,7 +432,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 				}
 			}
 
-			SendMsg(serv, clients[index].user, TYPE_ADMIN, MSG_ADMIN_NOT);
+			serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_NOT);
 			break;
 		}
 		}
@@ -467,9 +445,9 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		case MSG_VERSION_CHECK:
 		{
 			if (*(float*)dat == APPVERSION)
-				SendMsg(serv, clients[index].pc, TYPE_VERSION, MSG_VERSION_UPTODATE);
+				serv.SendMsg(clients[index].pc, true, TYPE_VERSION, MSG_VERSION_UPTODATE);
 			else
-				SendMsg(serv, clients[index].pc, TYPE_VERSION, MSG_VERSION_OUTOFDATE);
+				serv.SendMsg(clients[index].pc, true, TYPE_VERSION, MSG_VERSION_OUTOFDATE);
 
 			break;
 		}
