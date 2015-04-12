@@ -149,7 +149,7 @@ long Socket::ReadData(void* dest, DWORD nBytes)
 	long received = 0;
 	do
 	{
-		recv(pc, &(((char*)dest)[received]), nBytes - received, 0);
+		received += recv(pc, &(((char*)dest)[received]), nBytes - received, 0);
 	} while(received != nBytes && received > 0);
 	return received;
 #endif
