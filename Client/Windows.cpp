@@ -153,6 +153,7 @@ void Flash()
 	}
 }
 
+//Handles all incoming packets
 void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 {
 	HRESULT res = CoInitialize(NULL);
