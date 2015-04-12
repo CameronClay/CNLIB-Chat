@@ -143,18 +143,25 @@ void Socket::Disconnect()
 
 long Socket::ReadData(void* dest, DWORD nBytes)
 {
+#if NTDDI_VERSION >= NTDDI_VISTA
 	return recv(pc, (char*)dest, nBytes, MSG_WAITALL);
+#else
+	long received = 0;
+	do
+	{
+		recv(pc, &(((char*)dest)[received]), nBytes - received, 0);
+	} while(received != nBytes && received > 0);
+	return recv(pc, (char*)dest, nBytes, NULL);
+#endif
 }
 
 long Socket::SendData(const void* data, DWORD nBytes)
 {
 	long sent = 0;
-	int temp;
 	do
 	{
-		if((temp = send(pc, &(((char*)data)[sent]), nBytes - sent, 0)) == SOCKET_ERROR) return sent;
-		sent += temp;
-	} while(sent != nBytes);
+		sent += send(pc, &(((char*)data)[sent]), nBytes - sent, 0);
+	} while(sent != nBytes && sent > 0);
 	return sent;
 }
 
