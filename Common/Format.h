@@ -30,9 +30,9 @@ static TCHAR* GetTime()
 	TCHAR* buffer = alloc<TCHAR>(buffSize);
 	GetTimeFormatEx(LOCALE_NAME_USER_DEFAULT, LOCALE_USE_CP_ACP, NULL, NULL, buffer, buffSize);
 #else
-	const UINT buffSize = GetDateFormat(LOCALE_USER_DEFAULT, LOCALE_USE_CP_ACP, NULL, NULL, NULL, 0);
+	const UINT buffSize = GetTimeFormat(LOCALE_USER_DEFAULT, LOCALE_USE_CP_ACP, NULL, NULL, NULL, 0);
 	TCHAR* buffer = alloc<TCHAR>(buffSize);
-	GetDateFormat(LOCALE_USER_DEFAULT, LOCALE_USE_CP_ACP, NULL, NULL, buffer, buffSize);
+	GetTimeFormat(LOCALE_USER_DEFAULT, LOCALE_USE_CP_ACP, NULL, NULL, buffer, buffSize);
 #endif
 	return buffer;
 }
