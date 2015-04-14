@@ -336,14 +336,15 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 		{
 		case MSG_REQUEST_TRANSFER:
 		{
-			const UINT len = *(UINT*)dat;
-			fileReceive->GetUser() = std::tstring((TCHAR*)&(dat[sizeof(UINT)]), len - 1);
-			fileReceive->SetSize( *(long double*)&(dat[sizeof(UINT) + (len * sizeof(TCHAR))]));
 			if (fileReceive->Running())
 			{
 				client->SendMsg(fileReceive->GetUser(), TYPE_RESPONSE, MSG_RESPONSE_TRANSFER_DECLINED);
 				break;
 			}
+
+			const UINT len = *(UINT*)dat;
+			fileReceive->GetUser() = std::tstring((TCHAR*)&(dat[sizeof(UINT)]), len - 1);
+			fileReceive->SetSize(*(long double*)&(dat[sizeof(UINT) + (len * sizeof(TCHAR))]));
 
 			Flash();
 			TCHAR buffer[255];
