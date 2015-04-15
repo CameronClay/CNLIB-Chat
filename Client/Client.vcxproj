@@ -153,12 +153,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\Common\File.cpp" />
+    <ClCompile Include="..\Common\Mouse.cpp" />
     <ClCompile Include="..\Common\Socket.cpp" />
     <ClCompile Include="..\Common\UPNP.cpp" />
     <ClCompile Include="..\Common\WinFirewall.cpp" />
     <ClCompile Include="FileTransfer.cpp" />
     <ClCompile Include="Options.cpp" />
     <ClCompile Include="TCPClient.cpp" />
+    <ClCompile Include="Whiteboard.cpp" />
     <ClCompile Include="Windows.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -166,6 +168,7 @@
     <ClInclude Include="..\Common\Format.h" />
     <ClInclude Include="..\Common\HeapAlloc.h" />
     <ClInclude Include="..\Common\Messages.h" />
+    <ClInclude Include="..\Common\Mouse.h" />
     <ClInclude Include="..\Common\Socket.h" />
     <ClInclude Include="..\Common\Typedefs.h" />
     <ClInclude Include="..\Common\UPNP.h" />
@@ -174,6 +177,7 @@
     <ClInclude Include="Options.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="TCPClient.h" />
+    <ClInclude Include="Whiteboard.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />

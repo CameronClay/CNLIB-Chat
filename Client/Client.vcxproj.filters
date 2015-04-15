@@ -39,6 +39,12 @@
     <ClCompile Include="..\Common\WinFirewall.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Whiteboard.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Mouse.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -75,6 +81,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\Typedefs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Whiteboard.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Mouse.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

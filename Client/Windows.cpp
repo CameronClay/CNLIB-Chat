@@ -1,3 +1,4 @@
+// Client version of Windows.cpp
 #include "TCPClient.h"
 #include "File.h"
 #include "FileTransfer.h""
@@ -16,6 +17,7 @@
 #include "HeapAlloc.h"
 #include "UPNP.h"
 #include "Messages.h"
+#include "Whiteboard.h"
 
 #pragma comment(lib, "comctl32.lib")
 
@@ -23,7 +25,7 @@
 const float APPVERSION = .002f;
 const float CONFIGVERSION = .002f;
 
-
+#pragma region WindowClassIDs
 #define ID_SERV_CONNECT 0
 #define ID_SERV_MANAGE 1
 #define ID_SERV_DISCONNECT 2
@@ -42,13 +44,19 @@ const float CONFIGVERSION = .002f;
 #define ID_SEND_FOLDER 10
 #define ID_KICK 11
 
-
 #define ID_TIMER_INACTIVE 0
+
+#define ID_WHITEBOARD_MENU 100
+#define ID_WHITEBOARD_SETTINGS 101
+#define ID_WHITEBOARD_WINDOW 102
+
+#pragma endregion
 
 #define INACTIVE_TIME 15 * 1000
 #define PING_FREQ 2.0f
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK WbProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK ConnectProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK ManageProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK AuthenticateProc(HWND, UINT, WPARAM, LPARAM);
@@ -58,7 +66,7 @@ INT_PTR CALLBACK Opt_FilesProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK RequestProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK TimerProc(HWND, UINT, WPARAM, LPARAM);
 
-
+#pragma region GlobalVarDeclarations
 HINSTANCE hInst;
 HWND hMainWind;
 
@@ -92,10 +100,20 @@ TCHAR folderPath[MAX_PATH + 30];
 
 std::list<std::tstring> servList;
 
+// Whiteboard declarations
+TCHAR wbClassName[] = _T("Whiteboard");
+TCHAR wbWindowName[] = _T("Client Whiteboard View");
+ATOM wbAtom = NULL;
+static HMENU wbMenu = nullptr;
+static HWND wbHandle = nullptr;
+Whiteboard *pWhiteboard = nullptr;
+// Whiteboard declarations end
+
 static HWND textDisp, textInput, listClients;
 static HMENU main, file, options;
 
 std::tstring user;
+#pragma endregion
 
 void RecalcSizeVars(UINT width, UINT height)
 {
@@ -454,8 +472,6 @@ void ReceiveCanceledHandler(std::tstring& user)
 	MessageBox(hMainWind, (std::tstring(_T("File transfer canceled by either you or ")) + user).c_str(), _T("ERROR"), MB_ICONERROR);
 }
 
-
-
 void WinMainInit()
 {
 	FileMisc::GetFolderPath(CSIDL_APPDATA, folderPath);
@@ -564,265 +580,339 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	static HWND buttonEnter;
 	const UINT nDialogs = 3;
 	static PROPSHEETPAGE psp[nDialogs];
+	if (wbHandle && (wbHandle == hWnd))
+	{
+		int a = 0;
+	}
+
 	switch (message)
 	{
-		case WM_COMMAND:
+	case WM_COMMAND:
+	{
+		switch (LOWORD(wParam))
 		{
-			switch (LOWORD(wParam))
+		case ID_TEXTBOX_INPUT:
+			switch (HIWORD(wParam))
 			{
-			case ID_TEXTBOX_INPUT:
-				switch (HIWORD(wParam))
-				{
-				case EN_CHANGE:
-					if (GetWindowTextLength(textInput) != 0)
-						EnableWindow(buttonEnter, TRUE);
-					else
-						EnableWindow(buttonEnter, FALSE);
-					break;
-				}
-				break;
-			case ID_SERV_CONNECT:
-				DialogBox(hInst, MAKEINTRESOURCE(CONNECT), hWnd, ConnectProc);
-				break;
-
-			case ID_SERV_DISCONNECT:
-				Disconnect();
-				break;
-
-			case ID_SERV_MANAGE:
-				DialogBox(hInst, MAKEINTRESOURCE(MANAGE), hWnd, ManageProc);
-				break;
-
-			case ID_VIEW_OPTIONS:
-			{
-				PROPSHEETHEADER psh{ sizeof(PROPSHEETHEADER) };
-				psh.dwFlags = PSH_PROPSHEETPAGE | PSH_NOAPPLYNOW;
-				psh.hwndParent = hWnd;
-				psh.pszCaption = _T("Options");
-				psh.nPages = nDialogs;
-				psh.ppsp = psp;
-				PropertySheet(&psh);
-			}
-				break;
-
-			case ID_VIEW_LOGS:
-
-				break;
-
-			case ID_BUTTON_ENTER:
-			case ENTER:
-			{
-				if (GetWindowTextLength(textInput) == 0) break;
-
-				if (!client->Connected())
-				{
-					MessageBox(hMainWind, _T("Must be connected to server"), _T("ERROR"), MB_ICONERROR);
-					break;
-				}
-				const UINT len = SendMessage(textInput, WM_GETTEXTLENGTH, 0, 0) + 1;
-				const UINT nBytes = (len * sizeof(TCHAR)) + MSG_OFFSET;
-				char* msg = alloc<char>(nBytes);
-				msg[0] = TYPE_DATA;
-				msg[1] = MSG_DATA_TEXT;
-				SendMessage(textInput, WM_GETTEXT, len, (LPARAM)&msg[MSG_OFFSET]);
-				SendMessage(textInput, WM_SETTEXT, 0, (LPARAM)_T(""));
-				EnableWindow(buttonEnter, false);
-
-				UINT nBy;
-				TCHAR* dispMsg = FormatText((BYTE*)&msg[MSG_OFFSET], nBytes - MSG_OFFSET, user, nBy, opts->TimeStamps());
-				DispText((BYTE*)dispMsg, nBy);
-				dealloc(dispMsg);
-
-				HANDLE hnd = client->SendServData(msg, nBytes);
-				TCPClient::WaitAndCloseHandle(hnd);
-				dealloc(msg);
+			case EN_CHANGE:
+				if (GetWindowTextLength(textInput) != 0)
+					EnableWindow(buttonEnter, TRUE);
+				else
+					EnableWindow(buttonEnter, FALSE);
 				break;
 			}
+			break;
+		case ID_SERV_CONNECT:
+			DialogBox(hInst, MAKEINTRESOURCE(CONNECT), hWnd, ConnectProc);
+			break;
 
-			case ID_SEND_FILE:
+		case ID_SERV_DISCONNECT:
+			Disconnect();
+			break;
+
+		case ID_SERV_MANAGE:
+			DialogBox(hInst, MAKEINTRESOURCE(MANAGE), hWnd, ManageProc);
+			break;
+
+		case ID_VIEW_OPTIONS:
+		{
+			PROPSHEETHEADER psh{ sizeof(PROPSHEETHEADER) };
+			psh.dwFlags = PSH_PROPSHEETPAGE | PSH_NOAPPLYNOW;
+			psh.hwndParent = hWnd;
+			psh.pszCaption = _T("Options");
+			psh.nPages = nDialogs;
+			psh.ppsp = psp;
+			PropertySheet(&psh);
+		}
+		break;
+
+		case ID_VIEW_LOGS:
+
+			break;
+
+		case ID_BUTTON_ENTER:
+		case ENTER:
+		{
+			if (GetWindowTextLength(textInput) == 0) break;
+
+			if (!client->Connected())
 			{
-				const UINT i = SendMessage(listClients, LB_GETCURSEL, 0, 0);
-				const UINT len = SendMessage(listClients, LB_GETTEXTLEN, i, 0);
-				fileSend->GetUser().resize(len);
-				SendMessage(listClients, LB_GETTEXT, i, (LPARAM)&fileSend->GetUser()[0]);
-				if (fileSend->GetUser().compare(user) == 0)
+				MessageBox(hMainWind, _T("Must be connected to server"), _T("ERROR"), MB_ICONERROR);
+				break;
+			}
+			const UINT len = SendMessage(textInput, WM_GETTEXTLENGTH, 0, 0) + 1;
+			const UINT nBytes = (len * sizeof(TCHAR)) + MSG_OFFSET;
+			char* msg = alloc<char>(nBytes);
+			msg[0] = TYPE_DATA;
+			msg[1] = MSG_DATA_TEXT;
+			SendMessage(textInput, WM_GETTEXT, len, (LPARAM)&msg[MSG_OFFSET]);
+			SendMessage(textInput, WM_SETTEXT, 0, (LPARAM)_T(""));
+			EnableWindow(buttonEnter, false);
+
+			UINT nBy;
+			TCHAR* dispMsg = FormatText((BYTE*)&msg[MSG_OFFSET], nBytes - MSG_OFFSET, user, nBy, opts->TimeStamps());
+			DispText((BYTE*)dispMsg, nBy);
+			dealloc(dispMsg);
+
+			HANDLE hnd = client->SendServData(msg, nBytes);
+			TCPClient::WaitAndCloseHandle(hnd);
+			dealloc(msg);
+			break;
+		}
+
+		case ID_SEND_FILE:
+		{
+			const UINT i = SendMessage(listClients, LB_GETCURSEL, 0, 0);
+			const UINT len = SendMessage(listClients, LB_GETTEXTLEN, i, 0);
+			fileSend->GetUser().resize(len);
+			SendMessage(listClients, LB_GETTEXT, i, (LPARAM)&fileSend->GetUser()[0]);
+			if (fileSend->GetUser().compare(user) == 0)
+			{
+				MessageBox(hMainWind, _T("One does not simply send files to ones self"), _T("ERROR"), MB_ICONERROR);
+				break;
+			}
+
+			TCHAR buffer[MAX_PATH];
+			TCHAR path[MAX_PATH];
+			if (!FileMisc::BrowseFiles(_T("Browse files"), buffer, hWnd))
+				break;
+
+			_tcsncpy(path, buffer, _tcslen(buffer) + 1);
+			PathRemoveFileSpec(path);
+			fileSend->SetFullPathSrc(std::tstring(path) + _T("\\"));
+
+			FileMisc::FileData data;
+			File file(buffer, FILE_GENERIC_READ);
+			data.dateModified = file.GetDate();
+			data.size = file.GetSize();
+			PathStripPath(buffer);
+			data.fileName = buffer;
+			file.Close();
+
+			fileSend->GetList().push_back(data);
+
+			fileSend->RequestTransfer();
+			break;
+		}
+
+		case ID_SEND_FOLDER:
+		{
+			const UINT i = SendMessage(listClients, LB_GETCURSEL, 0, 0);
+			const UINT len = SendMessage(listClients, LB_GETTEXTLEN, i, 0);
+			fileSend->GetUser().resize(len);
+			SendMessage(listClients, LB_GETTEXT, i, (LPARAM)&fileSend->GetUser()[0]);
+			if (fileSend->GetUser().compare(user) == 0)
+			{
+				MessageBox(hMainWind, _T("One does not simply send files to ones self"), _T("ERROR"), MB_ICONERROR);
+				break;
+			}
+
+			TCHAR buffer[MAX_PATH];
+			if (!FileMisc::BrowseFolder(_T("Browse directories"), buffer, hWnd))
+				break;
+
+			auto& list = fileSend->GetList();
+
+			FileMisc::GetFileNameList(buffer, NULL, list);
+			if (!list.empty())
+			{
+				std::tstring path = buffer;
+				const UINT pos = path.find_last_of(_T("\\"));
+				fileSend->SetFullPathSrc(path.substr(0, pos) + _T("\\"));
+				std::tstring lastPath = path.substr(pos + 1) + _T("\\");
+				for (auto& i : list)
 				{
-					MessageBox(hMainWind, _T("One does not simply send files to ones self"), _T("ERROR"), MB_ICONERROR);
-					break;
+					i.fileName.insert(0, lastPath);
 				}
-
-				TCHAR buffer[MAX_PATH];
-				TCHAR path[MAX_PATH];
-				if (!FileMisc::BrowseFiles(_T("Browse files"), buffer, hWnd))
-					break;
-
-				_tcsncpy(path, buffer, _tcslen(buffer) + 1);
-				PathRemoveFileSpec(path);
-				fileSend->SetFullPathSrc(std::tstring(path) + _T("\\"));
-
-				FileMisc::FileData data;
-				File file(buffer, FILE_GENERIC_READ);
-				data.dateModified = file.GetDate();
-				data.size = file.GetSize();
-				PathStripPath(buffer);
-				data.fileName = buffer;
-				file.Close();
-
-				fileSend->GetList().push_back(data);
 
 				fileSend->RequestTransfer();
+			}
+			break;
+		}
+
+		case ID_KICK:
+		{
+			const UINT i = SendMessage(listClients, LB_GETCURSEL, 0, 0);
+			const UINT len = SendMessage(listClients, LB_GETTEXTLEN, i, 0);
+			std::tstring userKick;
+
+			userKick.resize(len);
+			SendMessage(listClients, LB_GETTEXT, i, (LPARAM)&userKick[0]);
+			if (userKick.compare(user) == 0)
+			{
+				MessageBox(hMainWind, _T("One does not simply kick ones self"), _T("ERROR"), MB_ICONERROR);
 				break;
 			}
 
-			case ID_SEND_FOLDER:
-			{
-				const UINT i = SendMessage(listClients, LB_GETCURSEL, 0, 0);
-				const UINT len = SendMessage(listClients, LB_GETTEXTLEN, i, 0);
-				fileSend->GetUser().resize(len);
-				SendMessage(listClients, LB_GETTEXT, i, (LPARAM)&fileSend->GetUser()[0]);
-				if (fileSend->GetUser().compare(user) == 0)
+			client->SendMsg(userKick, TYPE_ADMIN, MSG_ADMIN_KICK);
+			break;
+		}
+
+		case ID_WHITEBOARD_MENU:
+		{
+			WNDCLASS wc = {};
+			wc.hInstance = hInst;
+			wc.lpfnWndProc = WbProc;
+			wc.lpszClassName = wbClassName;
+			wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+			wc.lpszMenuName = MAKEINTRESOURCE(ID_WHITEBOARD_WINDOW);
+
+			wbAtom = RegisterClass(&wc);
+
+			// Test whether the whiteboard handle is valid so that it can 
+			// safely recreated if it gets closed
+			BOOL isWindow = IsWindow(wbHandle);
+
+			if (!isWindow)
+			{				
+				DWORD style =
+					WS_CHILD |			// Child window that
+					WS_POPUP |			// Is not contained in parent window
+					WS_SYSMENU |		// Shows close button
+					WS_CAPTION |		// Shows the title bar
+					WS_MINIMIZEBOX;		// Shows the minimize button
+
+				wbHandle = CreateWindowEx(
+					NULL,
+					wbClassName,
+					L"Whiteboard Client View",
+					style,
+					100, 100, 
+					800, 600, 
+					hWnd, NULL, 
+					hInst, nullptr);
+
+				if (!wbHandle)
 				{
-					MessageBox(hMainWind, _T("One does not simply send files to ones self"), _T("ERROR"), MB_ICONERROR);
-					break;
-				}
+					DWORD err = GetLastError();
 
-				TCHAR buffer[MAX_PATH];
-				if (!FileMisc::BrowseFolder(_T("Browse directories"), buffer, hWnd))
-					break;
-
-				auto& list = fileSend->GetList();
-
-				FileMisc::GetFileNameList(buffer, NULL, list);
-				if(!list.empty())
-				{
-					std::tstring path = buffer;
-					const UINT pos = path.find_last_of(_T("\\"));
-					fileSend->SetFullPathSrc(path.substr(0, pos) + _T("\\"));
-					std::tstring lastPath = path.substr(pos + 1) + _T("\\");
-					for(auto& i : list)
+					if (err > 0)
 					{
-						i.fileName.insert(0, lastPath);
+						TCHAR errMsg[128] = {};
+						FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, err, NULL, errMsg, 128, nullptr);
+						MessageBox(NULL, errMsg, L"Could not create whiteboard because...", MB_OK);
+						PostQuitMessage(-1);
 					}
-
-					fileSend->RequestTransfer();
 				}
-				break;
 			}
 
-			case ID_KICK:
-			{
-				const UINT i = SendMessage(listClients, LB_GETCURSEL, 0, 0);
-				const UINT len = SendMessage(listClients, LB_GETTEXTLEN, i, 0);
-				std::tstring userKick;
+			BOOL isShown = ShowWindow(wbHandle, SW_SHOW);
 
-				userKick.resize(len);
-				SendMessage(listClients, LB_GETTEXT, i, (LPARAM)&userKick[0]);
-				if (userKick.compare(user) == 0)
-				{
-					MessageBox(hMainWind, _T("One does not simply kick ones self"), _T("ERROR"), MB_ICONERROR);
-					break;
-				}
-
-				client->SendMsg(userKick, TYPE_ADMIN, MSG_ADMIN_KICK);
-				break;
-			}
-
-				
-			default:
-				return DefWindowProc(hWnd, message, wParam, lParam);
-			}
 			break;
 		}
-		case WM_CREATE:
+
+		default:
+			return DefWindowProc(hWnd, message, wParam, lParam);
+		}
+		break;
+	}
+	case WM_CREATE:
+	{
+		main = CreateMenu();
+
+		file = CreateMenu();
+		AppendMenu(main, MF_POPUP, (UINT_PTR)file, _T("File"));
+		AppendMenu(file, MF_STRING, ID_SERV_CONNECT, _T("Connect"));
+		AppendMenu(file, MF_STRING | MF_GRAYED, ID_SERV_DISCONNECT, _T("Disconnect"));
+		AppendMenu(file, MF_STRING, ID_SERV_MANAGE, _T("Manage"));
+
+		options = CreateMenu();
+		AppendMenu(main, MF_POPUP, (UINT_PTR)options, _T("Options"));
+		AppendMenu(options, MF_STRING, ID_VIEW_OPTIONS, _T("Options"));
+		AppendMenu(options, MF_STRING, ID_VIEW_LOGS, _T("Logs"));
+
+		wbMenu = CreateMenu();
+		AppendMenu(main, MF_STRING, ID_WHITEBOARD_MENU, _T("Whiteboard"));
+
+		SetMenu(hWnd, main);
+
+
+		textDisp = CreateWindow(WC_EDIT, NULL, WS_CHILD | WS_VISIBLE | ES_MULTILINE | WS_BORDER | ES_READONLY | WS_VSCROLL, 0, 0, left, top, hWnd, (HMENU)ID_TEXTBOX_DISPLAY, hInst, 0);
+		textInput = CreateWindow(WC_EDIT, NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_MULTILINE | WS_VSCROLL, 0, top, left, topLen, hWnd, (HMENU)ID_TEXTBOX_INPUT, hInst, NULL);
+		listClients = CreateWindow(WC_LISTBOX, NULL, WS_CHILD | WS_VISIBLE | LBS_STANDARD, left, 0, leftLen, top, hWnd, (HMENU)ID_LISTBOX_CLIENTS, hInst, NULL);
+
+		buttonEnter = CreateWindow(WC_BUTTON, _T("Enter"), WS_CHILD | WS_VISIBLE | WS_DISABLED, left, top, leftLen, topLen, hWnd, (HMENU)ID_BUTTON_ENTER, hInst, NULL);
+
+		for (UINT i = 0; i < nDialogs; i++)
 		{
-			main = CreateMenu();
-
-			file = CreateMenu();
-			AppendMenu(main, MF_POPUP, (UINT_PTR)file, _T("File"));
-			AppendMenu(file, MF_STRING, ID_SERV_CONNECT, _T("Connect"));
-			AppendMenu(file, MF_STRING | MF_GRAYED, ID_SERV_DISCONNECT, _T("Disconnect"));
-			AppendMenu(file, MF_STRING, ID_SERV_MANAGE, _T("Manage"));
-
-			options = CreateMenu();
-			AppendMenu(main, MF_POPUP, (UINT_PTR)options, _T("Options"));
-			AppendMenu(options, MF_STRING, ID_VIEW_OPTIONS, _T("Options"));
-			AppendMenu(options, MF_STRING, ID_VIEW_LOGS, _T("Logs"));
-
-			SetMenu(hWnd, main);
-
-
-			textDisp = CreateWindow(WC_EDIT, NULL, WS_CHILD | WS_VISIBLE | ES_MULTILINE | WS_BORDER | ES_READONLY | WS_VSCROLL, 0, 0, left, top, hWnd, (HMENU)ID_TEXTBOX_DISPLAY, hInst, 0);
-			textInput = CreateWindow(WC_EDIT, NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_MULTILINE | WS_VSCROLL, 0, top, left, topLen, hWnd, (HMENU)ID_TEXTBOX_INPUT, hInst, NULL);
-			listClients = CreateWindow(WC_LISTBOX, NULL, WS_CHILD | WS_VISIBLE | LBS_STANDARD, left, 0, leftLen, top, hWnd, (HMENU)ID_LISTBOX_CLIENTS, hInst, NULL);
-
-			buttonEnter = CreateWindow(WC_BUTTON, _T("Enter"), WS_CHILD | WS_VISIBLE | WS_DISABLED, left, top, leftLen, topLen, hWnd, (HMENU)ID_BUTTON_ENTER, hInst, NULL);
-
-			for (UINT i = 0; i < nDialogs; i++)
-			{
-				psp[i] = { sizeof(PROPSHEETPAGE) };
-				psp[i].dwFlags = PSP_DEFAULT;
-			}
-			psp[0].pszTemplate = MAKEINTRESOURCE(TAB_GENERAL);
-			psp[0].pfnDlgProc = Opt_GeneralProc;
-
-			psp[1].pszTemplate = MAKEINTRESOURCE(TAB_TEXT);
-			psp[1].pfnDlgProc = Opt_TextProc;
-
-			psp[2].pszTemplate = MAKEINTRESOURCE(TAB_FILES);
-			psp[2].pfnDlgProc = Opt_FilesProc;
-
-			break;
+			psp[i] = { sizeof(PROPSHEETPAGE) };
+			psp[i].dwFlags = PSP_DEFAULT;
 		}
+		psp[0].pszTemplate = MAKEINTRESOURCE(TAB_GENERAL);
+		psp[0].pfnDlgProc = Opt_GeneralProc;
 
-		case WM_SIZE:
-		{
-			RecalcSizeVars(LOWORD(lParam), HIWORD(lParam));
-			MoveWindow(textDisp, 0, 0, left, top, TRUE);
-			MoveWindow(textInput, 0, top, left, topLen, TRUE);
-			MoveWindow(listClients, left, 0, leftLen, top, TRUE);
-			MoveWindow(buttonEnter, left, top, leftLen, topLen, TRUE);
+		psp[1].pszTemplate = MAKEINTRESOURCE(TAB_TEXT);
+		psp[1].pfnDlgProc = Opt_TextProc;
 
-			break;
-		}
+		psp[2].pszTemplate = MAKEINTRESOURCE(TAB_FILES);
+		psp[2].pfnDlgProc = Opt_FilesProc;
+
+		break;
+	}
+
+	case WM_SIZE:
+	{
+		RecalcSizeVars(LOWORD(lParam), HIWORD(lParam));
+		MoveWindow(textDisp, 0, 0, left, top, TRUE);
+		MoveWindow(textInput, 0, top, left, topLen, TRUE);
+		MoveWindow(listClients, left, 0, leftLen, top, TRUE);
+		MoveWindow(buttonEnter, left, top, leftLen, topLen, TRUE);
+
+		break;
+	}
 
 	case WM_PARENTNOTIFY:
-	switch (LOWORD(wParam))
-	{
-	case WM_RBUTTONDOWN: 
-	{
-		POINT pt{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-		if (ChildWindowFromPoint(hWnd, pt) == listClients)
+		if ((HWND)lParam == wbHandle)
 		{
-			ClientToScreen(hWnd, &pt);
-			ScreenToClient(listClients, &pt);
-			UINT item = SendMessage(listClients, LB_ITEMFROMPOINT, 0, MAKELPARAM(pt.x, pt.y));
-			if (!HIWORD(item) && LOWORD(item) != LB_ERR)
-			{
-				SendMessage(listClients, LB_SETCURSEL, item, 0);
-				HMENU hPop = CreatePopupMenu();
-				HMENU send = CreateMenu();
-				HMENU admin = CreateMenu();
-
-				AppendMenu(send, MF_STRING | (fileSend->Running() ? MF_GRAYED : MF_ENABLED), ID_SEND_FILE, _T("Send File"));
-				AppendMenu(send, MF_STRING | (fileSend->Running() ? MF_GRAYED : MF_ENABLED), ID_SEND_FOLDER, _T("Send Folder"));
-
-				AppendMenu(admin, MF_STRING, ID_KICK, _T("Kick"));
-
-				AppendMenu(hPop, MF_POPUP, (UINT_PTR)send, _T("Send"));
-				AppendMenu(hPop, MF_POPUP, (UINT_PTR)admin, _T("Admin"));
-
-				ClientToScreen(listClients, &pt);
-				TrackPopupMenu(hPop, 0, pt.x, pt.y, 0, hWnd, NULL);
-				DestroyMenu(hPop);
-			}
+			int a = 0;
 		}
-	}	break;
+		switch (LOWORD(wParam))
+		{
+		case WM_CREATE:
+			break;
+		case WM_RBUTTONDOWN:
+		{
+			POINT pt{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+			if (ChildWindowFromPoint(hWnd, pt) == listClients)
+			{
+				ClientToScreen(hWnd, &pt);
+				ScreenToClient(listClients, &pt);
+				UINT item = SendMessage(listClients, LB_ITEMFROMPOINT, 0, MAKELPARAM(pt.x, pt.y));
+				if (!HIWORD(item) && LOWORD(item) != LB_ERR)
+				{
+					SendMessage(listClients, LB_SETCURSEL, item, 0);
+					HMENU hPop = CreatePopupMenu();
+					HMENU send = CreateMenu();
+					HMENU admin = CreateMenu();
 
-	default:
-		return DefWindowProc(hWnd, message, wParam, lParam);
-	}
-	break;
+					AppendMenu(send, MF_STRING | (fileSend->Running() ? MF_GRAYED : MF_ENABLED), ID_SEND_FILE, _T("Send File"));
+					AppendMenu(send, MF_STRING | (fileSend->Running() ? MF_GRAYED : MF_ENABLED), ID_SEND_FOLDER, _T("Send Folder"));
 
+					AppendMenu(admin, MF_STRING, ID_KICK, _T("Kick"));
+
+					AppendMenu(hPop, MF_POPUP, (UINT_PTR)send, _T("Send"));
+					AppendMenu(hPop, MF_POPUP, (UINT_PTR)admin, _T("Admin"));
+
+					ClientToScreen(listClients, &pt);
+					TrackPopupMenu(hPop, 0, pt.x, pt.y, 0, hWnd, NULL);
+					DestroyMenu(hPop);
+				}
+			}
+		} // case WM_RBUTTONDOWN
+		break;
+		case WM_NCCREATE:
+
+		case WM_DESTROY:
+			if ((HWND)lParam == wbHandle)
+			{
+				wbHandle = nullptr;
+			}
+			break;
+		default:
+			return DefWindowProc(hWnd, message, wParam, lParam);
+			
+		}
+		return 0;
 	case WM_ACTIVATE:
 		if (LOWORD(wParam) == WA_ACTIVE || LOWORD(wParam) == WA_CLICKACTIVE)
 			SetFocus(textInput);
@@ -834,12 +924,54 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		PostQuitMessage(0);
 		break;
 
-
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
 
 	return 0;
+}
+
+LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	LRESULT result = 0;
+	struct Mouse
+	{
+		int x, y;
+		bool lPress, rPress;
+	}mouse;
+
+	switch (message)
+	{
+	case WM_LBUTTONDOWN:
+		mouse.x = GET_X_LPARAM(lParam);
+		mouse.y = GET_Y_LPARAM(lParam);
+		
+		mouse.lPress = true;
+		mouse.rPress = false;
+		if (client->Connected())
+		{
+			client->SendServData((char*)&mouse, sizeof(Mouse));
+		}
+		break;
+
+	case WM_RBUTTONDOWN:
+		mouse.x = GET_X_LPARAM(lParam);
+		mouse.y = GET_Y_LPARAM(lParam);
+
+		mouse.lPress = false;
+		mouse.rPress = true;
+		break;
+
+	case WM_DESTROY:
+		wbHandle = nullptr;
+		UnregisterClass((LPCWSTR)&wbAtom, hInst);
+		break;
+
+	default:
+		result = DefWindowProc(hWnd, message, wParam, lParam);
+	}
+
+	return result;
 }
 
 INT_PTR CALLBACK ConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
