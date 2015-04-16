@@ -164,6 +164,7 @@
     <ClCompile Include="Windows.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Common\DebugHelper.h" />
     <ClInclude Include="..\Common\File.h" />
     <ClInclude Include="..\Common\Format.h" />
     <ClInclude Include="..\Common\HeapAlloc.h" />

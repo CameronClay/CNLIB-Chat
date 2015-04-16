@@ -1,7 +1,7 @@
 // Client version of Windows.cpp
 #include "TCPClient.h"
 #include "File.h"
-#include "FileTransfer.h""
+#include "FileTransfer.h"
 
 #include <windows.h>
 #include <windowsx.h>
@@ -17,7 +17,10 @@
 #include "HeapAlloc.h"
 #include "UPNP.h"
 #include "Messages.h"
+
 #include "Whiteboard.h"
+#include "..\\Common\\Mouse.h"
+#include "..\\Common\\DebugHelper.h"
 
 #pragma comment(lib, "comctl32.lib")
 
@@ -48,7 +51,6 @@ const float CONFIGVERSION = .002f;
 
 #define ID_WHITEBOARD_MENU 100
 #define ID_WHITEBOARD_SETTINGS 101
-#define ID_WHITEBOARD_WINDOW 102
 
 #pragma endregion
 
@@ -108,6 +110,10 @@ static HMENU wbMenu = nullptr;
 static HWND wbHandle = nullptr;
 Whiteboard *pWhiteboard = nullptr;
 // Whiteboard declarations end
+
+// Mouse declaration
+MouseServer mServ;
+// Mouse declaration end
 
 static HWND textDisp, textInput, listClients;
 static HMENU main, file, options;
@@ -183,251 +189,260 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 
 	switch (type)
 	{
-	case TYPE_PING:
-	{
-		switch(msg)
+		case TYPE_PING:
 		{
-		case MSG_PING:
-			clint.Ping();
-			break;
-		}
-		break;
-	}//TYPE_PING
-	case TYPE_CHANGE:
-	{
-		switch(msg)
-		{
-		case MSG_SERVERFULL:
-		{
-			Flash();
-			MessageBox(hMainWind, _T("Server is full!"), _T("ERROR"), MB_ICONERROR);
-			Disconnect();
-			break;
-		}
-		case MSG_CONNECT:
-		{
-			UINT nBy = 0;
-			TCHAR* buffer = FormatText(dat, nBytes, nBy, opts->TimeStamps());
-			DispText((BYTE*)buffer, nBy);
-			dealloc(buffer);
-			std::tstring str = (TCHAR*)dat;
-			const UINT first = str.find(_T("<"), 0) + 1, second = str.find(_T(">"), first), len = second - first;
-			const std::tstring name = str.substr(first, len);
-
-			if(SendMessage(listClients, LB_FINDSTRING, -1, (LPARAM)name.c_str()) == LB_ERR)
-				SendMessage(listClients, LB_ADDSTRING, 0, (LPARAM)name.c_str());
-
-			Flash();
-			break;
-		}
-		case MSG_CONNECTINIT:
-		{
-			if(SendMessage(listClients, LB_FINDSTRING, -1, (LPARAM)dat) == LB_ERR)
-				SendMessage(listClients, LB_ADDSTRING, 0, (LPARAM)dat);
-
-			break;
-		}
-		case MSG_DISCONNECT:
-		{
-			std::tstring str = (TCHAR*)dat;
-			const UINT first = str.find(_T("<"), 0) + 1, second = str.find(_T(">"), first), len = second - first;
-			std::tstring name = str.substr(first, len);
-			UINT item = 0;
-			if(fileReceive->Running())
+			switch(msg)
 			{
-				if(name.compare(fileReceive->GetUser()) == 0)
-				{
-					fileReceive->StopReceive();
-				}
-			}
-			if(fileSend->Running())
-			{
-				if(name.compare(fileSend->GetUser()) == 0)
-				{
-					fileSend->StopSend();	
-					fileSend->RunCanceled();
-				}
-			}
-
-			if((item = SendMessage(listClients, LB_FINDSTRING, -1, (LPARAM)name.c_str())) != LB_ERR)
-				SendMessage(listClients, LB_DELETESTRING, item, 0);
-
-			UINT nBy = 0;
-			TCHAR* buffer = FormatText(dat, nBytes, nBy, opts->TimeStamps());
-			DispText((BYTE*)buffer, nBy);
-			dealloc(buffer);
-			Flash();
-			break;
-		}
-		}
-		break;
-	}//TYPE_CHANGE
-	case TYPE_DATA:
-	{
-		switch (msg)
-		{
-		case MSG_DATA_TEXT:
-		{
-			UINT nBy = 0;
-			TCHAR* buffer = FormatText(dat, nBytes, nBy, opts->TimeStamps());
-			DispText((BYTE*)buffer, nBy);
-			dealloc(buffer);
-			Flash();
-			break;
-		}
-		}
-		break;
-	}//TYPE_DATA
-    case TYPE_RESPONSE:
-	{
-		switch (msg)
-		{
-		case MSG_RESPONSE_AUTH_DECLINED:
-		{
-			EnableWindow(hMainWind, TRUE);
-			MessageBox(hMainWind, _T("Invalid username/password or username is already taken"), _T("ERROR"), MB_ICONERROR);
-			Disconnect();
-			break;
-		}
-
-		case MSG_RESPONSE_AUTH_CONFIRMED:
-		{
-			SendMessage(listClients, LB_ADDSTRING, 0, (LPARAM)user.c_str());
-			EnableWindow(hMainWind, TRUE);
-			MessageBox(hMainWind, _T("Success"), _T("Success"), MB_OK);
-			break;
-		}
-
-		case MSG_RESPONSE_TRANSFER_DECLINED:
-		{
-			fileSend->StopSend();
-
-			TCHAR buffer[255];
-			_stprintf(buffer, _T("%s has declined your transfer request!"), dat);
-			MessageBox(hMainWind, buffer, _T("DECLINED"), MB_ICONERROR);
-			break;
-		}
-
-		case MSG_RESPONSE_TRANSFER_CONFIRMED:
-		{
-			TCHAR buffer[255];
-			_stprintf(buffer, _T("%s has confirmed your transfer request!"), dat);
-			MessageBox(hMainWind, buffer, _T("Success"), MB_OK);
-			fileSend->StartSend();
-			break;
-		}
-		}
-		break;
-	}//TYPE_RESPONSE
-	case TYPE_FILE:
-	{
-		switch (msg)
-		{
-		case MSG_FILE_LIST:
-		{
-			fileReceive->RecvFileNameList(dat, nBytes, opts->GetDownloadPath());
-			break;
-		}
-		case MSG_FILE_DATA:
-		{
-			fileReceive->RecvFile(dat, nBytes);
-			break;
-		}
-		case MSG_FILE_SEND_CANCELED:
-		{
-			fileReceive->StopReceive();
-			fileReceive->RunCanceled();
-			break;
-		}
-		case MSG_FILE_RECEIVE_CANCELED:
-		{
-			fileSend->StopSend();
-			fileSend->RunCanceled();
-		}
-		}
-		break;
-	}//TYPE_FILE
-    case TYPE_REQUEST:
-	{
-		switch (msg)
-		{
-		case MSG_REQUEST_TRANSFER:
-		{
-			const UINT len = *(UINT*)dat;
-			fileReceive->GetUser() = std::tstring((TCHAR*)&(dat[sizeof(UINT)]), len - 1);
-			fileReceive->SetSize( *(long double*)&(dat[sizeof(UINT) + (len * sizeof(TCHAR))]));
-			if (fileReceive->Running())
-			{
-				client->SendMsg(fileReceive->GetUser(), TYPE_RESPONSE, MSG_RESPONSE_TRANSFER_DECLINED);
+			case MSG_PING:
+				clint.Ping();
 				break;
 			}
-
-			Flash();
-			TCHAR buffer[255];
-			_stprintf(buffer, _T("%s wants to send you %g MB of file(s)"), fileReceive->GetUser().c_str(), fileReceive->GetSize());
-
-			DialogBoxParam(hInst, MAKEINTRESOURCE(REQUEST), hMainWind, RequestProc, (LPARAM)buffer);
 			break;
-		}
-		}
-		break;
-	}//TYPE_REQUEST
-	case TYPE_ADMIN:
-	{
-		switch (msg)
+		}//TYPE_PING
+		case TYPE_CHANGE:
 		{
-		case MSG_ADMIN_NOT:
-		{
-			MessageBox(hMainWind, _T("You are not an admin"), _T("ERROR"), MB_ICONERROR);
-			break;
-		}
-		case MSG_ADMIN_KICK:
-		{
-			if (fileReceive->Running())
+			switch(msg)
 			{
-				fileReceive->StopReceive();
-			}
-			if (fileSend->Running())
+			case MSG_SERVERFULL:
 			{
-				fileSend->StopSend();
+				Flash();
+				MessageBox(hMainWind, _T("Server is full!"), _T("ERROR"), MB_ICONERROR);
+				Disconnect();
+				break;
 			}
+			case MSG_CONNECT:
+			{
+				UINT nBy = 0;
+				TCHAR* buffer = FormatText(dat, nBytes, nBy, opts->TimeStamps());
+				DispText((BYTE*)buffer, nBy);
+				dealloc(buffer);
+				std::tstring str = (TCHAR*)dat;
+				const UINT first = str.find(_T("<"), 0) + 1, second = str.find(_T(">"), first), len = second - first;
+				const std::tstring name = str.substr(first, len);
 
-			Flash();
-			TCHAR buffer[255];
-			_stprintf(buffer, _T("%s has kicked you from the server!"), dat);
-			MessageBox(hMainWind, buffer, _T("Kicked"), MB_ICONERROR);
+				if(SendMessage(listClients, LB_FINDSTRING, -1, (LPARAM)name.c_str()) == LB_ERR)
+					SendMessage(listClients, LB_ADDSTRING, 0, (LPARAM)name.c_str());
 
-			Disconnect();
+				Flash();
+				break;
+			}
+			case MSG_CONNECTINIT:
+			{
+				if(SendMessage(listClients, LB_FINDSTRING, -1, (LPARAM)dat) == LB_ERR)
+					SendMessage(listClients, LB_ADDSTRING, 0, (LPARAM)dat);
+
+				break;
+			}
+			case MSG_DISCONNECT:
+			{
+				std::tstring str = (TCHAR*)dat;
+				const UINT first = str.find(_T("<"), 0) + 1, second = str.find(_T(">"), first), len = second - first;
+				std::tstring name = str.substr(first, len);
+				UINT item = 0;
+				if(fileReceive->Running())
+				{
+					if(name.compare(fileReceive->GetUser()) == 0)
+					{
+						fileReceive->StopReceive();
+					}
+				}
+				if(fileSend->Running())
+				{
+					if(name.compare(fileSend->GetUser()) == 0)
+					{
+						fileSend->StopSend();	
+						fileSend->RunCanceled();
+					}
+				}
+
+				if((item = SendMessage(listClients, LB_FINDSTRING, -1, (LPARAM)name.c_str())) != LB_ERR)
+					SendMessage(listClients, LB_DELETESTRING, item, 0);
+
+				UINT nBy = 0;
+				TCHAR* buffer = FormatText(dat, nBytes, nBy, opts->TimeStamps());
+				DispText((BYTE*)buffer, nBy);
+				dealloc(buffer);
+				Flash();
+				break;
+			}
+			}
 			break;
-		}
-		case MSG_ADMIN_CANNOTKICK:
+		}//TYPE_CHANGE
+		case TYPE_DATA:
 		{
-			MessageBox(hMainWind, _T("You cannot kick an admin!"), _T("ERROR"), MB_ICONERROR);
+			switch (msg)
+			{
+				case MSG_DATA_TEXT:
+				{
+					UINT nBy = 0;
+					TCHAR* buffer = FormatText(dat, nBytes, nBy, opts->TimeStamps());
+					DispText((BYTE*)buffer, nBy);
+					dealloc(buffer);
+					Flash();
+					break;
+				}
+				case MSG_DATA_BITMAP:
+				{
+					pWhiteboard->Render(dat, screenWidth, screenHeight);
+				}
+			}
 			break;
-		}
-		}
-		break;
-	}//TYPE_ADMIN
-	case TYPE_VERSION:
-	{
-		switch (msg)
+		}//TYPE_DATA
+		case TYPE_RESPONSE:
 		{
-		case MSG_VERSION_UPTODATE:
-		{
-			DialogBox(hInst, MAKEINTRESOURCE(AUTHENTICATE), hMainWind, AuthenticateProc);
+			switch (msg)
+			{
+				case MSG_RESPONSE_AUTH_DECLINED:
+				{
+					EnableWindow(hMainWind, TRUE);
+					MessageBox(hMainWind, _T("Invalid username/password or username is already taken"), _T("ERROR"), MB_ICONERROR);
+					Disconnect();
+					break;
+				}
+
+				case MSG_RESPONSE_AUTH_CONFIRMED:
+				{
+					SendMessage(listClients, LB_ADDSTRING, 0, (LPARAM)user.c_str());
+					EnableWindow(hMainWind, TRUE);
+					MessageBox(hMainWind, _T("Success"), _T("Success"), MB_OK);
+					break;
+				}
+
+				case MSG_RESPONSE_TRANSFER_DECLINED:
+				{
+					fileSend->StopSend();
+
+					TCHAR buffer[255];
+					_stprintf(buffer, _T("%s has declined your transfer request!"), dat);
+					MessageBox(hMainWind, buffer, _T("DECLINED"), MB_ICONERROR);
+					break;
+				}
+
+				case MSG_RESPONSE_TRANSFER_CONFIRMED:
+				{
+					TCHAR buffer[255];
+					_stprintf(buffer, _T("%s has confirmed your transfer request!"), dat);
+					MessageBox(hMainWind, buffer, _T("Success"), MB_OK);
+					fileSend->StartSend();
+					break;
+				}
+			}// MSG_RESPONES
+
 			break;
-		}
-		case MSG_VERSION_OUTOFDATE:
+		}//TYPE_RESPONSE
+		case TYPE_FILE:
 		{
-			Flash();
-			MessageBox(hMainWind, _T("Your client's version does not match the server's version"), _T("UPDATE!"), MB_ICONERROR);
-			Disconnect();
+			switch (msg)
+			{
+				case MSG_FILE_LIST:
+				{
+					fileReceive->RecvFileNameList(dat, nBytes, opts->GetDownloadPath());
+					break;
+				}
+				case MSG_FILE_DATA:
+				{
+					fileReceive->RecvFile(dat, nBytes);
+					break;
+				}
+				case MSG_FILE_SEND_CANCELED:
+				{
+					fileReceive->StopReceive();
+					fileReceive->RunCanceled();
+					break;
+				}
+				case MSG_FILE_RECEIVE_CANCELED:
+				{
+					fileSend->StopSend();
+					fileSend->RunCanceled();
+				}
+			}// MSG_FILE
+
 			break;
-		}
-		}
-		break;
-	}//TYPE_VERSION
-	}
+		}//TYPE_FILE
+		case TYPE_REQUEST:
+		{
+			switch (msg)
+			{
+				case MSG_REQUEST_TRANSFER:
+				{
+					const UINT len = *(UINT*)dat;
+					fileReceive->GetUser() = std::tstring((TCHAR*)&(dat[sizeof(UINT)]), len - 1);
+					fileReceive->SetSize( *(long double*)&(dat[sizeof(UINT) + (len * sizeof(TCHAR))]));
+					if (fileReceive->Running())
+					{
+						client->SendMsg(fileReceive->GetUser(), TYPE_RESPONSE, MSG_RESPONSE_TRANSFER_DECLINED);
+						break;
+					}
+
+					Flash();
+					TCHAR buffer[255];
+					_stprintf(buffer, _T("%s wants to send you %g MB of file(s)"), fileReceive->GetUser().c_str(), fileReceive->GetSize());
+
+					DialogBoxParam(hInst, MAKEINTRESOURCE(REQUEST), hMainWind, RequestProc, (LPARAM)buffer);
+					break;
+				}
+			}// MSG_REQUEST
+			break;
+		}//TYPE_REQUEST
+		case TYPE_ADMIN:
+		{
+			switch (msg)
+			{
+				case MSG_ADMIN_NOT:
+				{
+					MessageBox(hMainWind, _T("You are not an admin"), _T("ERROR"), MB_ICONERROR);
+					break;
+				}
+				case MSG_ADMIN_KICK:
+				{
+					if (fileReceive->Running())
+					{
+						fileReceive->StopReceive();
+					}
+					if (fileSend->Running())
+					{
+						fileSend->StopSend();
+					}
+
+					Flash();
+					TCHAR buffer[255];
+					_stprintf(buffer, _T("%s has kicked you from the server!"), dat);
+					MessageBox(hMainWind, buffer, _T("Kicked"), MB_ICONERROR);
+
+					Disconnect();
+					break;
+				}
+				case MSG_ADMIN_CANNOTKICK:
+				{
+					MessageBox(hMainWind, _T("You cannot kick an admin!"), _T("ERROR"), MB_ICONERROR);
+					break;
+				}
+			}// MSG_ADMIN
+
+			break;
+		}//TYPE_ADMIN
+		case TYPE_VERSION:
+		{
+			switch (msg)
+			{
+				case MSG_VERSION_UPTODATE:
+				{
+					DialogBox(hInst, MAKEINTRESOURCE(AUTHENTICATE), hMainWind, AuthenticateProc);
+					break;
+				}
+				case MSG_VERSION_OUTOFDATE:
+				{
+					Flash();
+					MessageBox(hMainWind, _T("Your client's version does not match the server's version"), _T("UPDATE!"), MB_ICONERROR);
+					Disconnect();
+					break;
+				}
+			}// MSG_VERSION
+
+			break;
+		}//TYPE_VERSION
+
+	}// TYPE
 	CoUninitialize();
 }
 
@@ -755,7 +770,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			wc.lpfnWndProc = WbProc;
 			wc.lpszClassName = wbClassName;
 			wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-			wc.lpszMenuName = MAKEINTRESOURCE(ID_WHITEBOARD_WINDOW);
 
 			wbAtom = RegisterClass(&wc);
 
@@ -766,10 +780,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (!isWindow)
 			{				
 				DWORD style =
-					WS_CHILD |			// Child window that
-					WS_POPUP |			// Is not contained in parent window
-					WS_SYSMENU |		// Shows close button
-					WS_CAPTION |		// Shows the title bar
+					WS_CHILD		|	// Child window that
+					WS_POPUP		|	// Is not contained in parent window
+					WS_SYSMENU		|	// Shows close button
+					WS_CAPTION		|	// Shows the title bar
 					WS_MINIMIZEBOX;		// Shows the minimize button
 
 				wbHandle = CreateWindowEx(
@@ -778,21 +792,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					L"Whiteboard Client View",
 					style,
 					100, 100, 
-					800, 600, 
+					screenWidth, screenHeight,	// needs to be whatever gets returned
+												// from DialogBox during creation.
 					hWnd, NULL, 
 					hInst, nullptr);
 
 				if (!wbHandle)
 				{
-					DWORD err = GetLastError();
-
-					if (err > 0)
-					{
-						TCHAR errMsg[128] = {};
-						FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, err, NULL, errMsg, 128, nullptr);
-						MessageBox(NULL, errMsg, L"Could not create whiteboard because...", MB_OK);
-						PostQuitMessage(-1);
-					}
+					CheckForError(L"Whiteboard Window Creation");
 				}
 			}
 
@@ -933,33 +940,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	LRESULT result = 0;
-	struct Mouse
-	{
-		int x, y;
-		bool lPress, rPress;
-	}mouse;
+	LRESULT result = 0;	
 
 	switch (message)
 	{
 	case WM_LBUTTONDOWN:
-		mouse.x = GET_X_LPARAM(lParam);
-		mouse.y = GET_Y_LPARAM(lParam);
-		
-		mouse.lPress = true;
-		mouse.rPress = false;
-		if (client->Connected())
-		{
-			client->SendServData((char*)&mouse, sizeof(Mouse));
-		}
+		mServ.OnLeftPressed(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));		
 		break;
-
 	case WM_RBUTTONDOWN:
-		mouse.x = GET_X_LPARAM(lParam);
-		mouse.y = GET_Y_LPARAM(lParam);
-
-		mouse.lPress = false;
-		mouse.rPress = true;
+		mServ.OnRightPressed(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		break;
+	case WM_LBUTTONUP:
+		mServ.OnLeftReleased(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		break;
+	case WM_RBUTTONUP:
+		mServ.OnRightReleased(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
 
 	case WM_DESTROY:
