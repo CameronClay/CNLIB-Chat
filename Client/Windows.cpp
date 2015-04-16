@@ -283,6 +283,18 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				}
 				case MSG_DATA_BITMAP:
 				{
+					// For now width and height is set to screen size, but will
+					// need to send the rect size.
+					// Maybe a struct for our bitmap type
+					/*
+					struct CBitmap
+					{
+						RECT rect;
+						BYTE *pixels;
+					};
+					Would pass dat and have Whiteboard deconstruct it, decompress 
+					and convert to RGB bitmap then draw
+					*/
 					pWhiteboard->Render(dat, screenWidth, screenHeight);
 				}
 			}
@@ -869,51 +881,37 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 
 	case WM_PARENTNOTIFY:
-		if ((HWND)lParam == wbHandle)
-		{
-			int a = 0;
-		}
 		switch (LOWORD(wParam))
 		{
-		case WM_CREATE:
-			break;
-		case WM_RBUTTONDOWN:
-		{
-			POINT pt{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-			if (ChildWindowFromPoint(hWnd, pt) == listClients)
+			case WM_RBUTTONDOWN:
 			{
-				ClientToScreen(hWnd, &pt);
-				ScreenToClient(listClients, &pt);
-				UINT item = SendMessage(listClients, LB_ITEMFROMPOINT, 0, MAKELPARAM(pt.x, pt.y));
-				if (!HIWORD(item) && LOWORD(item) != LB_ERR)
+				POINT pt{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+				if (ChildWindowFromPoint(hWnd, pt) == listClients)
 				{
-					SendMessage(listClients, LB_SETCURSEL, item, 0);
-					HMENU hPop = CreatePopupMenu();
-					HMENU send = CreateMenu();
-					HMENU admin = CreateMenu();
+					ClientToScreen(hWnd, &pt);
+					ScreenToClient(listClients, &pt);
+					UINT item = SendMessage(listClients, LB_ITEMFROMPOINT, 0, MAKELPARAM(pt.x, pt.y));
+					if (!HIWORD(item) && LOWORD(item) != LB_ERR)
+					{
+						SendMessage(listClients, LB_SETCURSEL, item, 0);
+						HMENU hPop = CreatePopupMenu();
+						HMENU send = CreateMenu();
+						HMENU admin = CreateMenu();
 
-					AppendMenu(send, MF_STRING | (fileSend->Running() ? MF_GRAYED : MF_ENABLED), ID_SEND_FILE, _T("Send File"));
-					AppendMenu(send, MF_STRING | (fileSend->Running() ? MF_GRAYED : MF_ENABLED), ID_SEND_FOLDER, _T("Send Folder"));
+						AppendMenu(send, MF_STRING | (fileSend->Running() ? MF_GRAYED : MF_ENABLED), ID_SEND_FILE, _T("Send File"));
+						AppendMenu(send, MF_STRING | (fileSend->Running() ? MF_GRAYED : MF_ENABLED), ID_SEND_FOLDER, _T("Send Folder"));
 
-					AppendMenu(admin, MF_STRING, ID_KICK, _T("Kick"));
+						AppendMenu(admin, MF_STRING, ID_KICK, _T("Kick"));
 
-					AppendMenu(hPop, MF_POPUP, (UINT_PTR)send, _T("Send"));
-					AppendMenu(hPop, MF_POPUP, (UINT_PTR)admin, _T("Admin"));
+						AppendMenu(hPop, MF_POPUP, (UINT_PTR)send, _T("Send"));
+						AppendMenu(hPop, MF_POPUP, (UINT_PTR)admin, _T("Admin"));
 
-					ClientToScreen(listClients, &pt);
-					TrackPopupMenu(hPop, 0, pt.x, pt.y, 0, hWnd, NULL);
-					DestroyMenu(hPop);
+						ClientToScreen(listClients, &pt);
+						TrackPopupMenu(hPop, 0, pt.x, pt.y, 0, hWnd, NULL);
+						DestroyMenu(hPop);
+					}
 				}
-			}
-		} // case WM_RBUTTONDOWN
-		break;
-		case WM_NCCREATE:
-
-		case WM_DESTROY:
-			if ((HWND)lParam == wbHandle)
-			{
-				wbHandle = nullptr;
-			}
+			} // case WM_RBUTTONDOWN
 			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
