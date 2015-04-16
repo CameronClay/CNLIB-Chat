@@ -156,6 +156,14 @@ void TCPClient::RecvServData()
 	recv = CreateThread(NULL, 0, ReceiveData, this, NULL, NULL);
 }
 
+void TCPClient::SendMsg(char type, char message)
+{
+	char msg[] = { type, message };
+
+	HANDLE hnd = SendServData(msg, MSG_OFFSET);
+	TCPClient::WaitAndCloseHandle(hnd);
+}
+
 void TCPClient::SendMsg(std::tstring& name, char type, char message)
 {
 	const DWORD nBytes = MSG_OFFSET + ((name.size() + 1) * sizeof(TCHAR));
@@ -177,9 +185,7 @@ void TCPClient::WaitAndCloseHandle(HANDLE& hnd)
 
 void TCPClient::Ping()
 {
-	char msg[] = { TYPE_PING, MSG_PING };
-	HANDLE hnd = SendServData(msg, MSG_OFFSET);
-	WaitAndCloseHandle(hnd);
+	SendMsg(TYPE_PING, MSG_PING);
 }
 
 void TCPClient::SetFunction(cfunc function)

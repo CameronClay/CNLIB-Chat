@@ -31,13 +31,6 @@ PingHandler::~PingHandler()
 		inactivityTimer = NULL;
 	}
 
-	if(inactivityThread)
-	{
-		//TerminateThread(inactivityThread, 0);
-		CloseHandle(inactivityThread);
-		inactivityThread = NULL;
-	}
-
 	if(sendPingTimer)
 	{
 		CancelWaitableTimer(sendPingTimer);
@@ -45,9 +38,16 @@ PingHandler::~PingHandler()
 		sendPingTimer = NULL;
 	}
 
+	if(inactivityThread)
+	{
+		TerminateThread(inactivityThread, 0);
+		CloseHandle(inactivityThread);
+		inactivityThread = NULL;
+	}
+
 	if(sendPingThread)
 	{
-		//TerminateThread(sendPingThread, 0);
+		TerminateThread(sendPingThread, 0);
 		CloseHandle(sendPingThread);
 		sendPingThread = NULL;
 	}
@@ -98,6 +98,7 @@ void PingHandler::SetInactivityTimer(TCPServ& serv, Socket& socket, float inacti
 
 		if(sendPingThread)
 		{
+			TerminateThread(sendPingThread, 0);
 			CloseHandle(sendPingThread);
 			sendPingThread = NULL;
 		}

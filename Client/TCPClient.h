@@ -5,6 +5,7 @@
 class TCPClient
 {
 public:
+	//cfunc is a message handler, compression 1-9
 	TCPClient(cfunc func, void(*const disconFunc)(), void* obj, int compression);
 	TCPClient(TCPClient&& client);
 	~TCPClient();
@@ -16,6 +17,8 @@ public:
 	HANDLE SendServData(const char* data, DWORD nBytes);
 	void RecvServData();
 
+	//send msg funtions used for requests, replies ect. they do not send data
+	void SendMsg(char type, char message);
 	void SendMsg(std::tstring& user, char type, char message);
 
 	static void WaitAndCloseHandle(HANDLE& hnd);
