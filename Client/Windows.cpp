@@ -295,7 +295,14 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					Would pass dat and have Whiteboard deconstruct it, decompress 
 					and convert to RGB bitmap then draw
 					*/
-					pWhiteboard->Render(dat, screenWidth, screenHeight);
+					struct CBitmap
+					{
+						RECT rect;
+						BYTE *pixels;
+					}*cBitmap;
+
+					cBitmap = (CBitmap*)dat;
+					pWhiteboard->Frame(cBitmap->rect, cBitmap->pixels);
 				}
 			}
 			break;

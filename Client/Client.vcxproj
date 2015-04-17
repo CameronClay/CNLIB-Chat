@@ -155,6 +155,7 @@
     <ClCompile Include="..\Common\File.cpp" />
     <ClCompile Include="..\Common\Mouse.cpp" />
     <ClCompile Include="..\Common\Socket.cpp" />
+    <ClCompile Include="..\Common\Timer.cpp" />
     <ClCompile Include="..\Common\UPNP.cpp" />
     <ClCompile Include="..\Common\WinFirewall.cpp" />
     <ClCompile Include="FileTransfer.cpp" />
@@ -164,6 +165,7 @@
     <ClCompile Include="Windows.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Common\ColorDef.h" />
     <ClInclude Include="..\Common\DebugHelper.h" />
     <ClInclude Include="..\Common\File.h" />
     <ClInclude Include="..\Common\Format.h" />
@@ -171,6 +173,7 @@
     <ClInclude Include="..\Common\Messages.h" />
     <ClInclude Include="..\Common\Mouse.h" />
     <ClInclude Include="..\Common\Socket.h" />
+    <ClInclude Include="..\Common\Timer.h" />
     <ClInclude Include="..\Common\Typedefs.h" />
     <ClInclude Include="..\Common\UPNP.h" />
     <ClInclude Include="..\Common\WinFirewall.h" />

@@ -1,7 +1,9 @@
 #include "Whiteboard.h"
 
 
-Whiteboard::Whiteboard(TCPServ &serv) :
+Whiteboard::Whiteboard(TCPServ &serv, UINT ScreenWidth, UINT ScreenHeight) :
+screenWidth(ScreenWidth),
+screenHeight(ScreenHeight),
 pFactory(nullptr),
 pWicFactory(nullptr),
 pRenderTarget(nullptr),
@@ -47,6 +49,19 @@ void Whiteboard::GetBitmap()
 	}
 	LeaveCriticalSection(&cs);
 }
+
+void Whiteboard::GetCritSection(CRITICAL_SECTION &critsect)
+{
+	critsect = cs;
+}
+
+void Whiteboard::GetUMap(std::unordered_map<Socket, TCPClient> &um)
+{
+	EnterCriticalSection(&cs);
+	um = clients;
+	LeaveCriticalSection(&cs);
+}
+
 Whiteboard::~Whiteboard()
 {
 	DeleteCriticalSection(&cs);
