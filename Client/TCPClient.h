@@ -1,5 +1,6 @@
 #pragma once
 #include "Socket.h"
+#include "Typedefs.h"
 #include <tchar.h>
 
 class TCPClient
