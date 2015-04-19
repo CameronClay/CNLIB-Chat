@@ -4,8 +4,8 @@
 #include <d2d1.h>
 #include <wincodec.h>
 #include <unordered_map>
-#include "..\\Client\\TCPClient.h"
 #include "..\\Common\\ColorDef.h"
+#include "..\\Common\\Mouse.h"
 
 #pragma comment(lib, "d2d1.lib")
 #pragma comment(lib, "Windowscodecs.lib")
@@ -13,16 +13,20 @@
 class Whiteboard
 {
 public:
+	struct ClientData
+	{
+		Tool tool;								// Enums are sizeof(int) 4 bytes
+		UINT clrIndex;							// Palette color is 4 bytes
+		MouseServer mServ;						// MouseServer is 16 - 32 bytes
+		std::vector<D2D1_POINT_2F> pointList;
+	};
+
 	Whiteboard(TCPServ &serv, UINT ScreenWidth, UINT ScreenHeight);
 	~Whiteboard();
 
-	void Draw(Tool *pTool)
-	{
-		pTool->Draw();
-	}
-	void GetCritSection(CRITICAL_SECTION &cs);
-	void GetUMap(std::unordered_map<Socket, TCPClient> &um);
-	void GetBitmap();
+	void Draw(ClientData *pClientData);
+	CRITICAL_SECTION & GetCritSection();
+	std::unordered_map<Socket, Whiteboard::ClientData> & GetUMap();
 private:
 	UINT screenWidth, screenHeight;
 
@@ -33,5 +37,5 @@ private:
 	IWICBitmap *pWicBitmap;
 
 	CRITICAL_SECTION cs;
-	std::unordered_map<Socket, TCPClient> clients;
+	std::unordered_map<Socket, Whiteboard::ClientData> clients;
 };

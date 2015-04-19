@@ -100,9 +100,9 @@ public:
 private:
 	int x;
 	int y;
+	static const int bufferSize = 4;
 	bool leftIsPressed;
 	bool rightIsPressed;
 	bool isInWindow;
-	static const int bufferSize = 4;
 	std::queue< MouseEvent > buffer;
 };

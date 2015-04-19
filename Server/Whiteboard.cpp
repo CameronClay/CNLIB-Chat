@@ -37,29 +37,19 @@ pWicBitmap(nullptr)
 	InitializeCriticalSection(&cs);
 }
 
-void Whiteboard::GetBitmap()
+void Whiteboard::Draw(ClientData *pClientData)
 {
-	EnterCriticalSection(&cs);
-	UINT width = 0, height = 0;
-	HRESULT hr = pWicBitmap->GetSize(&width, &height);
-	if (SUCCEEDED(hr))
-	{
-		//pWicFactory->CreateBitmapFromSource(pWicBitmap, WICBitmapCacheOnDemand, ppBitmap);
-		
-	}
-	LeaveCriticalSection(&cs);
+
 }
 
-void Whiteboard::GetCritSection(CRITICAL_SECTION &critsect)
+CRITICAL_SECTION &Whiteboard::GetCritSection()
 {
-	critsect = cs;
+	return cs;
 }
 
-void Whiteboard::GetUMap(std::unordered_map<Socket, TCPClient> &um)
+std::unordered_map<Socket, TCPClient> & Whiteboard::GetUMap()
 {
-	EnterCriticalSection(&cs);
-	um = clients;
-	LeaveCriticalSection(&cs);
+	return clients;
 }
 
 Whiteboard::~Whiteboard()
