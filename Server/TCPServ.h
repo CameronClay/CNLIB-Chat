@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <forward_list>
+#include "Socket.h"
 #include "Ping.h"
 
 #define INACTIVETIME 30.0f

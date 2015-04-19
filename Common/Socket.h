@@ -3,6 +3,7 @@
 #include "Typedefs.h"
 #include <ws2tcpip.h>
 #include <Mstcpip.h>
+#include <Windows.h>
 #include <stdlib.h>
 #include <vector>
 #include <functional>

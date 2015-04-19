@@ -1,7 +1,6 @@
 #pragma once
-#include "Tool.h"
 #include "TCPServ.h"
-#include <d2d1.h>
+#include "Tool.h"
 #include <wincodec.h>
 #include <unordered_map>
 #include "..\\Common\\ColorDef.h"
