@@ -13,6 +13,7 @@
 class Whiteboard
 {
 public:
+	Whiteboard(TCPServ &serv, USHORT ScreenWidth, USHORT ScreenHeight);
 	struct ClientData
 	{
 		Tool tool;								// Enums are sizeof(int) 4 bytes
@@ -21,14 +22,16 @@ public:
 		std::vector<D2D1_POINT_2F> pointList;
 	};
 
-	Whiteboard(TCPServ &serv, UINT ScreenWidth, UINT ScreenHeight);
 	~Whiteboard();
 
 	void Draw(ClientData *pClientData);
 	CRITICAL_SECTION & GetCritSection();
-	std::unordered_map<Socket, Whiteboard::ClientData> & GetUMap();
+		
+	
+	CRITICAL_SECTION& GetCritSection();
+	std::unordered_map<Socket, BYTE>& GetMap();
 private:
-	UINT screenWidth, screenHeight;
+	USHORT screenWidth, screenHeight;
 
 	ID2D1Factory *pFactory;
 	ID2D1RenderTarget *pRenderTarget;
@@ -37,5 +40,5 @@ private:
 	IWICBitmap *pWicBitmap;
 
 	CRITICAL_SECTION cs;
-	std::unordered_map<Socket, Whiteboard::ClientData> clients;
+	std::unordered_map<Socket, BYTE> clients;
 };

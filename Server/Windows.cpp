@@ -3,9 +3,9 @@
 #include "File.h"
 #include "WinFirewall.h"
 #include "UPNP.h"
+#include "Format.h"
 #include "HeapAlloc.h"
 #include "Messages.h"
-#include "Format.h"
 #include <assert.h>
 #include <windows.h>
 #include <windowsx.h>
