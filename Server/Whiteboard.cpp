@@ -4,13 +4,13 @@
 Whiteboard::Whiteboard(TCPServ &serv, USHORT ScreenWidth, USHORT ScreenHeight) 
 	:
 screenWidth(ScreenWidth),
-screenHeight(ScreenHeight),
+screenHeight(ScreenHeight)/*,
 pFactory(nullptr),
 pWicFactory(nullptr),
 pRenderTarget(nullptr),
-pWicBitmap(nullptr)
+pWicBitmap(nullptr)*/
 {
-	HRESULT hr = CoCreateInstance(
+	/*HRESULT hr = CoCreateInstance(
 		CLSID_WICImagingFactory,
 		nullptr,
 		CLSCTX_INPROC_SERVER,
@@ -34,14 +34,17 @@ pWicBitmap(nullptr)
 		pWicBitmap, 
 		D2D1::RenderTargetProperties(), 
 		&pRenderTarget
-		);
+		);*/
 	InitializeCriticalSection(&bitmapSect);
 	InitializeCriticalSection(&mapSect);
 }
 
-Whiteboard::Whiteboard(Whiteboard&& wb)//needs defined
+Whiteboard::Whiteboard(Whiteboard &&wb) :
+bitmapSect(wb.bitmapSect),
+mapSect(wb.mapSect),
+clients(wb.clients)
 {
-
+	ZeroMemory(&wb, sizeof(Whiteboard));
 }
 
 void Whiteboard::GetBitmap()
