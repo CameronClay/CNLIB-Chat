@@ -23,6 +23,8 @@
 
 class MouseServer;
 
+typedef unsigned short USHORT;
+
 class MouseEvent
 {
 public:
@@ -42,7 +44,7 @@ private:
 	const int x;
 	const int y;
 public:
-	MouseEvent( Type type,int x,int y )
+	MouseEvent(Type type, USHORT x, USHORT y)
 		:
 		type( type ),
 		x( x ),
@@ -56,11 +58,11 @@ public:
 	{
 		return type;
 	}
-	int GetX() const
+	USHORT GetX() const
 	{
 		return x;
 	}
-	int GetY() const
+	USHORT GetY() const
 	{
 		return y;
 	}
@@ -70,8 +72,8 @@ class MouseClient
 {
 public:
 	MouseClient( MouseServer& server );
-	int GetX() const;
-	int GetY() const;
+	USHORT GetX() const;
+	USHORT GetY() const;
 	bool LeftIsPressed() const;
 	bool RightIsPressed() const;
 	bool IsInWindow() const;
@@ -87,22 +89,22 @@ class MouseServer
 	friend MouseClient;
 public:
 	MouseServer();
-	void OnMouseMove( int x,int y );
+	void OnMouseMove(USHORT x, USHORT y);
 	void OnMouseLeave();
 	void OnMouseEnter();
-	void OnLeftPressed( int x,int y );
-	void OnLeftReleased( int x,int y );
-	void OnRightPressed( int x,int y );
-	void OnRightReleased( int x,int y );
-	void OnWheelUp( int x,int y );
-	void OnWheelDown( int x,int y );
+	void OnLeftPressed(USHORT x, USHORT y);
+	void OnLeftReleased(USHORT x, USHORT y);
+	void OnRightPressed(USHORT x, USHORT y);
+	void OnRightReleased(USHORT x, USHORT y);
+	void OnWheelUp(USHORT x, USHORT y);
+	void OnWheelDown(USHORT x, USHORT y);
 	bool IsInWindow() const;
 private:
-	int x;
-	int y;
-	static const int bufferSize = 4;
+	USHORT x;
+	USHORT y;
 	bool leftIsPressed;
 	bool rightIsPressed;
 	bool isInWindow;
+	static const USHORT bufferSize = 4;
 	std::queue< MouseEvent > buffer;
 };

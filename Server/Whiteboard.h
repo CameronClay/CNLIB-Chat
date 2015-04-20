@@ -27,7 +27,7 @@ public:
 	CRITICAL_SECTION & GetCritSection();
 		
 	
-	CRITICAL_SECTION& GetCritSection();
+	CRITICAL_SECTION& GetMapSect();
 	std::unordered_map<Socket, BYTE>& GetMap();
 private:
 	USHORT screenWidth, screenHeight;
@@ -38,6 +38,6 @@ private:
 	IWICImagingFactory *pWicFactory;
 	IWICBitmap *pWicBitmap;
 
-	CRITICAL_SECTION cs;
-	std::unordered_map<Socket, BYTE> clients;
+	CRITICAL_SECTION bitmapSect, mapSect;
+	//std::unordered_map<Socket, BYTE> clients; //type should be defined class that stores all whiteboard client-specific vars
 };

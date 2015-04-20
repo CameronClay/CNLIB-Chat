@@ -57,6 +57,10 @@ const float CONFIGVERSION = .002f;
 #define INACTIVE_TIME 15 * 1000
 #define PING_FREQ 2.0f
 
+#define WB_DEF_RES_X 800
+#define WB_DEF_RES_Y 600
+#define WB_DEF_FPS 20
+
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK WbProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK ConnectProc(HWND, UINT, WPARAM, LPARAM);
@@ -65,16 +69,18 @@ INT_PTR CALLBACK AuthenticateProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK Opt_GeneralProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK Opt_TextProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK Opt_FilesProc(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK RequestProc(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK RequestFileProc(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK RequestWBProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK TimerProc(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK WBSettingsProc(HWND, UINT, WPARAM, LPARAM);
 
 #pragma region GlobalVarDeclarations
 HINSTANCE hInst;
 HWND hMainWind;
 
-UINT screenWidth = 800, screenHeight = 600;
-UINT left = 0, leftLen = 0;
-UINT top = 0, topLen = 0;
+USHORT screenWidth = 800, screenHeight = 600;
+USHORT left = 0, leftLen = 0;
+USHORT top = 0, topLen = 0;
 
 uqpc<TCPClient> client;
 uqpc<Options> opts;
@@ -121,7 +127,50 @@ static HMENU main, file, options;
 std::tstring user;
 #pragma endregion
 
-void RecalcSizeVars(UINT width, UINT height)
+
+HWND CreateWBWindow(HWND parent, USHORT width, USHORT height)
+{
+	WNDCLASS wc = {};
+	wc.hInstance = hInst;
+	wc.lpfnWndProc = WbProc;
+	wc.lpszClassName = wbClassName;
+	wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+
+	wbAtom = RegisterClass(&wc);
+
+	// Test whether the whiteboard handle is valid so that it can 
+	// safely recreated if it gets closed
+
+	if(!IsWindow(wbHandle))
+	{
+		DWORD style =
+			WS_CHILD |	// Child window that
+			WS_POPUP |	// Is not contained in parent window
+			WS_SYSMENU |	// Shows close button
+			WS_CAPTION |	// Shows the title bar
+			WS_MINIMIZEBOX;		// Shows the minimize button
+
+		wbHandle = CreateWindowEx(
+			NULL,
+			wbClassName,
+			L"Whiteboard Client View",
+			style,
+			0, 0,
+			width, height,
+			parent, NULL,
+			hInst, nullptr);
+
+		if(!wbHandle)
+		{
+			CheckForError(L"Whiteboard Window Creation");
+		}
+	}
+
+	ShowWindow(wbHandle, SW_SHOW);
+	return wbHandle;
+}
+
+void RecalcSizeVars(USHORT width, USHORT height)
 {
 	screenWidth = width;
 	screenHeight = height;
@@ -397,7 +446,15 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					TCHAR buffer[255];
 					_stprintf(buffer, _T("%s wants to send you %g MB of file(s)"), fileReceive->GetUser().c_str(), fileReceive->GetSize());
 
-					DialogBoxParam(hInst, MAKEINTRESOURCE(REQUEST), hMainWind, RequestProc, (LPARAM)buffer);
+					DialogBoxParam(hInst, MAKEINTRESOURCE(REQUEST), hMainWind, RequestFileProc, (LPARAM)buffer);
+					break;
+				}
+				case MSG_REQUEST_WHTIEBOARD:
+				{
+					TCHAR buffer[255];
+					_stprintf(buffer, _T("%s wants to display a whiteboard"), (TCHAR*)dat, _tcslen((TCHAR*)dat));
+
+					DialogBoxParam(hInst, MAKEINTRESOURCE(REQUEST), hMainWind, RequestWBProc, (LPARAM)buffer);
 					break;
 				}
 			}// MSG_REQUEST
@@ -460,6 +517,33 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 
 			break;
 		}//TYPE_VERSION
+
+		case TYPE_WHITEBOARD:
+		{
+			switch(msg)
+			{
+			case MSG_WHITEBOARD_ACTIVATE:
+			{
+				UINT pos = 0;
+				const USHORT width = *(USHORT*)(dat[pos]);
+				pos += sizeof(USHORT);
+
+				const USHORT height = *(USHORT*)(dat[pos]);
+				pos += sizeof(USHORT);
+
+				const USHORT FPS = *(USHORT*)(dat[pos]);
+
+				HWND WBHnd = CreateWBWindow(hMainWind, width, height);
+				pWhiteboard = construct<Whiteboard>(Whiteboard(WBHnd, width, height, FPS));
+				break;
+			}
+			case MSG_WHITEBOARD_TERMINATE:
+				if(pWhiteboard)
+					destruct(pWhiteboard);
+				break;
+			}
+			break;
+		}
 
 	}// TYPE
 	CoUninitialize();
@@ -614,10 +698,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	static HWND buttonEnter;
 	const UINT nDialogs = 3;
 	static PROPSHEETPAGE psp[nDialogs];
-	if (wbHandle && (wbHandle == hWnd))
-	{
-		int a = 0;
-	}
 
 	switch (message)
 	{
@@ -784,46 +864,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		case ID_WHITEBOARD_MENU:
 		{
-			WNDCLASS wc = {};
-			wc.hInstance = hInst;
-			wc.lpfnWndProc = WbProc;
-			wc.lpszClassName = wbClassName;
-			wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-
-			wbAtom = RegisterClass(&wc);
-
-			// Test whether the whiteboard handle is valid so that it can 
-			// safely recreated if it gets closed
-			BOOL isWindow = IsWindow(wbHandle);
-
-			if (!isWindow)
-			{				
-				DWORD style =
-					WS_CHILD		|	// Child window that
-					WS_POPUP		|	// Is not contained in parent window
-					WS_SYSMENU		|	// Shows close button
-					WS_CAPTION		|	// Shows the title bar
-					WS_MINIMIZEBOX;		// Shows the minimize button
-
-				wbHandle = CreateWindowEx(
-					NULL,
-					wbClassName,
-					L"Whiteboard Client View",
-					style,
-					100, 100, 
-					screenWidth, screenHeight,	// needs to be whatever gets returned
-												// from DialogBox during creation.
-					hWnd, NULL, 
-					hInst, nullptr);
-
-				if (!wbHandle)
-				{
-					CheckForError(L"Whiteboard Window Creation");
-				}
-			}
-
-			BOOL isShown = ShowWindow(wbHandle, SW_SHOW);
-
+			DialogBox(hInst, MAKEINTRESOURCE(WHITEBOARD_SETTINGS),hWnd, WBSettingsProc);
 			break;
 		}
 
@@ -1382,7 +1423,7 @@ INT_PTR CALLBACK Opt_FilesProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 	return 0;
 }
 
-INT_PTR CALLBACK RequestProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK RequestFileProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	static HWND text;
 	switch (message)
@@ -1413,4 +1454,122 @@ INT_PTR CALLBACK RequestProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 	}
 	}
 	return 0;
+}
+
+INT_PTR CALLBACK RequestWBProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	static HWND text;
+	switch(message)
+	{
+	case WM_COMMAND:
+	{
+		const short id = LOWORD(wParam);
+		switch(id)
+		{
+		case IDOK:
+			client->SendMsg(TYPE_RESPONSE, MSG_RESPONE_WHITEBOARD_CONFIRMED);
+			EndDialog(hWnd, id);
+			break;
+
+		case IDCANCEL:
+			client->SendMsg(TYPE_RESPONSE, MSG_RESPONE_WHITEBOARD_DECLINED);
+			EndDialog(hWnd, id);
+			break;
+
+		}
+		break;
+	}
+
+	case WM_INITDIALOG:
+	{
+		SendMessage(GetDlgItem(hWnd, ID_REQUEST_TEXT), WM_SETTEXT, 0, lParam);
+		return 1;
+	}
+	}
+	return 0;
+}
+
+INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	static HWND X, Y, FPS, Colors;
+	switch(message)
+	{
+	case WM_COMMAND:
+	{
+	case WM_NOTIFY:
+	{
+		switch(((LPNMHDR)lParam)->code)
+		{
+		case PSN_SETACTIVE:
+		{
+			TCHAR* temp = alloc<TCHAR>(5);
+			SendMessage(X, WM_SETTEXT, 0, (LPARAM)_itot(WB_DEF_RES_X, temp, 10));
+			SendMessage(Y, WM_SETTEXT, 0, (LPARAM)_itot(WB_DEF_RES_Y, temp, 10));
+			SendMessage(FPS, WM_SETTEXT, 0, (LPARAM)_itot(WB_DEF_FPS, temp, 10));
+			dealloc(temp);
+
+			SetFocus(X);
+			break;
+		}
+		case PSN_APPLY:
+		{
+			SetWindowLong(hWnd, DWL_MSGRESULT, PSNRET_NOERROR);
+
+			const DWORD nBytes = MSG_OFFSET + (sizeof(USHORT) * 3) + sizeof(D3DCOLOR);
+			char* msg = alloc<char>(nBytes);
+			msg[0] = TYPE_WHITEBOARD;
+			msg[1] = MSG_WHITEBOARD_SETTINGS;
+
+			TCHAR* temp = alloc<TCHAR>(5);
+			USHORT tempVal = 0;
+			UINT pos = MSG_OFFSET;
+
+			SendMessage(X, WM_GETTEXT, 5, (LPARAM)temp);
+			tempVal = _tstoi(temp) - 1;
+			*(USHORT*)(msg[pos]) = tempVal;
+			pos += sizeof(USHORT);
+
+			SendMessage(Y, WM_GETTEXT, 5, (LPARAM)temp);
+			tempVal = _tstoi(temp) - 1;
+			*(USHORT*)(msg[pos]) = tempVal;
+			pos += sizeof(USHORT);
+
+			SendMessage(FPS, WM_GETTEXT, 4, (LPARAM)temp);
+			tempVal = _tstoi(temp) - 1;
+			*(USHORT*)(msg[pos]) = tempVal;
+			pos += sizeof(USHORT);
+
+			D3DCOLOR color;
+			*(D3DCOLOR*)(msg[pos]) = color;
+
+			dealloc(temp);
+
+			HANDLE hnd = client->SendServData(msg, nBytes);
+			TCPClient::WaitAndCloseHandle(hnd);
+			dealloc(msg);
+			break;
+		}
+		case PSN_RESET:
+		{
+			SetWindowLong(hWnd, DWL_MSGRESULT, PSNRET_NOERROR);
+			break;
+		}
+		break;
+		}
+		break;
+	}
+	}
+
+	case WM_INITDIALOG:
+	{
+		X = GetDlgItem(hWnd, WHITEBOARD_RES_X), Y = GetDlgItem(hWnd, WHITEBOARD_RES_Y), FPS = GetDlgItem(hWnd, WHITEBOARD_FPS), Colors = GetDlgItem(hWnd, WHITEBOARD_COLORSEL);
+		SendMessage(X, EM_SETLIMITTEXT, 4, 0);
+		SendMessage(Y, EM_SETLIMITTEXT, 4, 0);
+		SendMessage(FPS, EM_SETLIMITTEXT, 3, 0);
+
+		return 0;
+	}
+
+	return 0;
+	}
 }

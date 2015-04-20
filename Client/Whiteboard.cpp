@@ -5,11 +5,11 @@ Whiteboard::Whiteboard()
 {
 }
 
-Whiteboard::Whiteboard(HWND WinHandle, UINT Width, UINT Height, UINT FPS, UINT palIndex) :
+Whiteboard::Whiteboard(HWND WinHandle, USHORT Width, USHORT Height, USHORT FPS, UINT palIndex) :
 hWnd(WinHandle),
 width(Width),
 height(Height),
-interval(1000 / FPS)/*,
+interval(1.0f / (float)FPS)/*,
 bp(D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED))),
 uRect(D2D1::RectU(0, 0, Width, Height))*/
 {
@@ -27,6 +27,11 @@ uRect(D2D1::RectU(0, 0, Width, Height))*/
 
 	D2D1_SIZE_U bmpSize = D2D1::SizeU(Width, Height);
 	hr = pHwndRenderTarget->CreateBitmap(bmpSize, bp, &pBitmap);*/
+}
+
+Whiteboard::Whiteboard(Whiteboard&& wb)//needs to be defined
+{
+
 }
 
 void Whiteboard::Frame(RECT &rect, BYTE *pixelData)
@@ -97,7 +102,7 @@ void Whiteboard::EndFrame()
 	assert(SUCCEEDED(hr));
 }
 
-void Whiteboard::ComposeImage(UINT Width, UINT Height, BYTE *pixelData)
+void Whiteboard::ComposeImage(USHORT Width, USHORT Height, BYTE *pixelData)
 {
 	HRESULT hr = 0;
 	tempSurface = new D3DCOLOR[Width * Height];
@@ -200,6 +205,12 @@ void Whiteboard::InitPalette()
 	palette[i++] = Purple;
 	palette[i] = LightPurple;
 
+}
+
+D3DCOLOR* Whiteboard::GetPalette(BYTE& count)
+{
+	count = 32;
+	return palette;
 }
 
 Whiteboard::~Whiteboard()

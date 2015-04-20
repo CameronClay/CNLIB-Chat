@@ -23,11 +23,11 @@
 MouseClient::MouseClient( MouseServer& server )
 : server( server )
 {}
-int MouseClient::GetX() const
+USHORT MouseClient::GetX() const
 {
 	return server.x;
 }
-int MouseClient::GetY() const
+USHORT MouseClient::GetY() const
 {
 	return server.y;
 }
@@ -81,7 +81,7 @@ MouseServer::MouseServer()
 	x( -1 ),
 	y( -1 )
 {}
-void MouseServer::OnMouseMove( int x,int y )
+void MouseServer::OnMouseMove( USHORT x,USHORT y )
 {
 	this->x = x;
 	this->y = y;
@@ -100,7 +100,7 @@ void MouseServer::OnMouseEnter()
 {
 	isInWindow = true;
 }
-void MouseServer::OnLeftPressed( int x,int y )
+void MouseServer::OnLeftPressed( USHORT x,USHORT y )
 {
 	leftIsPressed = true;
 
@@ -110,7 +110,7 @@ void MouseServer::OnLeftPressed( int x,int y )
 		buffer.pop( );
 	}
 }
-void MouseServer::OnLeftReleased( int x,int y )
+void MouseServer::OnLeftReleased( USHORT x,USHORT y )
 {
 	leftIsPressed = false;
 
@@ -120,7 +120,7 @@ void MouseServer::OnLeftReleased( int x,int y )
 		buffer.pop( );
 	}
 }
-void MouseServer::OnRightPressed( int x,int y )
+void MouseServer::OnRightPressed( USHORT x,USHORT y )
 {
 	rightIsPressed = true;
 
@@ -130,7 +130,7 @@ void MouseServer::OnRightPressed( int x,int y )
 		buffer.pop( );
 	}
 }
-void MouseServer::OnRightReleased( int x,int y )
+void MouseServer::OnRightReleased( USHORT x,USHORT y )
 {
 	rightIsPressed = false;
 
@@ -140,7 +140,7 @@ void MouseServer::OnRightReleased( int x,int y )
 		buffer.pop( );
 	}
 }
-void MouseServer::OnWheelUp( int x,int y )
+void MouseServer::OnWheelUp( USHORT x,USHORT y )
 {
 	buffer.push( MouseEvent( MouseEvent::WheelUp,x,y ) );
 	if( buffer.size( ) > bufferSize )
@@ -149,7 +149,7 @@ void MouseServer::OnWheelUp( int x,int y )
 	}
 
 }
-void MouseServer::OnWheelDown( int x,int y )
+void MouseServer::OnWheelDown( USHORT x,USHORT y )
 {
 	buffer.push( MouseEvent( MouseEvent::WheelDown,x,y ) );
 	if( buffer.size( ) > bufferSize )

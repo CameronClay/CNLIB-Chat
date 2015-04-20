@@ -35,25 +35,47 @@ pWicBitmap(nullptr)
 		D2D1::RenderTargetProperties(), 
 		&pRenderTarget
 		);
-	InitializeCriticalSection(&cs);
+	InitializeCriticalSection(&bitmapSect);
+	InitializeCriticalSection(&mapSect);
 }
 
-void Whiteboard::Draw(ClientData *pClientData)
+Whiteboard::Whiteboard(Whiteboard&& wb)//needs defined
 {
 
 }
 
-CRITICAL_SECTION &Whiteboard::GetCritSection()
+void Whiteboard::GetBitmap()
 {
-	return cs;
+	EnterCriticalSection(&bitmapSect);
+	UINT width = 0, height = 0;
+	HRESULT hr = pWicBitmap->GetSize(&width, &height);
+	if (SUCCEEDED(hr))
+	{
+		//pWicFactory->CreateBitmapFromSource(pWicBitmap, WICBitmapCacheOnDemand, ppBitmap);
+		
+	}
+	LeaveCriticalSection(&bitmapSect);
+}
+
+CRITICAL_SECTION& Whiteboard::GetMapSect()
+{
+	return mapSect;
 }
 
 std::unordered_map<Socket, BYTE>& Whiteboard::GetMap()
 {
-	return clients;
+	//return clients;
 }
 
 Whiteboard::~Whiteboard()
 {
-	DeleteCriticalSection(&cs);
+	//need a way to check if has been inited for mctor
+	//if()
+	{
+		DeleteCriticalSection(&bitmapSect);
+	}
+	//if()
+	{
+		DeleteCriticalSection(&mapSect);
+	}
 }

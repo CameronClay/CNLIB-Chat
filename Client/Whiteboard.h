@@ -1,6 +1,6 @@
 #pragma once
-#include "..\\Common\\Timer.h"
-#include "..\\Common\\ColorDef.h"
+#include "Timer.h"
+#include "ColorDef.h"
 
 #include <d3d9.h>
 #pragma comment(lib, "d3d9.lib")
@@ -14,7 +14,8 @@ class Whiteboard
 {
 public:
 	Whiteboard();
-	Whiteboard(HWND WinHandle, UINT Width, UINT Height, UINT FPS, UINT palIndex = Black);
+	Whiteboard(HWND WinHandle, USHORT Width, USHORT Height, USHORT FPS, UINT palIndex = Black);
+	Whiteboard(Whiteboard&& wb);
 	~Whiteboard();
 
 	void Frame(RECT &rect, BYTE *pixelData);
@@ -24,12 +25,15 @@ private:
 	void BeginFrame();
 	void ClearTempSurface();
 	void Render(RECT &rect, BYTE *pixelData);
-	void ComposeImage(UINT Width, UINT Height, BYTE *pixelData);
+	void ComposeImage(USHORT Width, USHORT Height, BYTE *pixelData);
 	void EndFrame();
+
+	D3DCOLOR* GetPalette(BYTE& count);
 
 	HWND hWnd;
 
-	UINT width, height, interval, pitch;
+	USHORT width, height, pitch;
+	float interval;
 	Timer timer;
 	D3DCOLOR bgColor;
 
