@@ -31,12 +31,6 @@
     <ClCompile Include="..\Common\Timer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PaintBrush.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Tool.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\File.h">
@@ -84,10 +78,7 @@
     <ClInclude Include="..\Common\Timer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PaintBrush.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Tool.h">
+    <ClInclude Include="..\Common\WhiteboardClientData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -134,7 +134,6 @@ HWND CreateWBWindow(HWND parent, USHORT width, USHORT height)
 	wc.hInstance = hInst;
 	wc.lpfnWndProc = WbProc;
 	wc.lpszClassName = wbClassName;
-	wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 
 	wbAtom = RegisterClass(&wc);
 

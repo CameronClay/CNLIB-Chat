@@ -1,7 +1,7 @@
 #include "Whiteboard.h"
 
 
-Whiteboard::Whiteboard(TCPServ &serv, USHORT ScreenWidth, USHORT ScreenHeight) 
+Whiteboard::Whiteboard(TCPServ &serv, USHORT ScreenWidth, USHORT ScreenHeight, USHORT Fps)
 	:
 screenWidth(ScreenWidth),
 screenHeight(ScreenHeight)/*,
@@ -40,6 +40,10 @@ pWicBitmap(nullptr)*/
 }
 
 Whiteboard::Whiteboard(Whiteboard &&wb) :
+screenWidth(wb.screenWidth),
+screenHeight(wb.screenHeight),
+fps(wb.fps),
+pixels(pixels),
 bitmapSect(wb.bitmapSect),
 mapSect(wb.mapSect),
 clients(wb.clients)
@@ -47,16 +51,9 @@ clients(wb.clients)
 	ZeroMemory(&wb, sizeof(Whiteboard));
 }
 
-void Whiteboard::GetBitmap()
+BYTE *Whiteboard::GetBitmap()
 {
 	EnterCriticalSection(&bitmapSect);
-	UINT width = 0, height = 0;
-	HRESULT hr = pWicBitmap->GetSize(&width, &height);
-	if (SUCCEEDED(hr))
-	{
-		//pWicFactory->CreateBitmapFromSource(pWicBitmap, WICBitmapCacheOnDemand, ppBitmap);
-		
-	}
 	LeaveCriticalSection(&bitmapSect);
 }
 
@@ -65,9 +62,9 @@ CRITICAL_SECTION& Whiteboard::GetMapSect()
 	return mapSect;
 }
 
-std::unordered_map<Socket, BYTE>& Whiteboard::GetMap()
+std::unordered_map<Socket, Whiteboard::ClientData>& Whiteboard::GetMap()
 {
-	//return clients;
+	return clients;
 }
 
 Whiteboard::~Whiteboard()

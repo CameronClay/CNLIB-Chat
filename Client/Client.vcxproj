@@ -176,6 +176,7 @@
     <ClInclude Include="..\Common\Timer.h" />
     <ClInclude Include="..\Common\Typedefs.h" />
     <ClInclude Include="..\Common\UPNP.h" />
+    <ClInclude Include="..\Common\WhiteboardClientData.h" />
     <ClInclude Include="..\Common\WinFirewall.h" />
     <ClInclude Include="FileTransfer.h" />
     <ClInclude Include="Options.h" />

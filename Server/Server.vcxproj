@@ -162,12 +162,11 @@
     <ClInclude Include="..\Common\Timer.h" />
     <ClInclude Include="..\Common\Typedefs.h" />
     <ClInclude Include="..\Common\UPNP.h" />
+    <ClInclude Include="..\Common\WhiteboardClientData.h" />
     <ClInclude Include="..\Common\WinFirewall.h" />
-    <ClInclude Include="PaintBrush.h" />
     <ClInclude Include="Ping.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="TCPServ.h" />
-    <ClInclude Include="Tool.h" />
     <ClInclude Include="Whiteboard.h" />
   </ItemGroup>
   <ItemGroup>
@@ -177,9 +176,7 @@
     <ClCompile Include="..\Common\Timer.cpp" />
     <ClCompile Include="..\Common\UPNP.cpp" />
     <ClCompile Include="..\Common\WinFirewall.cpp" />
-    <ClCompile Include="PaintBrush.cpp" />
     <ClCompile Include="Ping.cpp" />
-    <ClCompile Include="Tool.cpp" />
     <ClCompile Include="Whiteboard.cpp" />
     <ClCompile Include="Windows.cpp" />
     <ClCompile Include="TCPServ.cpp" />
