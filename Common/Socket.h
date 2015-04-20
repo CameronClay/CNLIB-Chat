@@ -32,11 +32,19 @@ public:
 	Socket(Socket&& sock);
 	~Socket();
 
+	struct Hash
+	{
+		size_t operator()(const Socket& sock) const
+		{
+			return std::hash<SOCKET>()(sock.pc);
+		}
+	};
+
 	Socket& operator= (Socket& pc);
-	bool operator== (Socket& pc) const;
-	bool operator!= (Socket& pc) const;
-	bool operator== (SOCKET pc) const;
-	bool operator!= (SOCKET pc) const;
+	bool operator== (const Socket pc) const;
+	bool operator!= (const Socket pc) const;
+	bool operator== (const SOCKET pc) const;
+	bool operator!= (const SOCKET pc) const;
 
 	void Bind(const TCHAR* port);
 	Socket AcceptConnection();

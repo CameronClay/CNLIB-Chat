@@ -4,7 +4,8 @@
 Whiteboard::Whiteboard(TCPServ &serv, USHORT ScreenWidth, USHORT ScreenHeight, USHORT Fps)
 	:
 screenWidth(ScreenWidth),
-screenHeight(ScreenHeight)/*,
+screenHeight(ScreenHeight),
+fps(Fps)/*,
 pFactory(nullptr),
 pWicFactory(nullptr),
 pRenderTarget(nullptr),
@@ -54,6 +55,7 @@ clients(wb.clients)
 BYTE *Whiteboard::GetBitmap()
 {
 	EnterCriticalSection(&bitmapSect);
+	return nullptr;
 	LeaveCriticalSection(&bitmapSect);
 }
 
@@ -62,7 +64,7 @@ CRITICAL_SECTION& Whiteboard::GetMapSect()
 	return mapSect;
 }
 
-std::unordered_map<Socket, Whiteboard::ClientData>& Whiteboard::GetMap()
+std::unordered_map<Socket, Whiteboard::ClientData, Socket::Hash>& Whiteboard::GetMap()
 {
 	return clients;
 }

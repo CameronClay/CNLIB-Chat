@@ -29,9 +29,23 @@ uRect(D2D1::RectU(0, 0, Width, Height))*/
 	hr = pHwndRenderTarget->CreateBitmap(bmpSize, bp, &pBitmap);*/
 }
 
-Whiteboard::Whiteboard(Whiteboard&& wb)//needs to be defined
+Whiteboard::Whiteboard(Whiteboard&& wb)
+	:
+	hWnd(wb.hWnd),
+	width(wb.width),
+	height(wb.height),
+	pitch(wb.pitch),
+	interval(wb.interval),
+	timer(wb.timer),
+	bgColor(wb.bgColor),
+	pDirect3D(wb.pDirect3D),
+	pDevice(wb.pDevice),
+	pBackBuffer(wb.pBackBuffer),
+	tempSurface(wb.tempSurface),
+	lockRect(wb.lockRect)
 {
-
+	memcpy(palette, wb.palette, sizeof(D3DCOLOR) * 32);
+	ZeroMemory(&wb, sizeof(Whiteboard));
 }
 
 void Whiteboard::Frame(RECT &rect, BYTE *pixelData)
@@ -57,8 +71,8 @@ void Whiteboard::BeginFrame()
 
 void Whiteboard::Render(RECT &rect, BYTE *pixelData)
 {
-	UINT width = rect.right - rect.left;
-	UINT height = rect.bottom - rect.top;
+	USHORT width = rect.right - rect.left;
+	USHORT height = rect.bottom - rect.top;
 
 	ComposeImage(width, height, pixelData);
 
@@ -171,7 +185,7 @@ void Whiteboard::InitD3D()
 
 void Whiteboard::InitPalette()
 {
-	UINT i = 0;
+	BYTE i = 0;
 	palette[i++] = Black;
 	palette[i++] = DarkGray;
 	palette[i++] = LightGray;
