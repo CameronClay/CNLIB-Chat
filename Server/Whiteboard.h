@@ -22,18 +22,19 @@ public:
 		std::vector<D2D1_POINT_2F> pointList;
 	};
 
+
 	~Whiteboard();
 
 	BYTE *GetBitmap();
 	void Draw(ClientData *pClientData);
 	CRITICAL_SECTION & GetCritSection();	
 	CRITICAL_SECTION& GetMapSect();
-	std::unordered_map<Socket, ClientData>& GetMap();
+	std::unordered_map<Socket, ClientData, Socket::Hash>& GetMap();
 private:
 	BYTE *pixels;
 	USHORT screenWidth, screenHeight, fps;
 	CRITICAL_SECTION bitmapSect, mapSect;
-	std::unordered_map<Socket, ClientData> clients; //type should be defined class that stores all whiteboard client-specific vars
+	std::unordered_map<Socket, ClientData, Socket::Hash> clients; //type should be defined class that stores all whiteboard client-specific vars
 
 	/*
 	// Won't be needed for the indexed palette, will revisit if we implement 

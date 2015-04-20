@@ -45,19 +45,19 @@ Socket& Socket::operator= (Socket& pc)
 	return *this;
 }
 
-bool Socket::operator== (Socket& pc) const
+bool Socket::operator== (const Socket pc) const
 {
 	return pc.pc == this->pc;
 }
-bool Socket::operator!= (Socket& pc) const
+bool Socket::operator!= (const Socket pc) const
 {
 	return pc.pc != this->pc;
 }
-bool Socket::operator== (SOCKET pc) const
+bool Socket::operator== (const SOCKET pc) const
 {
 	return pc == this->pc;
 }
-bool Socket::operator!= (SOCKET pc) const
+bool Socket::operator!= (const SOCKET pc) const
 {
 	return pc != this->pc;
 }

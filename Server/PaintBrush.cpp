@@ -1,15 +1,15 @@
-#include "PaintBrush.h"
-
-
-PaintBrush::PaintBrush()
-{
-}
-
-void PaintBrush::Draw()
-{
-
-}
-
-PaintBrush::~PaintBrush()
-{
-}
+//#include "PaintBrush.h"
+//
+//
+//PaintBrush::PaintBrush()
+//{
+//}
+//
+//void PaintBrush::Draw()
+//{
+//
+//}
+//
+//PaintBrush::~PaintBrush()
+//{
+//}
