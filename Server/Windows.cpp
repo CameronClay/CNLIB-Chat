@@ -54,7 +54,7 @@ static TCHAR szTitle[] = _T("Cameron's Server");
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK ManageAdminsProc(HWND, UINT, WPARAM, LPARAM);
 
-UINT screenWidth = 800, screenHeight = 600;
+USHORT screenWidth = 800, screenHeight = 600;
 
 uqpc<TCPServ> serv;
 
