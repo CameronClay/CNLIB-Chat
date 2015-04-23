@@ -164,12 +164,13 @@ static DWORD CALLBACK RecvData(LPVOID info)
 				BYTE* compBuffer = alloc<BYTE>(nBytesComp);
 				if (pc.ReadData(compBuffer, nBytesComp) > 0)
 				{
-					BYTE* deCompBuffer = alloc<BYTE>(nBytesDecomp); //Must dealloc in vect[pos].func
+					BYTE* deCompBuffer = alloc<BYTE>(nBytesDecomp);
 					FileMisc::Decompress(deCompBuffer, nBytesDecomp, compBuffer, nBytesComp);
 					dealloc(compBuffer);
 
 					vect[pos].pingHandler.SetInactivityTimer(serv, pc, INACTIVETIME, PINGTIME);
 					(vect[pos].func)(&serv, pos, deCompBuffer, nBytesDecomp, obj);
+					dealloc(deCompBuffer);
 				}
 				else
 				{
@@ -194,23 +195,13 @@ static DWORD CALLBACK SendData( LPVOID info )
 	SData* data = (SData*)info;
 	SAData* saData = data->saData;
 	TCPServ& serv = saData->serv;
-	auto& vect = serv.GetClients();
 	Socket pc = data->pc;
 
-	if (pc.SendData(&saData->nBytesDecomp, sizeof(DWORD)) > 0)
-	{
-		if (pc.SendData(&saData->nBytesComp, sizeof(DWORD)) > 0)
-		{
-			if (pc.SendData(saData->data, saData->nBytesComp) > 0)
-			{
-				destruct(data);
-				return 0;
-			}
-		}
-	}
+	if(pc.SendData(&saData->nBytesDecomp, sizeof(DWORD)) > 0)
+		if(pc.SendData(&saData->nBytesComp, sizeof(DWORD)) > 0)
+			pc.SendData(saData->data, saData->nBytesComp);
 
 	//No need to remove client, that is handled in recv thread
-	//PrintError(GetLastError());
 	destruct(data);
 
 	return 0;
@@ -221,23 +212,13 @@ static DWORD CALLBACK SendDataEx(LPVOID info)
 	SDataEx* data = (SDataEx*)info;
 	SADataEx* saData = data->saData;
 	TCPServ& serv = saData->serv;
-	auto& vect = serv.GetClients();
 	Socket pc = data->pc;
 
-	if (pc.SendData(&saData->nBytesDecomp, sizeof(DWORD)) > 0)
-	{
-		if (pc.SendData(&saData->nBytesComp, sizeof(DWORD)) > 0)
-		{
-			if (pc.SendData(saData->data, saData->nBytesComp) > 0)
-			{
-				destruct(data);
-				return 0;
-			}
-		}
-	}
+	if(pc.SendData(&saData->nBytesDecomp, sizeof(DWORD)) > 0)
+		if(pc.SendData(&saData->nBytesComp, sizeof(DWORD)) > 0)
+			pc.SendData(saData->data, saData->nBytesComp);
 
 	//No need to remove client, that is handled in recv thread
-	//PrintError(GetLastError());
 	destruct(data);
 
 	return 0;
