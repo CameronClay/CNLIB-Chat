@@ -1467,12 +1467,12 @@ INT_PTR CALLBACK RequestWBProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 		switch(id)
 		{
 		case IDOK:
-			client->SendMsg(TYPE_RESPONSE, MSG_RESPONE_WHITEBOARD_CONFIRMED);
+			client->SendMsg(TYPE_RESPONSE, MSG_RESPONSE_WHITEBOARD_CONFIRMED);
 			EndDialog(hWnd, id);
 			break;
 
 		case IDCANCEL:
-			client->SendMsg(TYPE_RESPONSE, MSG_RESPONE_WHITEBOARD_DECLINED);
+			client->SendMsg(TYPE_RESPONSE, MSG_RESPONSE_WHITEBOARD_DECLINED);
 			EndDialog(hWnd, id);
 			break;
 
@@ -1496,25 +1496,11 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 	{
 	case WM_COMMAND:
 	{
-	case WM_NOTIFY:
-	{
-		switch(((LPNMHDR)lParam)->code)
+		const short id = LOWORD(wParam);
+		switch(id)
 		{
-		case PSN_SETACTIVE:
+		case IDOK:
 		{
-			TCHAR* temp = alloc<TCHAR>(5);
-			SendMessage(X, WM_SETTEXT, 0, (LPARAM)_itot(WB_DEF_RES_X, temp, 10));
-			SendMessage(Y, WM_SETTEXT, 0, (LPARAM)_itot(WB_DEF_RES_Y, temp, 10));
-			SendMessage(FPS, WM_SETTEXT, 0, (LPARAM)_itot(WB_DEF_FPS, temp, 10));
-			dealloc(temp);
-
-			SetFocus(X);
-			break;
-		}
-		case PSN_APPLY:
-		{
-			SetWindowLong(hWnd, DWL_MSGRESULT, PSNRET_NOERROR);
-
 			const DWORD nBytes = MSG_OFFSET + (sizeof(USHORT) * 3) + sizeof(D3DCOLOR);
 			char* msg = alloc<char>(nBytes);
 			msg[0] = TYPE_WHITEBOARD;
@@ -1547,17 +1533,17 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 			HANDLE hnd = client->SendServData(msg, nBytes);
 			TCPClient::WaitAndCloseHandle(hnd);
 			dealloc(msg);
+
+			EndDialog(hWnd, id);
 			break;
 		}
-		case PSN_RESET:
+		case IDCANCEL:
 		{
-			SetWindowLong(hWnd, DWL_MSGRESULT, PSNRET_NOERROR);
+			EndDialog(hWnd, id);
 			break;
 		}
-		break;
 		}
 		break;
-	}
 	}
 
 	case WM_INITDIALOG:
@@ -1567,9 +1553,16 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		SendMessage(Y, EM_SETLIMITTEXT, 4, 0);
 		SendMessage(FPS, EM_SETLIMITTEXT, 3, 0);
 
+		TCHAR* temp = alloc<TCHAR>(5);
+		SendMessage(X, WM_SETTEXT, 0, (LPARAM)_itot(WB_DEF_RES_X, temp, 10));
+		SendMessage(Y, WM_SETTEXT, 0, (LPARAM)_itot(WB_DEF_RES_Y, temp, 10));
+		SendMessage(FPS, WM_SETTEXT, 0, (LPARAM)_itot(WB_DEF_FPS, temp, 10));
+		dealloc(temp);
+
+		SetFocus(X);
+
 		return 0;
 	}
-
-	return 0;
 	}
+	return 0;
 }
