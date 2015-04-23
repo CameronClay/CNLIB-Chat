@@ -377,12 +377,12 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 	{
 		switch (msg)
 		{
-		case MSG_RESPONSE_TRANSFER_DECLINED:
-		case MSG_RESPONSE_TRANSFER_CONFIRMED:
-		{
-			TransferMessageWithName(serv, clients[index].user, data);
-			break;
-		}
+			case MSG_RESPONSE_TRANSFER_DECLINED:
+			case MSG_RESPONSE_TRANSFER_CONFIRMED:
+			{
+				TransferMessageWithName(serv, clients[index].user, data);
+				break;
+			}
 		}
 		break;
 	}//TYPE_RESPONSE
@@ -390,51 +390,51 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 	{
 		switch (msg)
 		{
-		case MSG_ADMIN_KICK:
-		{
-			std::tstring user = (TCHAR*)dat;
-			if (IsAdmin(clients[index].user))
+			case MSG_ADMIN_KICK:
 			{
-				if (IsAdmin(user))//if the user to be kicked is not an admin
+				std::tstring user = (TCHAR*)dat;
+				if (IsAdmin(clients[index].user))
 				{
-					if (clients[index].user.compare(adminList.front()) != 0)//if the user who initiated the kick is not the super admin
+					if (IsAdmin(user))//if the user to be kicked is not an admin
 					{
-						serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_CANNOTKICK);
+						if (clients[index].user.compare(adminList.front()) != 0)//if the user who initiated the kick is not the super admin
+						{
+							serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_CANNOTKICK);
+							break;
+						}
+
+						//Disconnect User
+						TransferMessageWithName(serv, clients[index].user, data);
+						for (USHORT i = 0; i < clients.size(); i++)
+						{
+							if (clients[i].user.compare(user) == 0)
+							{
+								DisconnectHandler(clients[i]);
+								clients[i].pc.Disconnect();
+							}
+						}
+
 						break;
 					}
-
-					//Disconnect User
-					TransferMessageWithName(serv, clients[index].user, data);
-					for (USHORT i = 0; i < clients.size(); i++)
+					else
 					{
-						if (clients[i].user.compare(user) == 0)
+						//Disconnect User
+						TransferMessageWithName(serv, clients[index].user, data);
+						for (USHORT i = 0; i < clients.size(); i++)
 						{
-							DisconnectHandler(clients[i]);
-							clients[i].pc.Disconnect();
+							if (clients[i].user.compare(user) == 0)
+							{
+								DisconnectHandler(clients[i]);
+								clients[i].pc.Disconnect();
+							}
 						}
+						break;
 					}
+				}
 
-					break;
-				}
-				else
-				{
-					//Disconnect User
-					TransferMessageWithName(serv, clients[index].user, data);
-					for (USHORT i = 0; i < clients.size(); i++)
-					{
-						if (clients[i].user.compare(user) == 0)
-						{
-							DisconnectHandler(clients[i]);
-							clients[i].pc.Disconnect();
-						}
-					}
-					break;
-				}
+				serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_NOT);
+				break;
 			}
-
-			serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_NOT);
-			break;
-		}
 		}
 		break;
 	}//TYPE_ADMIN
@@ -442,15 +442,15 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 	{
 		switch (msg)
 		{
-		case MSG_VERSION_CHECK:
-		{
-			if (*(float*)dat == APPVERSION)
-				serv.SendMsg(clients[index].pc, true, TYPE_VERSION, MSG_VERSION_UPTODATE);
-			else
-				serv.SendMsg(clients[index].pc, true, TYPE_VERSION, MSG_VERSION_OUTOFDATE);
+			case MSG_VERSION_CHECK:
+			{
+				if (*(float*)dat == APPVERSION)
+					serv.SendMsg(clients[index].pc, true, TYPE_VERSION, MSG_VERSION_UPTODATE);
+				else
+					serv.SendMsg(clients[index].pc, true, TYPE_VERSION, MSG_VERSION_OUTOFDATE);
 
-			break;
-		}
+				break;
+			}
 		}
 		break;
 	}//TYPE_VERSION

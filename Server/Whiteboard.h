@@ -1,12 +1,13 @@
 #pragma once
 #include "TCPServ.h"
-#include <wincodec.h>
 #include <unordered_map>
 #include "..\\Common\\ColorDef.h"
 #include "..\\Common\\WhiteboardClientData.h"
 
-#pragma comment(lib, "d2d1.lib")
-#pragma comment(lib, "Windowscodecs.lib")
+//
+//#include <wincodec.h>
+//#pragma comment(lib, "d2d1.lib")
+//#pragma comment(lib, "Windowscodecs.lib")
 
 class Whiteboard
 {
@@ -16,16 +17,22 @@ public:
 
 	~Whiteboard();
 
+	void Draw();
+	void PaintBrush(std::deque<PointU> &pointList, BYTE clr);
+	void DrawLine(PointU start, PointU end, BYTE clr);
+
+	void MakeRect(PointU &p0, PointU &p1);
 	BYTE *GetBitmap();
-	void Draw(WBClientData *pClientData);
-	CRITICAL_SECTION &GetCritSection();	
+	CRITICAL_SECTION &GetCritSection();
 	CRITICAL_SECTION& GetMapSect();
-	std::unordered_map<Socket, ClientData, Socket::Hash>& GetMap();
+	std::unordered_map<Socket, WBClientData, Socket::Hash>& GetMap();
 private:
 	BYTE *pixels;
 	USHORT screenWidth, screenHeight, fps;
 	CRITICAL_SECTION bitmapSect, mapSect;
-	std::unordered_map<Socket, ClientData, Socket::Hash> clients; //type should be defined class that stores all whiteboard client-specific vars
+	std::unordered_map<Socket, WBClientData, Socket::Hash> clients; //type should be defined class that stores all whiteboard client-specific vars
+	TCPServ &serv;
+	std::vector<RectU> rectList;
 
 	/*
 	// Won't be needed for the indexed palette, will revisit if we implement 
