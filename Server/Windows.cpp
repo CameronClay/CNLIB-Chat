@@ -455,7 +455,6 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		break;
 	}//TYPE_VERSION
 	}
-	dealloc(data);
 }
 
 void SaveAdminList()
