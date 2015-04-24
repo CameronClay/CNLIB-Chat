@@ -6,6 +6,7 @@
 #include "Format.h"
 #include "HeapAlloc.h"
 #include "Messages.h"
+#include "Whiteboard.h"
 #include <assert.h>
 #include <windows.h>
 #include <windowsx.h>
@@ -57,6 +58,7 @@ INT_PTR CALLBACK ManageAdminsProc(HWND, UINT, WPARAM, LPARAM);
 USHORT screenWidth = 800, screenHeight = 600;
 
 uqpc<TCPServ> serv;
+Whiteboard* wb;
 
 std::vector<Authent> userList;
 std::vector<std::tstring> adminList;
@@ -330,6 +332,12 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 			RequestTransfer(serv, clients[index].user, data);
 			break;
 		}
+
+		case MSG_REQUEST_WHTIEBOARD:
+		{
+
+			break;
+		}
 		}
 		break;
 	}//TYPE_REQUEST
@@ -381,6 +389,15 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 			case MSG_RESPONSE_TRANSFER_CONFIRMED:
 			{
 				TransferMessageWithName(serv, clients[index].user, data);
+				break;
+			}
+
+			case MSG_RESPONSE_WHITEBOARD_CONFIRMED:
+			{
+				break;
+			}
+			case MSG_RESPONSE_WHITEBOARD_DECLINED:
+			{
 				break;
 			}
 		}
@@ -454,6 +471,75 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		}
 		break;
 	}//TYPE_VERSION
+
+	case TYPE_WHITEBOARD:
+	{
+		switch(msg)
+		{
+		case MSG_WHITEBOARD_SETTINGS:
+		{
+			if(!wb)
+			{
+				UINT pos = 0;
+				const USHORT X = *(USHORT*)dat[pos];
+				pos += sizeof(USHORT);
+				const USHORT Y = *(USHORT*)dat[pos];
+				pos += sizeof(USHORT);
+				const USHORT FPS = *(USHORT*)dat[pos];
+				pos += sizeof(USHORT);
+				const D3DCOLOR color = *(D3DCOLOR*)dat[pos];
+
+				//wb = construct<Whiteboard>(Whiteboard(serv, X, Y, FPS, color));
+
+			}
+			else
+			{
+				serv.SendMsg(clients[index].pc, true, TYPE_WHITEBOARD, MSG_WHITEBOARD_CANNOTCREATE);
+			}
+			break;
+		}
+		case MSG_WHITEBOARD_TERMINATE:
+		{
+			destruct(wb);
+			//serv.SendMsg(vect, TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
+
+			break;
+		}
+		case MSG_WHITEBOARD_KICK:
+		{
+			std::tstring user = (TCHAR*)dat;
+			if(IsAdmin(clients[index].user))
+			{
+				if(IsAdmin(user))//if the user to be kicked is not an admin
+				{
+					if(clients[index].user.compare(adminList.front()) != 0)//if the user who initiated the kick is not the super admin
+					{
+						serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_CANNOTKICK);
+						break;
+					}
+					TransferMessageWithName(serv, clients[index].user, data);
+					break;
+				}
+				else
+				{
+					TransferMessageWithName(serv, clients[index].user, data);
+					break;
+				}
+			}
+
+			serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_NOT);
+			break;
+		}
+		case MSG_WHITEBOARD_LEFT:
+		{
+			CRITICAL_SECTION& sect = wb->GetCritSection();
+			EnterCriticalSection(&sect);
+			wb->GetMap().erase(clients[index].pc);
+			LeaveCriticalSection(&sect);
+			break;
+		}
+		}
+	}//TYPE_WHITEBOARD
 	}
 }
 
