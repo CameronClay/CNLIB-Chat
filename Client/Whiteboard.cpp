@@ -10,24 +10,12 @@ Whiteboard::Whiteboard(HWND WinHandle, USHORT Width, USHORT Height, USHORT FPS, 
 hWnd(WinHandle),
 width(Width),
 height(Height),
-interval(1.0f / (float)FPS)/*,
-bp(D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED))),
-uRect(D2D1::RectU(0, 0, Width, Height))*/
+interval(1.0f / (float)FPS)
 {
 	InitD3D();
 	InitPalette();
 	bgColor = palette[palIndex];
 	pDevice->Clear(0, NULL, D3DCLEAR_TARGET, bgColor, 0.0f, 0);
-	/*hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &p2DFactory);
-	assert(SUCCEEDED(hr));
-
-	hr = p2DFactory->CreateHwndRenderTarget(
-		D2D1::RenderTargetProperties(), 
-		D2D1::HwndRenderTargetProperties(hWnd), 
-		&pHwndRenderTarget);
-
-	D2D1_SIZE_U bmpSize = D2D1::SizeU(Width, Height);
-	hr = pHwndRenderTarget->CreateBitmap(bmpSize, bp, &pBitmap);*/
 }
 
 Whiteboard::Whiteboard(Whiteboard&& wb)

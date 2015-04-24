@@ -12,7 +12,10 @@ enum class Tool
 
 struct PointU
 {
-	PointU();
+	PointU() :
+		x(0),
+		y(0)
+	{}
 	PointU(USHORT X, USHORT Y);
 	PointU(PointU &&pt) :
 		x(pt.x),
@@ -117,6 +120,15 @@ struct RectU
 	{}
 
 	USHORT left, top, right, bottom;
+};
+
+// Only problem with struct is the packing.  Default packing for struct is
+// minimum of 4 byte boundaries.  Since USHORT is only 2 bytes, the fps in
+// this case is padded by 2 bytes.
+struct WBParams 
+{
+	USHORT width, height, fps;
+	BYTE clrIndex;
 };
 
 struct WBClientData

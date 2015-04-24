@@ -4,15 +4,10 @@
 #include "..\\Common\\ColorDef.h"
 #include "..\\Common\\WhiteboardClientData.h"
 
-//
-//#include <wincodec.h>
-//#pragma comment(lib, "d2d1.lib")
-//#pragma comment(lib, "Windowscodecs.lib")
-
 class Whiteboard
 {
 public:
-	Whiteboard(TCPServ &serv, USHORT ScreenWidth, USHORT ScreenHeight, USHORT Fps);
+	Whiteboard(TCPServ &serv, USHORT ScreenWidth, USHORT ScreenHeight, USHORT Fps, BYTE clrIndex);
 	Whiteboard(Whiteboard &&wb);
 
 	~Whiteboard();
@@ -23,25 +18,19 @@ public:
 
 	void MakeRect(PointU &p0, PointU &p1);
 	BYTE *GetBitmap();
-	CRITICAL_SECTION &GetCritSection();
+	void InitPalette();
+	CRITICAL_SECTION &GetBitmapSection();
 	CRITICAL_SECTION& GetMapSect();
 	std::unordered_map<Socket, WBClientData, Socket::Hash>& GetMap();
 private:
-	BYTE *pixels;
 	USHORT screenWidth, screenHeight, fps;
+	BYTE *pixels;
+	BYTE bgColor;
 	CRITICAL_SECTION bitmapSect, mapSect;
-	std::unordered_map<Socket, WBClientData, Socket::Hash> clients; //type should be defined class that stores all whiteboard client-specific vars
 	TCPServ &serv;
+	D3DCOLOR palette[32];
+
+	std::unordered_map<Socket, WBClientData, Socket::Hash> clients;
 	std::vector<RectU> rectList;
-
-	/*
-	// Won't be needed for the indexed palette, will revisit if we implement 
-	// DirectWrite
-	ID2D1Factory *pFactory;
-	ID2D1RenderTarget *pRenderTarget;
-
-	IWICImagingFactory *pWicFactory;
-	IWICBitmap *pWicBitmap;
-	*/
 
 };

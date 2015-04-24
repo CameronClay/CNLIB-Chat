@@ -21,6 +21,7 @@
 #include "Whiteboard.h"
 #include "..\\Common\\Mouse.h"
 #include "..\\Common\\DebugHelper.h"
+#include "WhiteboardClientData.h"
 
 #pragma comment(lib, "comctl32.lib")
 
@@ -222,11 +223,8 @@ void Disconnect()
 
 void Flash()
 {
-	if (opts->FlashTaskbar())
-	{
-		FLASHWINFO info = { sizeof(FLASHWINFO), hMainWind, FLASHW_ALL | FLASHW_TIMERNOFG, opts->GetFlashCount() , 0 };
-		FlashWindowEx(&info);
-	}
+	// I put FLASHWINFO in Options
+	opts->FlashTaskbar(hMainWind);
 }
 
 void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
@@ -544,17 +542,29 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			{
 			case MSG_WHITEBOARD_ACTIVATE:
 			{
-				UINT pos = 0;
-				const USHORT width = *(USHORT*)(dat[pos]);
+				/*UINT pos = 0;
+				const USHORT width = *(USHORT*)(&dat[pos]);
 				pos += sizeof(USHORT);
 
-				const USHORT height = *(USHORT*)(dat[pos]);
+				const USHORT height = *(USHORT*)(&dat[pos]);
 				pos += sizeof(USHORT);
 
-				const USHORT FPS = *(USHORT*)(dat[pos]);
+				const USHORT FPS = *(USHORT*)(&dat[pos]);
+				pos += sizeof(USHORT);
 
-				HWND WBHnd = CreateWBWindow(hMainWind, width, height);
-				pWhiteboard = construct<Whiteboard>(Whiteboard(WBHnd, width, height, FPS));
+				const D3DCOLOR clr = *(D3DCOLOR*)(&dat[pos]);*/
+
+				WBParams *pParams = (WBParams*)dat;
+				
+				HWND WBHnd = CreateWBWindow(hMainWind, pParams->width, pParams->height);
+				pWhiteboard = construct(
+					Whiteboard(
+					WBHnd, 
+					pParams->width, 
+					pParams->height, 
+					pParams->fps, 
+					pParams->clrIndex)
+					);
 				break;
 			}
 			case MSG_WHITEBOARD_TERMINATE:
@@ -1344,10 +1354,10 @@ INT_PTR CALLBACK Opt_GeneralProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		{
 			CheckDlgButton(hWnd, ID_TIMESTAMPS, opts->TimeStamps() ? BST_CHECKED : BST_UNCHECKED);
 			CheckDlgButton(hWnd, ID_STARTUP, opts->AutoStartup() ? BST_CHECKED : BST_UNCHECKED);
-			CheckDlgButton(hWnd, ID_FLASH_TASKBAR, opts->FlashTaskbar() ? BST_CHECKED : BST_UNCHECKED);
-
+			CheckDlgButton(hWnd, ID_FLASH_TASKBAR, opts->FlashTaskbar(hMainWind) ? BST_CHECKED : BST_UNCHECKED);
+			
 			SendMessage(flashCount, WM_SETTEXT, 0, (LPARAM)To_String(opts->GetFlashCount()).c_str());
-			EnableWindow(flashCount, opts->FlashTaskbar());
+			EnableWindow(flashCount, opts->FlashTaskbar(hMainWind));
 
 			SetWindowLongPtr(hWnd, DWL_MSGRESULT, PSNRET_NOERROR);
 			break;
@@ -1577,32 +1587,36 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		{
 		case IDOK:
 		{
-			const DWORD nBytes = MSG_OFFSET + (sizeof(USHORT) * 3) + sizeof(D3DCOLOR);
+			const DWORD nBytes = MSG_OFFSET + sizeof(WBParams);
 			char* msg = alloc<char>(nBytes);
 			msg[0] = TYPE_WHITEBOARD;
 			msg[1] = MSG_WHITEBOARD_SETTINGS;
 
 			TCHAR* temp = alloc<TCHAR>(5);
-			USHORT tempVal = 0;
-			UINT pos = MSG_OFFSET;
+			WBParams *pParams = (WBParams*)&msg[MSG_OFFSET];
+			/*USHORT tempVal = 0;
+			UINT pos = MSG_OFFSET;*/
 
 			SendMessage(X, WM_GETTEXT, 5, (LPARAM)temp);
-			tempVal = _tstoi(temp) - 1;
-			*(USHORT*)(msg[pos]) = tempVal;
-			pos += sizeof(USHORT);
+			pParams->width = _tstoi(temp);
+			//tempVal = _tstoi(temp);			 
+			//*((USHORT*)(&msg[pos])) = tempVal;
+			//pos += sizeof(USHORT);
 
 			SendMessage(Y, WM_GETTEXT, 5, (LPARAM)temp);
-			tempVal = _tstoi(temp) - 1;
-			*(USHORT*)(msg[pos]) = tempVal;
-			pos += sizeof(USHORT);
+			pParams->height = _tstoi(temp);
+			/*tempVal = _tstoi(temp);
+			*(USHORT*)(&msg[pos]) = tempVal;
+			pos += sizeof(USHORT);*/
 
 			SendMessage(FPS, WM_GETTEXT, 4, (LPARAM)temp);
-			tempVal = _tstoi(temp) - 1;
-			*(USHORT*)(msg[pos]) = tempVal;
-			pos += sizeof(USHORT);
+			pParams->fps = _tstoi(temp);
+			/*tempVal = _tstoi(temp);
+			*(USHORT*)(&msg[pos]) = tempVal;
+			pos += sizeof(USHORT);*/
 
-			D3DCOLOR color;
-			*(D3DCOLOR*)(msg[pos]) = color;
+			pParams->clrIndex = 0;
+			//*(D3DCOLOR*)(&msg[pos]) = color;
 
 			dealloc(temp);
 
@@ -1621,7 +1635,7 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		}
 		break;
 	}
-
+			
 	case WM_INITDIALOG:
 	{
 		X = GetDlgItem(hWnd, WHITEBOARD_RES_X), 
@@ -1631,7 +1645,7 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		SendMessage(X, EM_SETLIMITTEXT, 4, 0);
 		SendMessage(Y, EM_SETLIMITTEXT, 4, 0);
 		SendMessage(FPS, EM_SETLIMITTEXT, 3, 0);
-
+		
 		TCHAR* temp = alloc<TCHAR>(5);
 		SendMessage(X, WM_SETTEXT, 0, (LPARAM)_itot(WB_DEF_RES_X, temp, 10));
 		SendMessage(Y, WM_SETTEXT, 0, (LPARAM)_itot(WB_DEF_RES_Y, temp, 10));

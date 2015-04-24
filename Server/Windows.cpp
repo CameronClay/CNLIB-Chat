@@ -113,6 +113,7 @@ void SendSingleUserData(TCPServ& serv, BYTE* dat, DWORD nBytes, char type, char 
 			const UINT offset = sizeof(UINT) + (userLen * sizeof(TCHAR));
 			const DWORD nBy = (nBytes - offset) + MSG_OFFSET;
 			char* msg = alloc<char>(nBy);
+			
 			msg[0] = type;
 			msg[1] = message;
 			memcpy(&msg[MSG_OFFSET], &dat[offset], nBytes - offset);
@@ -356,7 +357,9 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		}
 		case MSG_DATA_BITMAP:
 		{
-			// Not sure what server needs to do here
+			// Not sure what server needs to do here, I'm guessing this is where
+			// server would send the compressed images, whiteboard would call
+			// serv->SendClientData??
 		}
 		}
 		break;
@@ -483,17 +486,27 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		{
 			if(!wb)
 			{
-				UINT pos = 0;
-				const USHORT X = *(USHORT*)dat[pos];
+				/*UINT pos = 0;
+				const USHORT X = *(USHORT*)&dat[pos];
 				pos += sizeof(USHORT);
-				const USHORT Y = *(USHORT*)dat[pos];
+				const USHORT Y = *(USHORT*)&dat[pos];
 				pos += sizeof(USHORT);
-				const USHORT FPS = *(USHORT*)dat[pos];
+				const USHORT FPS = *(USHORT*)&dat[pos];
 				pos += sizeof(USHORT);
-				const D3DCOLOR color = *(D3DCOLOR*)dat[pos];
+				const D3DCOLOR color = *(D3DCOLOR*)&dat[pos];*/
 
-				//wb = construct<Whiteboard>(Whiteboard(serv, X, Y, FPS, color));
+				WBParams *pParams = (WBParams *)dat;
+				wb = construct(
+					Whiteboard(serv, (*pParams).width, (*pParams).height, (*pParams).fps, 
+					(*pParams).clrIndex));
 
+				*((char*)&data[0]) = TYPE_WHITEBOARD;
+				*((char*)&data[1]) = MSG_WHITEBOARD_ACTIVATE;
+				for (int i = 0; i < clients.size(); i++)
+				{
+					HANDLE handle = serv.SendClientData((char*)data, nBytes + MSG_OFFSET, clients[i].pc, true);
+					TCPServ::WaitAndCloseHandle(handle);
+				}
 			}
 			else
 			{
@@ -535,7 +548,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		}
 		case MSG_WHITEBOARD_LEFT:
 		{
-			CRITICAL_SECTION& sect = wb->GetCritSection();
+			CRITICAL_SECTION& sect = wb->GetMapSect();
 			EnterCriticalSection(&sect);
 			wb->GetMap().erase(clients[index].pc);
 			LeaveCriticalSection(&sect);

@@ -16,7 +16,8 @@ Options::Options(Options&& opts)
 	timeStamps(opts.timeStamps),
 	startUp(opts.startUp),
 	flashTaskbar(opts.flashTaskbar),
-	flashCount(opts.flashCount)
+	flashCount(opts.flashCount),
+	info(opts.info)
 {}
 
 Options::~Options()
@@ -124,6 +125,11 @@ void Options::Reset(float currentVers)
 	TCHAR buffer[MAX_PATH] = {};
 	FileMisc::GetFolderPath(CSIDL_MYDOCUMENTS , buffer);
 	downloadPath = std::tstring(buffer);
+
+	// FLASHWINFO
+	info.cbSize = sizeof(FLASHWINFO);
+	info.dwFlags = FLASHW_ALL | FLASHW_TIMERNOFG;
+	info.dwTimeout = 0;
 }
 
 bool Options::TimeStamps()
@@ -136,8 +142,16 @@ bool Options::AutoStartup()
 	return startUp;
 }
 
-bool Options::FlashTaskbar()
+bool Options::FlashTaskbar(HWND hWnd)
 {
+	if (flashTaskbar)
+	{
+		info.hwnd = hWnd;
+		info.uCount = flashCount;
+
+		FlashWindowEx(&info);
+	}
+
 	return flashTaskbar;
 }
 
@@ -150,4 +164,3 @@ std::tstring& Options::GetDownloadPath()
 {
 	return downloadPath;
 }
-

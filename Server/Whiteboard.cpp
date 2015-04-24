@@ -1,63 +1,65 @@
 #include "Whiteboard.h"
+#include "HeapAlloc.h"
 
-
-Whiteboard::Whiteboard(TCPServ &serv, USHORT ScreenWidth, USHORT ScreenHeight, USHORT Fps)
-	:
-screenWidth(ScreenWidth),
-screenHeight(ScreenHeight),
-fps(Fps),
-serv(serv)/*,
-pFactory(nullptr),
-pWicFactory(nullptr),
-pRenderTarget(nullptr),
-pWicBitmap(nullptr)*/
+Whiteboard::Whiteboard(TCPServ &serv, USHORT ScreenWidth, USHORT ScreenHeight, 
+	USHORT Fps, BYTE clrIndex) :
+	bgColor(clrIndex),
+	screenWidth(ScreenWidth),
+	screenHeight(ScreenHeight),
+	fps(Fps),
+	serv(serv),
+	pixels(alloc<BYTE>(ScreenWidth * ScreenHeight))	
 {
-	/*HRESULT hr = CoCreateInstance(
-		CLSID_WICImagingFactory,
-		nullptr,
-		CLSCTX_INPROC_SERVER,
-		IID_PPV_ARGS(&pWicFactory)
-		);
+	FillMemory(pixels, ScreenWidth * ScreenHeight, bgColor);
 
-	pWicFactory->CreateBitmap(
-		800, 
-		600, 
-		GUID_WICPixelFormat32bppPBGRA, 
-		WICBitmapCacheOnDemand, 
-		&pWicBitmap
-		);
-
-	D2D1CreateFactory(
-		D2D1_FACTORY_TYPE_MULTI_THREADED, 
-		&pFactory
-		);
-
-	pFactory->CreateWicBitmapRenderTarget(
-		pWicBitmap, 
-		D2D1::RenderTargetProperties(), 
-		&pRenderTarget
-		);*/
 	InitializeCriticalSection(&bitmapSect);
 	InitializeCriticalSection(&mapSect);
 }
 
 Whiteboard::Whiteboard(Whiteboard &&wb) :
+bgColor(wb.bgColor),
 screenWidth(wb.screenWidth),
 screenHeight(wb.screenHeight),
 fps(wb.fps),
-pixels(pixels),
+pixels(wb.pixels),
 bitmapSect(wb.bitmapSect),
 mapSect(wb.mapSect),
-clients(wb.clients),
-serv(wb.serv) // Don't think copying refs works
+clients(std::move(wb.clients)),  // this was the only way to get it to use the mctor
+serv(wb.serv),
+rectList(wb.rectList)
 {
-	ZeroMemory(&wb, sizeof(Whiteboard));
+	// Crashed when Zeroing unordered_map and TCPServ, that's why I didn't zero mem
+	// the whole class
+	wb.bgColor = 0;
+	wb.screenHeight = 0;
+	wb.screenWidth = 0;
+	wb.fps = 0;
+	wb.pixels = nullptr;
+	ZeroMemory(&wb.bitmapSect, sizeof(CRITICAL_SECTION));
+	ZeroMemory(&wb.mapSect, sizeof(CRITICAL_SECTION));	
 }
 
 BYTE *Whiteboard::GetBitmap()
 {
+	// LeaveCriticalSection will never be executed in this case, probably could 
+	// use a wrapper for something like this where Enter in ctor and Leave in dtor
+	/*
+	struct CritSectionHandler
+	{
+		CritSectionHandler( CRITICAL_SECTION *pCritSect ) :
+		pCriticalSection(pCritSect)
+		{
+			EnterCriticalSection(pCritSect);
+		}
+		~CritSectionHandler()
+		{
+			LeaveCriticalSection(pCritSect);
+		}
+
+		CRITICAL_SECTION *pCriticalSection;
+	*/
 	EnterCriticalSection(&bitmapSect);
-	return nullptr;
+	return pixels;
 	LeaveCriticalSection(&bitmapSect);
 }
 
@@ -127,6 +129,46 @@ void Whiteboard::Draw()
 	LeaveCriticalSection(&mapSect);
 }
 
+void Whiteboard::InitPalette()
+{
+	// Not sure I need this in here, might even need to put in global scope 
+	// for other functions to use like the WBSettingsProc.
+	BYTE i = 0;
+	palette[i++] = Black;
+	palette[i++] = DarkGray;
+	palette[i++] = LightGray;
+	palette[i++] = White;
+	palette[i++] = DarkRed;
+	palette[i++] = MediumRed;
+	palette[i++] = Red;
+	palette[i++] = LightRed;
+	palette[i++] = DarkOrange;
+	palette[i++] = MediumOrange;
+	palette[i++] = Orange;
+	palette[i++] = LightOrange;
+	palette[i++] = DarkYellow;
+	palette[i++] = MediumYellow;
+	palette[i++] = Yellow;
+	palette[i++] = LightYellow;
+	palette[i++] = DarkGreen;
+	palette[i++] = MediumGreen;
+	palette[i++] = Green;
+	palette[i++] = LightGreen;
+	palette[i++] = DarkCyan;
+	palette[i++] = MediumCyan;
+	palette[i++] = Cyan;
+	palette[i++] = LightCyan;
+	palette[i++] = DarkBlue;
+	palette[i++] = MediumBlue;
+	palette[i++] = Blue;
+	palette[i++] = LightBlue;
+	palette[i++] = DarkPurple;
+	palette[i++] = MediumPurple;
+	palette[i++] = Purple;
+	palette[i] = LightPurple;
+
+}
+
 void Whiteboard::DrawLine(PointU start, PointU end, BYTE clr)
 {
 	PointU dist = end - start;
@@ -165,12 +207,9 @@ std::unordered_map<Socket, WBClientData, Socket::Hash>& Whiteboard::GetMap()
 Whiteboard::~Whiteboard()
 {
 	//need a way to check if has been inited for mctor
-	//if()
+	if(pixels)
 	{
 		DeleteCriticalSection(&bitmapSect);
-	}
-	//if()
-	{
 		DeleteCriticalSection(&mapSect);
 	}
 }

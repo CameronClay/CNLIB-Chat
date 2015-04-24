@@ -19,12 +19,12 @@ public:
 
 	bool TimeStamps();
 	bool AutoStartup();
-	bool FlashTaskbar();
+	bool FlashTaskbar(HWND hWnd);
 	UINT GetFlashCount();
 	std::tstring& GetDownloadPath();
 private:
 	std::tstring filePath;
-
+	FLASHWINFO info;
 	std::tstring downloadPath;
 	float version;
 	bool timeStamps, startUp, flashTaskbar;

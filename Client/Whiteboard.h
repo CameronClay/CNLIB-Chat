@@ -5,16 +5,11 @@
 #include <d3d9.h>
 #pragma comment(lib, "d3d9.lib")
 
-//#include <d2d1.h>
-//#pragma comment(lib, "d2d1.lib")
-//#include <wincodec.h>
-//#pragma comment(lib, "Windowscodecs.lib")
-
 class Whiteboard
 {
 public:
 	Whiteboard();
-	Whiteboard(HWND WinHandle, USHORT Width, USHORT Height, USHORT FPS, UINT palIndex = Black);
+	Whiteboard(HWND WinHandle, USHORT Width, USHORT Height, USHORT FPS, UINT palIndex = 0);
 	Whiteboard(Whiteboard&& wb);
 	~Whiteboard();
 
@@ -36,6 +31,7 @@ private:
 	float interval;
 	Timer timer;
 	D3DCOLOR bgColor;
+	BYTE *pixels;
 
 	IDirect3D9 *pDirect3D;
 	IDirect3DDevice9 *pDevice;
@@ -43,10 +39,5 @@ private:
 	D3DCOLOR *tempSurface;
 	D3DLOCKED_RECT lockRect;
 	D3DCOLOR palette[32];
-	/*ID2D1Factory *p2DFactory;
-	ID2D1HwndRenderTarget *pHwndRenderTarget;
-	ID2D1Bitmap *pBitmap;
-	D2D1_BITMAP_PROPERTIES bp;
-	D2D1_RECT_U uRect;*/
 };
 

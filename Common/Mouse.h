@@ -43,9 +43,9 @@ public:
 		Invalid
 	};
 private:
-	const Type type;
-	const int x;
-	const int y;
+	Type type;
+	int x;
+	int y;
 public:
 	MouseEvent(Type type, USHORT x, USHORT y)
 		:
