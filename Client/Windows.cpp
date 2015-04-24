@@ -49,8 +49,11 @@ const float CONFIGVERSION = .002f;
 
 #define ID_TIMER_INACTIVE 0
 
-#define ID_WHITEBOARD_MENU 100
-#define ID_WHITEBOARD_SETTINGS 101
+#define ID_WHITEBOARD_START 99
+#define ID_WHITEBOARD_TERMINATE 100
+#define ID_WHITEBOARD_KICK 101
+#define ID_WHITEBOARD_SETTINGS 102
+#define ID_WHITEBOARD_INVITE 103
 
 #pragma endregion
 
@@ -73,6 +76,7 @@ INT_PTR CALLBACK RequestFileProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK RequestWBProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK TimerProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK WBSettingsProc(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK WBInviteProc(HWND, UINT, WPARAM, LPARAM);
 
 #pragma region GlobalVarDeclarations
 HINSTANCE hInst;
@@ -393,10 +397,27 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					fileSend->StartSend();
 					break;
 				}
-			}// MSG_RESPONES
 
+				case MSG_RESPONSE_WHITEBOARD_CONFIRMED:
+				{
+					TCHAR buffer[255];
+					_stprintf(buffer, _T("%s has confirmed your whiteboard request!"), dat);
+					MessageBox(hMainWind, buffer, _T("Success"), MB_OK);
+					break;
+				}
+
+				case MSG_RESPONSE_WHITEBOARD_DECLINED:
+				{
+					TCHAR buffer[255];
+					_stprintf(buffer, _T("%s has declined your whiteboard request!"), dat);
+					MessageBox(hMainWind, buffer, _T("DECLINED"), MB_ICONERROR);
+					break;
+				}
+
+			}// MSG_RESPONES
 			break;
 		}//TYPE_RESPONSE
+
 		case TYPE_FILE:
 		{
 			switch (msg)
@@ -537,9 +558,24 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				break;
 			}
 			case MSG_WHITEBOARD_TERMINATE:
-				if(pWhiteboard)
-					destruct(pWhiteboard);
+			{
+				destruct(pWhiteboard);
 				break;
+			}
+			case MSG_WHITEBOARD_CANNOTCREATE:
+			{
+				MessageBox(hMainWind, _T("A whiteboard is already being displayed!"), _T("ERROR"), MB_ICONERROR);
+				break;
+			}
+			case MSG_WHITEBOARD_KICK:
+			{
+				destruct(pWhiteboard);
+
+				TCHAR buffer[255];
+				_stprintf(buffer, _T("%s has kicked you from the server!"), dat);
+				MessageBox(hMainWind, buffer, _T("Kicked"), MB_ICONERROR);
+				break;
+			}
 			}
 			break;
 		}
@@ -861,11 +897,46 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		}
 
-		case ID_WHITEBOARD_MENU:
+		case ID_WHITEBOARD_START:
 		{
+			EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_GRAYED);
+			EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_ENABLED);
 			DialogBox(hInst, MAKEINTRESOURCE(WHITEBOARD_SETTINGS),hWnd, WBSettingsProc);
 			break;
 		}
+
+		case ID_WHITEBOARD_TERMINATE:
+		{
+			EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_ENABLED);
+			EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_GRAYED);
+			client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
+			break;
+		}
+
+		case ID_WHITEBOARD_INVITE:
+		{
+			DialogBox(hInst, MAKEINTRESOURCE(WHITEBOARD_INVITE), hWnd, WBInviteProc);
+			break;
+		}
+
+		case ID_WHITEBOARD_KICK:
+		{
+			const UINT i = SendMessage(listClients, LB_GETCURSEL, 0, 0);
+			const UINT len = SendMessage(listClients, LB_GETTEXTLEN, i, 0);
+			std::tstring userKick;
+
+			userKick.resize(len);
+			SendMessage(listClients, LB_GETTEXT, i, (LPARAM)&userKick[0]);
+			if(userKick.compare(user) == 0)
+			{
+				MessageBox(hMainWind, _T("One does not simply kick ones self"), _T("ERROR"), MB_ICONERROR);
+				break;
+			}
+
+			client->SendMsg(userKick, TYPE_WHITEBOARD, MSG_WHITEBOARD_KICK);
+			break;
+		}
+
 
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
@@ -888,7 +959,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		AppendMenu(options, MF_STRING, ID_VIEW_LOGS, _T("Logs"));
 
 		wbMenu = CreateMenu();
-		AppendMenu(main, MF_STRING, ID_WHITEBOARD_MENU, _T("Whiteboard"));
+		AppendMenu(main, MF_POPUP, (UINT_PTR)wbMenu, _T("Whiteboard"));
+		AppendMenu(wbMenu, MF_STRING, ID_WHITEBOARD_START, _T("Start"));
+		AppendMenu(wbMenu, MF_STRING | MF_GRAYED, ID_WHITEBOARD_TERMINATE, _T("Terminate"));
 
 		SetMenu(hWnd, main);
 
@@ -944,11 +1017,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						HMENU hPop = CreatePopupMenu();
 						HMENU send = CreateMenu();
 						HMENU admin = CreateMenu();
+						HMENU whiteboard = CreateMenu();
 
 						AppendMenu(send, MF_STRING | (fileSend->Running() ? MF_GRAYED : MF_ENABLED), ID_SEND_FILE, _T("Send File"));
 						AppendMenu(send, MF_STRING | (fileSend->Running() ? MF_GRAYED : MF_ENABLED), ID_SEND_FOLDER, _T("Send Folder"));
 
 						AppendMenu(admin, MF_STRING, ID_KICK, _T("Kick"));
+
+						AppendMenu(whiteboard, MF_STRING, ID_WHITEBOARD_INVITE, _T("Invite"));
+						AppendMenu(whiteboard, MF_STRING, ID_WHITEBOARD_KICK, _T("Kick"));
 
 						AppendMenu(hPop, MF_POPUP, (UINT_PTR)send, _T("Send"));
 						AppendMenu(hPop, MF_POPUP, (UINT_PTR)admin, _T("Admin"));
@@ -1568,3 +1645,42 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 	}
 	return 0;
 }
+
+INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	static HWND draw, invite;
+	switch(message)
+	{
+	case WM_COMMAND:
+	{
+		const short id = LOWORD(wParam);
+		switch(id)
+		{
+		case IDOK:
+		{
+			const bool canDraw = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
+			const bool canInivte = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANINVITE));
+			EndDialog(hWnd, id);
+			break;
+		}
+		case IDCANCEL:
+		{
+			EndDialog(hWnd, id);
+			break;
+		}
+		}
+		break;
+	}
+
+	case WM_INITDIALOG:
+	{
+		draw = GetDlgItem(hWnd, ID_WHITEBOARD_CANDRAW), invite = GetDlgItem(hWnd, ID_WHITEBOARD_CANINVITE);
+		CheckDlgButton(hWnd, ID_WHITEBOARD_CANDRAW, BST_CHECKED);
+		CheckDlgButton(hWnd, ID_WHITEBOARD_CANINVITE, BST_CHECKED);
+
+		return 0;
+	}
+	}
+	return 0;
+}
+
