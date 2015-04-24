@@ -21,9 +21,12 @@
 #pragma once
 #include <queue>
 
+
 class MouseServer;
 
 typedef unsigned short USHORT;
+typedef unsigned char BYTE;
+typedef unsigned int UINT;
 
 class MouseEvent
 {
@@ -99,12 +102,10 @@ public:
 	void OnWheelUp(USHORT x, USHORT y);
 	void OnWheelDown(USHORT x, USHORT y);
 	bool IsInWindow() const;
+	UINT Extract(BYTE *byteBuffer);
 private:
-	USHORT x;
-	USHORT y;
-	bool leftIsPressed;
-	bool rightIsPressed;
-	bool isInWindow;
+	USHORT x, y;
+	bool leftIsPressed, rightIsPressed, isInWindow;
 	static const USHORT bufferSize = 4;
 	std::queue< MouseEvent > buffer;
 };

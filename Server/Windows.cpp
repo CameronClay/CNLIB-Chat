@@ -166,6 +166,7 @@ void RequestTransfer(TCPServ& serv, std::tstring& srcUserName, BYTE* dat)
 	auto& clients = serv.GetClients();
 	const UINT srcUserLen = *(UINT*)&(dat[MSG_OFFSET]);
 	std::tstring user = std::tstring((TCHAR*)&(dat[MSG_OFFSET + sizeof(UINT)]), srcUserLen - 1);
+	
 	for (UINT i = 0; i < clients.size(); i++)
 	{
 		if (clients[i].user.compare(user) == 0)
@@ -330,6 +331,10 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 			RequestTransfer(serv, clients[index].user, data);
 			break;
 		}
+		case MSG_REQUEST_WHTIEBOARD:
+		{
+			// Send request to all other clients to show/join whiteboard?
+		}
 		}
 		break;
 	}//TYPE_REQUEST
@@ -346,6 +351,10 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 			TCPServ::WaitAndCloseHandle(hnd);
 			dealloc(msg);
 			break;
+		}
+		case MSG_DATA_BITMAP:
+		{
+			// Not sure what server needs to do here
 		}
 		}
 		break;
@@ -382,6 +391,15 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 			{
 				TransferMessageWithName(serv, clients[index].user, data);
 				break;
+			}
+			case MSG_RESPONSE_WHITEBOARD_CONFIRMED:
+			{
+				// Add client to whiteboard client list?
+			}
+			case MSG_RESPONSE_WHITEBOARD_DECLINED:
+			{
+				// Possibly do nothing, still need to allow client to be able to 
+				// join later
 			}
 		}
 		break;
@@ -454,6 +472,21 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		}
 		break;
 	}//TYPE_VERSION
+	case TYPE_WHITEBOARD:
+	{
+		switch (msg)
+		{
+			case MSG_WHITEBOARD_ACTIVATE:
+			{
+				// Initialize whiteboard class
+			}
+			case MSG_WHITEBOARD_TERMINATE:
+			{
+				// remove client from whiteboard client list
+				// if all clients are disconnected, delete whiteboard pointer
+			}
+		}// Whiteboard messages
+	}// TYPE_WHITEBOARD
 	}
 }
 

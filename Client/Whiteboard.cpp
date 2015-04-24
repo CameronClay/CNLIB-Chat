@@ -1,5 +1,6 @@
 #include "Whiteboard.h"
 #include <assert.h>
+#include "..\\Common\\HeapAlloc.h"
 
 Whiteboard::Whiteboard()
 {
@@ -119,8 +120,8 @@ void Whiteboard::EndFrame()
 void Whiteboard::ComposeImage(USHORT Width, USHORT Height, BYTE *pixelData)
 {
 	HRESULT hr = 0;
-	tempSurface = new D3DCOLOR[Width * Height];
-
+	tempSurface =  alloc<D3DCOLOR>(Width * Height);
+	
 	for (int y = 0; y< height; y++)
 	{
 		UINT rowOffset = y * Width;
@@ -136,11 +137,7 @@ void Whiteboard::ComposeImage(USHORT Width, USHORT Height, BYTE *pixelData)
 
 void Whiteboard::ClearTempSurface()
 {
-	if (tempSurface)
-	{
-		delete[] tempSurface;
-		tempSurface = nullptr;
-	}
+	dealloc(tempSurface);
 }
 
 void Whiteboard::InitD3D()

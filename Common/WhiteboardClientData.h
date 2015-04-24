@@ -12,6 +12,14 @@ enum class Tool
 
 struct PointU
 {
+	PointU();
+	PointU(USHORT X, USHORT Y);
+	PointU(PointU &&pt) :
+		x(pt.x),
+		y(pt.y)
+	{
+		ZeroMemory(&pt, sizeof(PointU));
+	}
 	PointU operator*(const int val)
 	{
 		PointU temp;
@@ -33,6 +41,15 @@ struct PointU
 		temp.y = y - val.y;
 		return temp;
 	}
+	PointU &operator=(PointU &&val)
+	{
+		x = val.x;
+		y = val.y;
+		ZeroMemory(&val, sizeof(PointU));
+
+		return (*this);
+	}
+
 	PointU Sqr()
 	{
 		PointU pt;
@@ -40,18 +57,15 @@ struct PointU
 		pt.y = y * y;
 		return pt;
 	}
-
 	float Length()
 	{
 		PointU ptSqr = Sqr();
 		return sqrt(ptSqr.x + ptSqr.y);
 	}
-
 	float InvLength()
 	{
 		return 1 / Length();
 	}
-
 	PointU Normalize()
 	{
 		PointU ptNorm;
@@ -60,11 +74,48 @@ struct PointU
 
 		return ptNorm;
 	}
+
+	~PointU(){}
 	USHORT x, y;
 };
 
 struct RectU
 {
+	RectU() :
+		left(0),
+		top(0),
+		right(0),
+		bottom(0)
+	{}
+	RectU(USHORT Left, USHORT Top, USHORT Right, USHORT Bottom) :
+		left(Left),
+		top(Top),
+		right(Right),
+		bottom(Bottom)
+	{}
+	RectU(RectU &&rect) :
+		left(rect.left),
+		top(rect.top),
+		right(rect.right),
+		bottom(rect.bottom)
+	{
+		ZeroMemory(&rect, sizeof(RectU));
+	}
+
+	RectU &operator=(RectU &&rect)
+	{
+		left = (rect.left);
+		top = (rect.top);
+		right = (rect.right);
+		bottom = (rect.bottom);
+		
+		ZeroMemory(&rect, sizeof(RectU));
+		return (*this);
+	}
+
+	~RectU()
+	{}
+
 	USHORT left, top, right, bottom;
 };
 

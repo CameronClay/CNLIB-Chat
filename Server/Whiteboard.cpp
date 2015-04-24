@@ -98,15 +98,13 @@ void Whiteboard::PaintBrush(std::deque<PointU> &pointList, BYTE clr)
 
 void Whiteboard::Draw()
 {
-	std::vector<TCPServ::ClientData> & cList = serv.GetClients();
-
-	for (int i = 0; i < cList.size(); i++)
-	{
-		Socket &skt = cList[i].pc;
-		MouseClient mouse(clients[skt].mServ);
-		Tool myTool = clients[skt].tool;
-		BYTE color = clients[skt].clrIndex;
-
+	EnterCriticalSection(&mapSect);
+	for (auto it : clients)
+	{		
+		MouseClient mouse(it.second.mServ);
+		Tool myTool = it.second.tool;
+		BYTE color = it.second.clrIndex;
+		
 		std::deque<PointU> pointList;
 		while (mouse.Read().GetType() != MouseEvent::Type::Invalid)
 		{
@@ -125,6 +123,8 @@ void Whiteboard::Draw()
 
 		pointList.clear();
 	}
+
+	LeaveCriticalSection(&mapSect);
 }
 
 void Whiteboard::DrawLine(PointU start, PointU end, BYTE clr)

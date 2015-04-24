@@ -1547,7 +1547,10 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 
 	case WM_INITDIALOG:
 	{
-		X = GetDlgItem(hWnd, WHITEBOARD_RES_X), Y = GetDlgItem(hWnd, WHITEBOARD_RES_Y), FPS = GetDlgItem(hWnd, WHITEBOARD_FPS), Colors = GetDlgItem(hWnd, WHITEBOARD_COLORSEL);
+		X = GetDlgItem(hWnd, WHITEBOARD_RES_X), 
+			Y = GetDlgItem(hWnd, WHITEBOARD_RES_Y), 
+			FPS = GetDlgItem(hWnd, WHITEBOARD_FPS), 
+			Colors = GetDlgItem(hWnd, WHITEBOARD_COLORSEL);
 		SendMessage(X, EM_SETLIMITTEXT, 4, 0);
 		SendMessage(Y, EM_SETLIMITTEXT, 4, 0);
 		SendMessage(FPS, EM_SETLIMITTEXT, 3, 0);
