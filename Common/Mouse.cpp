@@ -145,8 +145,8 @@ bool MouseServer::IsInWindow() const
 }
 UINT MouseServer::Extract(BYTE *byteBuffer)
 {
-	UINT bufLen = buffer.size() * sizeof(MouseEvent::Type);
-	byteBuffer = alloc<BYTE>(bufLen + sizeof(MouseServer) - sizeof(std::deque<MouseEvent>));
+	const UINT bufLen = buffer.size() * sizeof(MouseEvent::Type);
+	//byteBuffer = alloc<BYTE>(bufLen + sizeof(MouseServer) - sizeof(std::deque<MouseEvent>));
 
 	MouseServer *serv = (MouseServer*)byteBuffer;
 	serv->x = x;
@@ -154,7 +154,8 @@ UINT MouseServer::Extract(BYTE *byteBuffer)
 	serv->leftIsPressed = leftIsPressed;
 	serv->rightIsPressed = rightIsPressed;
 	serv->isInWindow = isInWindow;
-	UINT offsetToBuffer = sizeof(MouseServer) - sizeof(std::deque<MouseEvent>);
+	const UINT offsetToBuffer = sizeof(MouseServer) - sizeof(std::deque<MouseEvent>);
+
 	for (int i = 0; i < buffer.size(); i++)
 	{
 		MouseEvent *mEvent = (MouseEvent*)&byteBuffer[offsetToBuffer];

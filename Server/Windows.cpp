@@ -33,7 +33,7 @@ struct Authent
 	std::tstring user, password;
 };
 
-const USHORT port = 566;
+const USHORT port = 565;
 
 const UINT maxUserLen = 10;
 
@@ -230,15 +230,6 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 
 	switch (type)
 	{
-	case TYPE_PING:
-	{
-		switch(msg)
-		{
-		case MSG_PING:
-			break;
-		}
-		break;
-	}//TYPE_PING
     case TYPE_REQUEST:
 	{
 		switch (msg)
@@ -333,9 +324,12 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 			RequestTransfer(serv, clients[index].user, data);
 			break;
 		}
-		case MSG_REQUEST_WHTIEBOARD:
+		case MSG_REQUEST_WHITEBOARD:
 		{
-			// Send request to all other clients to show/join whiteboard?
+			if(IsAdmin(clients[index].user))
+				TransferMessageWithName(serv, clients[index].user, data);
+			else
+				serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_NOT);
 		}
 		}
 		break;
@@ -353,10 +347,6 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 			TCPServ::WaitAndCloseHandle(hnd);
 			dealloc(msg);
 			break;
-		}
-		case MSG_DATA_BITMAP:
-		{
-			// Not sure what server needs to do here
 		}
 		}
 		break;
@@ -396,7 +386,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 			}
 			case MSG_RESPONSE_WHITEBOARD_CONFIRMED:
 			{
-				// Add client to whiteboard client list?
+				wb->AddClient(clients[index].pc);
 			}
 			case MSG_RESPONSE_WHITEBOARD_DECLINED:
 			{
@@ -484,13 +474,13 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 			if(!wb)
 			{
 				UINT pos = 0;
-				const USHORT X = *(USHORT*)dat[pos];
+				const USHORT X = *(USHORT*)(&dat[pos]);
 				pos += sizeof(USHORT);
-				const USHORT Y = *(USHORT*)dat[pos];
+				const USHORT Y = *(USHORT*)(&dat[pos]);
 				pos += sizeof(USHORT);
-				const USHORT FPS = *(USHORT*)dat[pos];
+				const USHORT FPS = *(USHORT*)(&dat[pos]);
 				pos += sizeof(USHORT);
-				const D3DCOLOR color = *(D3DCOLOR*)dat[pos];
+				const D3DCOLOR color = *(D3DCOLOR*)(&dat[pos]);
 
 				//wb = construct<Whiteboard>(Whiteboard(serv, X, Y, FPS, color));
 
@@ -504,7 +494,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		case MSG_WHITEBOARD_TERMINATE:
 		{
 			destruct(wb);
-			//serv.SendMsg(vect, TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
+			serv.SendMsg(wb->GetPcs(), TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
 
 			break;
 		}
@@ -535,10 +525,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		}
 		case MSG_WHITEBOARD_LEFT:
 		{
-			CRITICAL_SECTION& sect = wb->GetCritSection();
-			EnterCriticalSection(&sect);
-			wb->GetMap().erase(clients[index].pc);
-			LeaveCriticalSection(&sect);
+			wb->RemoveClient(clients[index].pc);
 			break;
 		}
 		}

@@ -12,7 +12,7 @@
 class Whiteboard
 {
 public:
-	Whiteboard(TCPServ &serv, USHORT ScreenWidth, USHORT ScreenHeight, USHORT Fps);
+	Whiteboard(TCPServ &serv, USHORT ScreenWidth, USHORT ScreenHeight, USHORT Fps, D3DCOLOR color);
 	Whiteboard(Whiteboard &&wb);
 
 	~Whiteboard();
@@ -26,11 +26,16 @@ public:
 	CRITICAL_SECTION &GetCritSection();
 	CRITICAL_SECTION& GetMapSect();
 	std::unordered_map<Socket, WBClientData, Socket::Hash>& GetMap();
+	std::vector<Socket>& GetPcs();
+	void AddClient(Socket pc);
+	void RemoveClient(Socket pc);
 private:
 	BYTE *pixels;
 	USHORT screenWidth, screenHeight, fps;
+	D3DCOLOR color;
 	CRITICAL_SECTION bitmapSect, mapSect;
 	std::unordered_map<Socket, WBClientData, Socket::Hash> clients; //type should be defined class that stores all whiteboard client-specific vars
+	std::vector<Socket> sendPcs;
 	TCPServ &serv;
 	std::vector<RectU> rectList;
 

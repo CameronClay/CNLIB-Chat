@@ -1,11 +1,12 @@
 #include "Whiteboard.h"
 
 
-Whiteboard::Whiteboard(TCPServ &serv, USHORT ScreenWidth, USHORT ScreenHeight, USHORT Fps)
+Whiteboard::Whiteboard(TCPServ &serv, USHORT ScreenWidth, USHORT ScreenHeight, USHORT Fps, D3DCOLOR color)
 	:
 screenWidth(ScreenWidth),
 screenHeight(ScreenHeight),
 fps(Fps),
+color(color),
 serv(serv)/*,
 pFactory(nullptr),
 pWicFactory(nullptr),
@@ -45,11 +46,13 @@ Whiteboard::Whiteboard(Whiteboard &&wb) :
 screenWidth(wb.screenWidth),
 screenHeight(wb.screenHeight),
 fps(wb.fps),
+color(wb.color),
 pixels(pixels),
 bitmapSect(wb.bitmapSect),
 mapSect(wb.mapSect),
 clients(wb.clients),
 serv(wb.serv) // Don't think copying refs works
+//						sure does hehe
 {
 	ZeroMemory(&wb, sizeof(Whiteboard));
 }
@@ -64,6 +67,11 @@ BYTE *Whiteboard::GetBitmap()
 CRITICAL_SECTION& Whiteboard::GetMapSect()
 {
 	return mapSect;
+}
+
+CRITICAL_SECTION &Whiteboard::GetCritSection()
+{
+	return bitmapSect;
 }
 
 void Whiteboard::PaintBrush(std::deque<PointU> &pointList, BYTE clr)
@@ -160,6 +168,39 @@ void Whiteboard::MakeRect(PointU &p0, PointU &p1)
 std::unordered_map<Socket, WBClientData, Socket::Hash>& Whiteboard::GetMap()
 {
 	return clients;
+}
+
+std::vector<Socket>& Whiteboard::GetPcs()
+{
+	return sendPcs;
+}
+
+void Whiteboard::AddClient(Socket pc)
+{
+	EnterCriticalSection(&mapSect);
+
+	clients.emplace(pc, WBClientData());
+	sendPcs.push_back(pc);
+
+	LeaveCriticalSection(&mapSect);
+}
+
+void Whiteboard::RemoveClient(Socket pc)
+{
+	EnterCriticalSection(&mapSect);
+
+	clients.emplace(pc, WBClientData());
+	for(USHORT i = 0; i < sendPcs.size(); i++)
+	{
+		if(sendPcs[i] == pc)
+		{
+			sendPcs[i] = sendPcs.back();
+			sendPcs.pop_back();
+			break;
+		}
+	}
+
+	LeaveCriticalSection(&mapSect);
 }
 
 Whiteboard::~Whiteboard()
