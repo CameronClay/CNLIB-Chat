@@ -7,7 +7,7 @@
 class Whiteboard
 {
 public:
-	Whiteboard(TCPServ &serv, USHORT ScreenWidth, USHORT ScreenHeight, USHORT Fps, BYTE clrIndex);
+	Whiteboard(TCPServ &serv, WBParams params);
 	Whiteboard(Whiteboard &&wb);
 
 	~Whiteboard();
@@ -22,11 +22,16 @@ public:
 	CRITICAL_SECTION &GetBitmapSection();
 	CRITICAL_SECTION& GetMapSect();
 	std::unordered_map<Socket, WBClientData, Socket::Hash>& GetMap();
+	std::vector<Socket>& GetPcs();
+	void AddClient(Socket pc);
+	void RemoveClient(Socket pc);
 private:
 	USHORT screenWidth, screenHeight, fps;
 	BYTE *pixels;
 	BYTE bgColor;
+	BYTE color;
 	CRITICAL_SECTION bitmapSect, mapSect;
+	std::vector<Socket> sendPcs;
 	TCPServ &serv;
 	D3DCOLOR palette[32];
 

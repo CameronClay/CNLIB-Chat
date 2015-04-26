@@ -33,7 +33,7 @@ struct Authent
 	std::tstring user, password;
 };
 
-const USHORT port = 566;
+const USHORT port = 565;
 
 const UINT maxUserLen = 10;
 
@@ -231,16 +231,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 
 	switch (type)
 	{
-	case TYPE_PING:
-	{
-		switch(msg)
-		{
-		case MSG_PING:
-			break;
-		}
-		break;
-	}//TYPE_PING
-    case TYPE_REQUEST:
+	case TYPE_REQUEST:
 	{
 		switch (msg)
 		{
@@ -334,9 +325,13 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 			RequestTransfer(serv, clients[index].user, data);
 			break;
 		}
-		case MSG_REQUEST_WHTIEBOARD:
+		case MSG_REQUEST_WHITEBOARD:
 		{
-			// Send request to all other clients to show/join whiteboard?
+			//need to allow creator to invite
+			if (IsAdmin(clients[index].user))
+				TransferMessageWithName(serv, clients[index].user, data);
+			else
+				serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_NOT);
 		}
 		}
 		break;
@@ -361,8 +356,8 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 			// server would send the compressed images, whiteboard would call
 			// serv->SendClientData??
 		}
-		}
 		break;
+		}
 	}//TYPE_DATA
 	case TYPE_FILE:
 	{
@@ -391,21 +386,21 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 	{
 		switch (msg)
 		{
-			case MSG_RESPONSE_TRANSFER_DECLINED:
-			case MSG_RESPONSE_TRANSFER_CONFIRMED:
-			{
-				TransferMessageWithName(serv, clients[index].user, data);
-				break;
-			}
-			case MSG_RESPONSE_WHITEBOARD_CONFIRMED:
-			{
-				// Add client to whiteboard client list?
-			}
-			case MSG_RESPONSE_WHITEBOARD_DECLINED:
-			{
-				// Possibly do nothing, still need to allow client to be able to 
-				// join later
-			}
+		case MSG_RESPONSE_TRANSFER_DECLINED:
+		case MSG_RESPONSE_TRANSFER_CONFIRMED:
+		{
+			TransferMessageWithName(serv, clients[index].user, data);
+			break;
+		}
+		case MSG_RESPONSE_WHITEBOARD_CONFIRMED:
+		{
+			wb->AddClient(clients[index].pc);
+		}
+		case MSG_RESPONSE_WHITEBOARD_DECLINED:
+		{
+			// Possibly do nothing, still need to allow client to be able to 
+			// join later
+		}
 		}
 		break;
 	}//TYPE_RESPONSE
@@ -413,51 +408,51 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 	{
 		switch (msg)
 		{
-			case MSG_ADMIN_KICK:
+		case MSG_ADMIN_KICK:
+		{
+			std::tstring user = (TCHAR*)dat;
+			if (IsAdmin(clients[index].user))
 			{
-				std::tstring user = (TCHAR*)dat;
-				if (IsAdmin(clients[index].user))
+				if (IsAdmin(user))//if the user to be kicked is not an admin
 				{
-					if (IsAdmin(user))//if the user to be kicked is not an admin
+					if (clients[index].user.compare(adminList.front()) != 0)//if the user who initiated the kick is not the super admin
 					{
-						if (clients[index].user.compare(adminList.front()) != 0)//if the user who initiated the kick is not the super admin
-						{
-							serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_CANNOTKICK);
-							break;
-						}
-
-						//Disconnect User
-						TransferMessageWithName(serv, clients[index].user, data);
-						for (USHORT i = 0; i < clients.size(); i++)
-						{
-							if (clients[i].user.compare(user) == 0)
-							{
-								DisconnectHandler(clients[i]);
-								clients[i].pc.Disconnect();
-							}
-						}
-
+						serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_CANNOTKICK);
 						break;
 					}
-					else
+
+					//Disconnect User
+					TransferMessageWithName(serv, clients[index].user, data);
+					for (USHORT i = 0; i < clients.size(); i++)
 					{
-						//Disconnect User
-						TransferMessageWithName(serv, clients[index].user, data);
-						for (USHORT i = 0; i < clients.size(); i++)
+						if (clients[i].user.compare(user) == 0)
 						{
-							if (clients[i].user.compare(user) == 0)
-							{
-								DisconnectHandler(clients[i]);
-								clients[i].pc.Disconnect();
-							}
+							DisconnectHandler(clients[i]);
+							clients[i].pc.Disconnect();
 						}
-						break;
 					}
+
+					break;
 				}
-
-				serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_NOT);
-				break;
+				else
+				{
+					//Disconnect User
+					TransferMessageWithName(serv, clients[index].user, data);
+					for (USHORT i = 0; i < clients.size(); i++)
+					{
+						if (clients[i].user.compare(user) == 0)
+						{
+							DisconnectHandler(clients[i]);
+							clients[i].pc.Disconnect();
+						}
+					}
+					break;
+				}
 			}
+
+			serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_NOT);
+			break;
+		}
 		}
 		break;
 	}//TYPE_ADMIN
@@ -465,41 +460,31 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 	{
 		switch (msg)
 		{
-			case MSG_VERSION_CHECK:
-			{
-				if (*(float*)dat == APPVERSION)
-					serv.SendMsg(clients[index].pc, true, TYPE_VERSION, MSG_VERSION_UPTODATE);
-				else
-					serv.SendMsg(clients[index].pc, true, TYPE_VERSION, MSG_VERSION_OUTOFDATE);
+		case MSG_VERSION_CHECK:
+		{
+			if (*(float*)dat == APPVERSION)
+				serv.SendMsg(clients[index].pc, true, TYPE_VERSION, MSG_VERSION_UPTODATE);
+			else
+				serv.SendMsg(clients[index].pc, true, TYPE_VERSION, MSG_VERSION_OUTOFDATE);
 
-				break;
-			}
+			break;
+		}
 		}
 		break;
 	}//TYPE_VERSION
 
 	case TYPE_WHITEBOARD:
 	{
-		switch(msg)
+		switch (msg)
 		{
 		case MSG_WHITEBOARD_SETTINGS:
 		{
-			if(!wb)
+			if (!wb)
 			{
-				/*UINT pos = 0;
-				const USHORT X = *(USHORT*)&dat[pos];
-				pos += sizeof(USHORT);
-				const USHORT Y = *(USHORT*)&dat[pos];
-				pos += sizeof(USHORT);
-				const USHORT FPS = *(USHORT*)&dat[pos];
-				pos += sizeof(USHORT);
-				const D3DCOLOR color = *(D3DCOLOR*)&dat[pos];*/
+				wb = construct<Whiteboard>(Whiteboard(serv, *(WBParams*)dat));
 
-				WBParams *pParams = (WBParams *)dat;
-				wb = construct(
-					Whiteboard(serv, (*pParams).width, (*pParams).height, (*pParams).fps, 
-					(*pParams).clrIndex));
-
+				// Hope this is what you wanted, it seems to work, I just changed the
+				// first two bytes and forward the data to the client
 				*((char*)&data[0]) = TYPE_WHITEBOARD;
 				*((char*)&data[1]) = MSG_WHITEBOARD_ACTIVATE;
 				for (int i = 0; i < clients.size(); i++)
@@ -517,18 +502,18 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		case MSG_WHITEBOARD_TERMINATE:
 		{
 			destruct(wb);
-			//serv.SendMsg(vect, TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
+			serv.SendMsg(wb->GetPcs(), TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
 
 			break;
 		}
 		case MSG_WHITEBOARD_KICK:
 		{
 			std::tstring user = (TCHAR*)dat;
-			if(IsAdmin(clients[index].user))
+			if (IsAdmin(clients[index].user))
 			{
-				if(IsAdmin(user))//if the user to be kicked is not an admin
+				if (IsAdmin(user))//if the user to be kicked is not an admin
 				{
-					if(clients[index].user.compare(adminList.front()) != 0)//if the user who initiated the kick is not the super admin
+					if (clients[index].user.compare(adminList.front()) != 0)//if the user who initiated the kick is not the super admin
 					{
 						serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_CANNOTKICK);
 						break;
@@ -548,15 +533,12 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		}
 		case MSG_WHITEBOARD_LEFT:
 		{
-			CRITICAL_SECTION& sect = wb->GetMapSect();
-			EnterCriticalSection(&sect);
-			wb->GetMap().erase(clients[index].pc);
-			LeaveCriticalSection(&sect);
+			wb->RemoveClient(clients[index].pc);
 			break;
 		}
 		}
 	}//TYPE_WHITEBOARD
-	}
+	}	
 }
 
 void SaveAdminList()
@@ -568,7 +550,6 @@ void SaveAdminList()
 
 	file.Close();
 }
-
 
 //void main()
 //{
@@ -608,10 +589,6 @@ void SaveAdminList()
 //	DeleteCriticalSection(&authentSect);
 //	CleanupNetworking();
 //}
-
-
-
-
 
 void WinMainInit()
 {

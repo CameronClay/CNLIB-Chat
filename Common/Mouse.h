@@ -53,6 +53,13 @@ public:
 		x( x ),
 		y( y )
 	{}
+	MouseEvent& operator=(const MouseEvent& mevt)
+	{
+		const_cast<Type>(type) = mevt.type;
+		const_cast<int&>(x) = mevt.x;
+		const_cast<int&>(y) = mevt.y;
+		return *this;
+	}
 	bool IsValid() const
 	{
 		return type != Invalid;

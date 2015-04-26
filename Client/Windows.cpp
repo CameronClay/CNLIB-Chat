@@ -106,7 +106,7 @@ TCHAR optionsFilePath[MAX_PATH + 50];
 
 const UINT maxUserLen = 10;
 
-const UINT port = 566;
+const USHORT port = 565;
 const float timeOut = 5.0f;
 
 TCHAR folderPath[MAX_PATH + 30];
@@ -467,7 +467,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					DialogBoxParam(hInst, MAKEINTRESOURCE(REQUEST), hMainWind, RequestFileProc, (LPARAM)buffer);
 					break;
 				}
-				case MSG_REQUEST_WHTIEBOARD:
+				case MSG_REQUEST_WHITEBOARD:
 				{
 					TCHAR buffer[255];
 					_stprintf(buffer, _T("%s wants to display a whiteboard"), (TCHAR*)dat, _tcslen((TCHAR*)dat));
@@ -1039,6 +1039,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 						AppendMenu(hPop, MF_POPUP, (UINT_PTR)send, _T("Send"));
 						AppendMenu(hPop, MF_POPUP, (UINT_PTR)admin, _T("Admin"));
+						AppendMenu(hPop, MF_POPUP, (UINT_PTR)whiteboard, _T("Whiteboard"));
 
 						ClientToScreen(listClients, &pt);
 						TrackPopupMenu(hPop, 0, pt.x, pt.y, 0, hWnd, NULL);
@@ -1592,33 +1593,13 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 			msg[0] = TYPE_WHITEBOARD;
 			msg[1] = MSG_WHITEBOARD_SETTINGS;
 
-			TCHAR* temp = alloc<TCHAR>(5);
-			WBParams *pParams = (WBParams*)&msg[MSG_OFFSET];
-			/*USHORT tempVal = 0;
-			UINT pos = MSG_OFFSET;*/
+			WBParams params;
+			params.width = GetDlgItemInt(hWnd, WHITEBOARD_RES_X, NULL, FALSE);
+			params.height = GetDlgItemInt(hWnd, WHITEBOARD_RES_Y, NULL, FALSE);
+			params.fps = GetDlgItemInt(hWnd, WHITEBOARD_FPS, NULL, FALSE);
+			params.clrIndex = 0;
 
-			SendMessage(X, WM_GETTEXT, 5, (LPARAM)temp);
-			pParams->width = _tstoi(temp);
-			//tempVal = _tstoi(temp);			 
-			//*((USHORT*)(&msg[pos])) = tempVal;
-			//pos += sizeof(USHORT);
-
-			SendMessage(Y, WM_GETTEXT, 5, (LPARAM)temp);
-			pParams->height = _tstoi(temp);
-			/*tempVal = _tstoi(temp);
-			*(USHORT*)(&msg[pos]) = tempVal;
-			pos += sizeof(USHORT);*/
-
-			SendMessage(FPS, WM_GETTEXT, 4, (LPARAM)temp);
-			pParams->fps = _tstoi(temp);
-			/*tempVal = _tstoi(temp);
-			*(USHORT*)(&msg[pos]) = tempVal;
-			pos += sizeof(USHORT);*/
-
-			pParams->clrIndex = 0;
-			//*(D3DCOLOR*)(&msg[pos]) = color;
-
-			dealloc(temp);
+			memcpy(&msg[MSG_OFFSET], &params, sizeof(WBParams));
 
 			HANDLE hnd = client->SendServData(msg, nBytes);
 			TCPClient::WaitAndCloseHandle(hnd);
@@ -1646,11 +1627,9 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		SendMessage(Y, EM_SETLIMITTEXT, 4, 0);
 		SendMessage(FPS, EM_SETLIMITTEXT, 3, 0);
 		
-		TCHAR* temp = alloc<TCHAR>(5);
-		SendMessage(X, WM_SETTEXT, 0, (LPARAM)_itot(WB_DEF_RES_X, temp, 10));
-		SendMessage(Y, WM_SETTEXT, 0, (LPARAM)_itot(WB_DEF_RES_Y, temp, 10));
-		SendMessage(FPS, WM_SETTEXT, 0, (LPARAM)_itot(WB_DEF_FPS, temp, 10));
-		dealloc(temp);
+		SetDlgItemInt(hWnd, WHITEBOARD_RES_X, WB_DEF_RES_X, FALSE);
+		SetDlgItemInt(hWnd, WHITEBOARD_RES_Y, WB_DEF_RES_Y, FALSE);
+		SetDlgItemInt(hWnd, WHITEBOARD_FPS, WB_DEF_FPS, FALSE);
 
 		SetFocus(X);
 
@@ -1663,6 +1642,8 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	static HWND draw, invite;
+	static std::tstring usersel;
+	static UINT len;
 	switch(message)
 	{
 	case WM_COMMAND:
@@ -1672,8 +1653,21 @@ INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 		{
 		case IDOK:
 		{
-			const bool canDraw = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
-			const bool canInivte = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANINVITE));
+			//const bool canInvite = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANINVITE));
+			//const bool canDraw = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
+
+			const DWORD nBytes = MSG_OFFSET + (len * sizeof(TCHAR)) + sizeof(bool);
+			char* msg = alloc<char>(nBytes);
+
+			msg[0] = TYPE_REQUEST;
+			msg[1] = MSG_REQUEST_WHITEBOARD;
+			memcpy(&msg[MSG_OFFSET], user.c_str(), len * sizeof(TCHAR));
+			*(bool*)msg[nBytes - 1] = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
+
+			HANDLE hnd = client->SendServData(msg, nBytes);
+			TCPClient::WaitAndCloseHandle(hnd);
+			dealloc(msg);
+
 			EndDialog(hWnd, id);
 			break;
 		}
@@ -1688,9 +1682,20 @@ INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 
 	case WM_INITDIALOG:
 	{
+		const UINT i = SendMessage(listClients, LB_GETCURSEL, 0, 0);
+		len = SendMessage(listClients, LB_GETTEXTLEN, i, 0);
+		std::tstring usersel;
+		usersel.resize(len);
+		SendMessage(listClients, LB_GETTEXT, i, (LPARAM)&usersel[0]);
+
+		if(usersel.compare(user) == 0)
+		{
+			MessageBox(hMainWind, _T("One does not simply invite themself to the party"), _T("ERROR"), MB_ICONERROR);
+			EndDialog(hWnd, 0);
+		}
 		draw = GetDlgItem(hWnd, ID_WHITEBOARD_CANDRAW), invite = GetDlgItem(hWnd, ID_WHITEBOARD_CANINVITE);
 		CheckDlgButton(hWnd, ID_WHITEBOARD_CANDRAW, BST_CHECKED);
-		CheckDlgButton(hWnd, ID_WHITEBOARD_CANINVITE, BST_CHECKED);
+		//CheckDlgButton(hWnd, ID_WHITEBOARD_CANINVITE, BST_CHECKED);
 
 		return 0;
 	}

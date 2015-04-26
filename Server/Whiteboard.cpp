@@ -1,16 +1,15 @@
 #include "Whiteboard.h"
 #include "HeapAlloc.h"
 
-Whiteboard::Whiteboard(TCPServ &serv, USHORT ScreenWidth, USHORT ScreenHeight, 
-	USHORT Fps, BYTE clrIndex) :
-	bgColor(clrIndex),
-	screenWidth(ScreenWidth),
-	screenHeight(ScreenHeight),
-	fps(Fps),
-	serv(serv),
-	pixels(alloc<BYTE>(ScreenWidth * ScreenHeight))	
+Whiteboard::Whiteboard(TCPServ &serv, WBParams params)
+	:
+screenWidth(params.width),
+screenHeight(params.height),
+fps(params.fps),
+color(params.clrIndex),
+serv(serv)
 {
-	FillMemory(pixels, ScreenWidth * ScreenHeight, bgColor);
+	FillMemory(pixels, params.width * params.height, bgColor);
 
 	InitializeCriticalSection(&bitmapSect);
 	InitializeCriticalSection(&mapSect);
@@ -44,14 +43,14 @@ BYTE *Whiteboard::GetBitmap()
 	// LeaveCriticalSection will never be executed in this case, probably could 
 	// use a wrapper for something like this where Enter in ctor and Leave in dtor
 	/*
-	struct CritSectionHandler
+	struct CritSectionGuard
 	{
-		CritSectionHandler( CRITICAL_SECTION *pCritSect ) :
+		CritSectionGuard( CRITICAL_SECTION *pCritSect ) :
 		pCriticalSection(pCritSect)
 		{
 			EnterCriticalSection(pCritSect);
 		}
-		~CritSectionHandler()
+		~CritSectionGuard()
 		{
 			LeaveCriticalSection(pCritSect);
 		}
@@ -66,6 +65,11 @@ BYTE *Whiteboard::GetBitmap()
 CRITICAL_SECTION& Whiteboard::GetMapSect()
 {
 	return mapSect;
+}
+
+CRITICAL_SECTION &Whiteboard::GetBitmapSection()
+{
+	return bitmapSect;
 }
 
 void Whiteboard::PaintBrush(std::deque<PointU> &pointList, BYTE clr)
@@ -202,6 +206,39 @@ void Whiteboard::MakeRect(PointU &p0, PointU &p1)
 std::unordered_map<Socket, WBClientData, Socket::Hash>& Whiteboard::GetMap()
 {
 	return clients;
+}
+
+std::vector<Socket>& Whiteboard::GetPcs()
+{
+	return sendPcs;
+}
+
+void Whiteboard::AddClient(Socket pc)
+{
+	EnterCriticalSection(&mapSect);
+
+	clients.emplace(pc, WBClientData());
+	sendPcs.push_back(pc);
+
+	LeaveCriticalSection(&mapSect);
+}
+
+void Whiteboard::RemoveClient(Socket pc)
+{
+	EnterCriticalSection(&mapSect);
+
+	clients.emplace(pc, WBClientData());
+	for(USHORT i = 0; i < sendPcs.size(); i++)
+	{
+		if(sendPcs[i] == pc)
+		{
+			sendPcs[i] = sendPcs.back();
+			sendPcs.pop_back();
+			break;
+		}
+	}
+
+	LeaveCriticalSection(&mapSect);
 }
 
 Whiteboard::~Whiteboard()

@@ -12,11 +12,16 @@ enum class Tool
 
 struct PointU
 {
-	PointU() :
+	PointU()
+		:
 		x(0),
 		y(0)
 	{}
-	PointU(USHORT X, USHORT Y);
+	PointU(USHORT X, USHORT Y)
+		:
+		x(X),
+		y(Y)
+	{}
 	PointU(PointU &&pt) :
 		x(pt.x),
 		y(pt.y)
@@ -122,10 +127,8 @@ struct RectU
 	USHORT left, top, right, bottom;
 };
 
-// Only problem with struct is the packing.  Default packing for struct is
-// minimum of 4 byte boundaries.  Since USHORT is only 2 bytes, the fps in
-// this case is padded by 2 bytes.
-struct WBParams 
+
+struct WBParams
 {
 	USHORT width, height, fps;
 	BYTE clrIndex;
@@ -133,8 +136,13 @@ struct WBParams
 
 struct WBClientData
 {
+	WBClientData()
+		:
+		tool(Tool::PaintBrush),
+		clrIndex(0),
+		mServ()
+	{}
 	Tool tool;								// Enums are sizeof(int) 4 bytes
 	BYTE clrIndex;							// Palette color is 1 bytes
 	MouseServer mServ;						// MouseServer is 16 - 32 bytes
 };
-
