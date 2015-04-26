@@ -568,8 +568,8 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			}
 			case MSG_WHITEBOARD_TERMINATE:
 			{
-				MessageBox(hMainWind, _T("Whiteboard has been shutdown!"), _T("ERROR"), MB_ICONERROR);
 				destruct(pWhiteboard);
+				MessageBox(hMainWind, _T("Whiteboard has been shutdown!"), _T("ERROR"), MB_ICONERROR);
 				break;
 			}
 			case MSG_WHITEBOARD_CANNOTCREATE:
