@@ -485,7 +485,8 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 			if (!wb)
 			{
 				wb = construct<Whiteboard>(Whiteboard(serv, *(WBParams*)dat, clients[index].user));
-				serv.SendMsg(clients[index].pc, true, TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE);
+				*((char*)&data[1]) = MSG_WHITEBOARD_ACTIVATE;
+				TransferMessage(serv, data);
 				wb->AddClient(clients[index].pc);
 
 			//	// Hope this is what you wanted, it seems to work, I just changed the

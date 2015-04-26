@@ -148,12 +148,11 @@ HWND CreateWBWindow(HWND parent, USHORT width, USHORT height)
 	if(!IsWindow(wbHandle))
 	{
 		DWORD style =
-			WS_CHILD |	// Child window that
-			WS_POPUP |	// Is not contained in parent window
-			WS_SYSMENU |	// Shows close button
-			WS_CAPTION |	// Shows the title bar
+			WS_CHILD |			// Child window that
+			WS_POPUPWINDOW |	// Is not contained in parent window			
+			WS_CAPTION |		// Shows the title bar
 			WS_MINIMIZEBOX;		// Shows the minimize button
-
+		
 		wbHandle = CreateWindowEx(
 			NULL,
 			wbClassName,
