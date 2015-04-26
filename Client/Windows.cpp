@@ -568,12 +568,18 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			}
 			case MSG_WHITEBOARD_TERMINATE:
 			{
+				MessageBox(hMainWind, _T("Whiteboard has been shutdown!"), _T("ERROR"), MB_ICONERROR);
 				destruct(pWhiteboard);
 				break;
 			}
 			case MSG_WHITEBOARD_CANNOTCREATE:
 			{
 				MessageBox(hMainWind, _T("A whiteboard is already being displayed!"), _T("ERROR"), MB_ICONERROR);
+				break;
+			}
+			case MSG_WHITEBOARD_CANNOTTERMINATE:
+			{
+				MessageBox(hMainWind, _T("Only whiteboard creator can terminate the whiteboard!"), _T("ERROR"), MB_ICONERROR);
 				break;
 			}
 			case MSG_WHITEBOARD_KICK:

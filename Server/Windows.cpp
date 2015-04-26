@@ -507,8 +507,15 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		}
 		case MSG_WHITEBOARD_TERMINATE:
 		{
-			destruct(wb);
-			serv.SendMsg(wb->GetPcs(), TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
+			if(clients[index].user.compare(wb->GetCreator()) == 0)
+			{
+				serv.SendMsg(wb->GetPcs(), TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
+				destruct(wb);
+			}
+			else
+			{
+				serv.SendMsg(clients[index].pc, true, TYPE_WHITEBOARD, MSG_WHITEBOARD_CANNOTTERMINATE);
+			}
 
 			break;
 		}
