@@ -23,7 +23,7 @@ public:
 	CRITICAL_SECTION& GetMapSect();
 	std::unordered_map<Socket, WBClientData, Socket::Hash>& GetMap();
 	std::vector<Socket>& GetPcs();
-	std::tstring& GetCreator();
+	bool IsCreator(std::tstring& user) const;
 	void AddClient(Socket pc);
 	void RemoveClient(Socket pc);
 private:

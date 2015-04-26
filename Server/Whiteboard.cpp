@@ -79,9 +79,9 @@ CRITICAL_SECTION &Whiteboard::GetBitmapSection()
 	return bitmapSect;
 }
 
-std::tstring& Whiteboard::GetCreator()
+bool Whiteboard::IsCreator(std::tstring& user) const
 {
-	return creator;
+	return creator.compare(user) == 0;
 }
 
 void Whiteboard::PaintBrush(std::deque<PointU> &pointList, BYTE clr)

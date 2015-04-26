@@ -1034,17 +1034,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						HMENU admin = CreateMenu();
 						HMENU whiteboard = CreateMenu();
 
-						AppendMenu(send, MF_STRING | (fileSend->Running() ? MF_GRAYED : MF_ENABLED), ID_SEND_FILE, _T("Send File"));
-						AppendMenu(send, MF_STRING | (fileSend->Running() ? MF_GRAYED : MF_ENABLED), ID_SEND_FOLDER, _T("Send Folder"));
-
 						AppendMenu(admin, MF_STRING, ID_KICK, _T("Kick"));
+
+						AppendMenu(send, MF_STRING, ID_SEND_FILE, _T("Send File"));
+						AppendMenu(send, MF_STRING, ID_SEND_FOLDER, _T("Send Folder"));
 
 						AppendMenu(whiteboard, MF_STRING, ID_WHITEBOARD_INVITE, _T("Invite"));
 						AppendMenu(whiteboard, MF_STRING, ID_WHITEBOARD_KICK, _T("Kick"));
 
-						AppendMenu(hPop, MF_POPUP, (UINT_PTR)send, _T("Send"));
 						AppendMenu(hPop, MF_POPUP, (UINT_PTR)admin, _T("Admin"));
-						AppendMenu(hPop, MF_POPUP, (UINT_PTR)whiteboard, _T("Whiteboard"));
+						AppendMenu(hPop, MF_POPUP | (fileSend->Running() ? MF_GRAYED : MF_ENABLED), (UINT_PTR)send, _T("Send"));
+						AppendMenu(hPop, MF_POPUP | (pWhiteboard == nullptr ? MF_GRAYED : MF_ENABLED), (UINT_PTR)whiteboard, _T("Whiteboard"));
 
 						ClientToScreen(listClients, &pt);
 						TrackPopupMenu(hPop, 0, pt.x, pt.y, 0, hWnd, NULL);

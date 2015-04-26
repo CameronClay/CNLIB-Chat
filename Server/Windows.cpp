@@ -328,7 +328,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		case MSG_REQUEST_WHITEBOARD:
 		{
 			//need to allow creator to invite
-			if (IsAdmin(clients[index].user) || (clients[index].user.compare(wb->GetCreator()) == 0) )
+			if(IsAdmin(clients[index].user) || wb->IsCreator(clients[index].user))
 				TransferMessageWithName(serv, clients[index].user, data);
 			else
 				serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_NOT);
@@ -484,20 +484,24 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		{
 			if (!wb)
 			{
-				wb = construct<Whiteboard>(Whiteboard(serv, *(WBParams*)dat, clients[index].user));
-				*((char*)&data[1]) = MSG_WHITEBOARD_ACTIVATE;
-				TransferMessage(serv, data);
-				wb->AddClient(clients[index].pc);
+				WBParams* params = (WBParams*)dat;
 
-			//	// Hope this is what you wanted, it seems to work, I just changed the
-			//	// first two bytes and forward the data to the client
-			//	*((char*)&data[0]) = TYPE_WHITEBOARD;
-			//	*((char*)&data[1]) = MSG_WHITEBOARD_ACTIVATE;
-			//	for (int i = 0; i < clients.size(); i++)
-			//	{
-			//		HANDLE handle = serv.SendClientData((char*)data, nBytes + MSG_OFFSET, clients[i].pc, true);
-			//		TCPServ::WaitAndCloseHandle(handle);
-			//	}
+
+				const DWORD nBytes = MSG_OFFSET + sizeof(WBParams);
+				char* msg = alloc<char>(nBytes);
+
+				msg[0] = TYPE_WHITEBOARD;
+				msg[1] = MSG_WHITEBOARD_ACTIVATE;
+				memcpy(&msg[MSG_OFFSET], params, sizeof(WBParams));
+				HANDLE hnd = serv.SendClientData(msg, nBytes, clients[index].pc, true);
+
+				TCPServ::WaitAndCloseHandle(hnd);
+				dealloc(msg);
+
+
+				wb = construct<Whiteboard>(Whiteboard(serv, *params, clients[index].user));
+
+				wb->AddClient(clients[index].pc);
 			}
 			else
 			{
@@ -507,7 +511,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		}
 		case MSG_WHITEBOARD_TERMINATE:
 		{
-			if(clients[index].user.compare(wb->GetCreator()) == 0)
+			if(wb->IsCreator(clients[index].user))
 			{
 				serv.SendMsg(wb->GetPcs(), TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
 				destruct(wb);
@@ -522,9 +526,9 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		case MSG_WHITEBOARD_KICK:
 		{
 			std::tstring user = (TCHAR*)dat;
-			if (IsAdmin(clients[index].user) || (clients[index].user.compare(wb->GetCreator()) == 0))
+			if(IsAdmin(clients[index].user) || wb->IsCreator(clients[index].user))
 			{
-				if (clients[index].user.compare(wb->GetCreator()) != 0)//if the user who initiated the kick is not the creator
+				if(!wb->IsCreator(user))//if the user to be picked is not the creator
 				{
 					serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_CANNOTKICK);
 					break;
