@@ -1,12 +1,12 @@
 #include "Whiteboard.h"
 
 
-Whiteboard::Whiteboard(TCPServ &serv, USHORT ScreenWidth, USHORT ScreenHeight, USHORT Fps, D3DCOLOR color)
+Whiteboard::Whiteboard(TCPServ &serv, WBParams params)
 	:
-screenWidth(ScreenWidth),
-screenHeight(ScreenHeight),
-fps(Fps),
-color(color),
+screenWidth(params.width),
+screenHeight(params.height),
+fps(params.fps),
+color(params.clrIndex),
 serv(serv)/*,
 pFactory(nullptr),
 pWicFactory(nullptr),

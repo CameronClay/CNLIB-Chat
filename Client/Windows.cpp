@@ -21,6 +21,7 @@
 #include "Whiteboard.h"
 #include "..\\Common\\Mouse.h"
 #include "..\\Common\\DebugHelper.h"
+#include "WhiteboardClientData.h"
 
 #pragma comment(lib, "comctl32.lib")
 
@@ -1583,20 +1584,13 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 			msg[0] = TYPE_WHITEBOARD;
 			msg[1] = MSG_WHITEBOARD_SETTINGS;
 
-			UINT pos = MSG_OFFSET;
+			WBParams params;
+			params.width = GetDlgItemInt(hWnd, WHITEBOARD_RES_X, NULL, FALSE);
+			params.height = GetDlgItemInt(hWnd, WHITEBOARD_RES_Y, NULL, FALSE);
+			params.fps = GetDlgItemInt(hWnd, WHITEBOARD_FPS, NULL, FALSE);
+			params.clrIndex = 0;
 
-			*(USHORT*)(&msg[pos]) = GetDlgItemInt(hWnd, WHITEBOARD_RES_X, NULL, FALSE);
-			pos += sizeof(USHORT);
-
-			*(USHORT*)(&msg[pos]) = GetDlgItemInt(hWnd, WHITEBOARD_RES_Y, NULL, FALSE);
-			pos += sizeof(USHORT);
-
-			*(USHORT*)(&msg[pos]) = GetDlgItemInt(hWnd, WHITEBOARD_FPS, NULL, FALSE);
-			pos += sizeof(USHORT);
-
-			D3DCOLOR color = D3DCOLOR_XRGB(255, 255, 255);
-			*(D3DCOLOR*)(&msg[pos]) = color;
-
+			memcpy(&msg[MSG_OFFSET], &params, sizeof(WBParams));
 
 			HANDLE hnd = client->SendServData(msg, nBytes);
 			TCPClient::WaitAndCloseHandle(hnd);

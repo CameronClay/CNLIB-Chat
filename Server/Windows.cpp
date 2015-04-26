@@ -326,6 +326,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		}
 		case MSG_REQUEST_WHITEBOARD:
 		{
+			//need to allow creator to invite
 			if(IsAdmin(clients[index].user))
 				TransferMessageWithName(serv, clients[index].user, data);
 			else
@@ -473,17 +474,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		{
 			if(!wb)
 			{
-				UINT pos = 0;
-				const USHORT X = *(USHORT*)(&dat[pos]);
-				pos += sizeof(USHORT);
-				const USHORT Y = *(USHORT*)(&dat[pos]);
-				pos += sizeof(USHORT);
-				const USHORT FPS = *(USHORT*)(&dat[pos]);
-				pos += sizeof(USHORT);
-				const D3DCOLOR color = *(D3DCOLOR*)(&dat[pos]);
-
-				//wb = construct<Whiteboard>(Whiteboard(serv, X, Y, FPS, color));
-
+				wb = construct<Whiteboard>(Whiteboard(serv, *(WBParams*)dat));
 			}
 			else
 			{

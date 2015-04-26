@@ -127,6 +127,13 @@ struct RectU
 	USHORT left, top, right, bottom;
 };
 
+
+struct WBParams
+{
+	USHORT width, height, fps;
+	BYTE clrIndex;
+};
+
 struct WBClientData
 {
 	WBClientData()
@@ -139,4 +146,3 @@ struct WBClientData
 	BYTE clrIndex;							// Palette color is 1 bytes
 	MouseServer mServ;						// MouseServer is 16 - 32 bytes
 };
-
