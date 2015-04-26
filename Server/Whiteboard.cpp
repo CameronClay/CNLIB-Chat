@@ -1,41 +1,48 @@
 #include "Whiteboard.h"
 #include "HeapAlloc.h"
 
-Whiteboard::Whiteboard(TCPServ &serv, WBParams params)
+Whiteboard::Whiteboard(TCPServ &serv, WBParams params, std::tstring creator)
 	:
 screenWidth(params.width),
 screenHeight(params.height),
 fps(params.fps),
-color(params.clrIndex),
-serv(serv)
+bgColor(params.clrIndex),
+serv(serv),
+creator(creator)
 {
-	FillMemory(pixels, params.width * params.height, bgColor);
+	pixels = alloc<BYTE>(screenWidth * screenHeight);
+	FillMemory(pixels, screenWidth * screenHeight, bgColor);
 
 	InitializeCriticalSection(&bitmapSect);
 	InitializeCriticalSection(&mapSect);
 }
 
 Whiteboard::Whiteboard(Whiteboard &&wb) :
-bgColor(wb.bgColor),
 screenWidth(wb.screenWidth),
 screenHeight(wb.screenHeight),
 fps(wb.fps),
 pixels(wb.pixels),
+bgColor(wb.bgColor),
 bitmapSect(wb.bitmapSect),
 mapSect(wb.mapSect),
-clients(std::move(wb.clients)),  // this was the only way to get it to use the mctor
 serv(wb.serv),
+creator(wb.creator),
+clients(wb.clients),  // this was the only way to get it to use the mctor
+sendPcs(wb.sendPcs),
 rectList(wb.rectList)
 {
 	// Crashed when Zeroing unordered_map and TCPServ, that's why I didn't zero mem
 	// the whole class
-	wb.bgColor = 0;
+
+	memcpy(palette, wb.palette, ARRAYSIZE(palette));
+	/*wb.bgColor = 0;
 	wb.screenHeight = 0;
 	wb.screenWidth = 0;
 	wb.fps = 0;
 	wb.pixels = nullptr;
 	ZeroMemory(&wb.bitmapSect, sizeof(CRITICAL_SECTION));
-	ZeroMemory(&wb.mapSect, sizeof(CRITICAL_SECTION));	
+	ZeroMemory(&wb.mapSect, sizeof(CRITICAL_SECTION));	*/
+	wb.pixels = nullptr;
 }
 
 BYTE *Whiteboard::GetBitmap()
@@ -70,6 +77,11 @@ CRITICAL_SECTION& Whiteboard::GetMapSect()
 CRITICAL_SECTION &Whiteboard::GetBitmapSection()
 {
 	return bitmapSect;
+}
+
+std::tstring& Whiteboard::GetCreator()
+{
+	return creator;
 }
 
 void Whiteboard::PaintBrush(std::deque<PointU> &pointList, BYTE clr)
@@ -248,5 +260,8 @@ Whiteboard::~Whiteboard()
 	{
 		DeleteCriticalSection(&bitmapSect);
 		DeleteCriticalSection(&mapSect);
+		clients.clear();
+		sendPcs.clear();
+		dealloc(pixels);
 	}
 }

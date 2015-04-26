@@ -328,7 +328,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		case MSG_REQUEST_WHITEBOARD:
 		{
 			//need to allow creator to invite
-			if (IsAdmin(clients[index].user))
+			if (IsAdmin(clients[index].user) || (clients[index].user.compare(wb->GetCreator()) == 0) )
 				TransferMessageWithName(serv, clients[index].user, data);
 			else
 				serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_NOT);
@@ -395,11 +395,14 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		case MSG_RESPONSE_WHITEBOARD_CONFIRMED:
 		{
 			wb->AddClient(clients[index].pc);
+			serv.SendMsg(clients[index].pc, true, TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE);
+			TransferMessageWithName(serv, clients[index].user, data);
 		}
 		case MSG_RESPONSE_WHITEBOARD_DECLINED:
 		{
 			// Possibly do nothing, still need to allow client to be able to 
 			// join later
+			TransferMessageWithName(serv, clients[index].user, data);
 		}
 		}
 		break;
@@ -481,17 +484,19 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		{
 			if (!wb)
 			{
-				wb = construct<Whiteboard>(Whiteboard(serv, *(WBParams*)dat));
+				wb = construct<Whiteboard>(Whiteboard(serv, *(WBParams*)dat, clients[index].user));
+				serv.SendMsg(clients[index].pc, true, TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE);
+				wb->AddClient(clients[index].pc);
 
-				// Hope this is what you wanted, it seems to work, I just changed the
-				// first two bytes and forward the data to the client
-				*((char*)&data[0]) = TYPE_WHITEBOARD;
-				*((char*)&data[1]) = MSG_WHITEBOARD_ACTIVATE;
-				for (int i = 0; i < clients.size(); i++)
-				{
-					HANDLE handle = serv.SendClientData((char*)data, nBytes + MSG_OFFSET, clients[i].pc, true);
-					TCPServ::WaitAndCloseHandle(handle);
-				}
+			//	// Hope this is what you wanted, it seems to work, I just changed the
+			//	// first two bytes and forward the data to the client
+			//	*((char*)&data[0]) = TYPE_WHITEBOARD;
+			//	*((char*)&data[1]) = MSG_WHITEBOARD_ACTIVATE;
+			//	for (int i = 0; i < clients.size(); i++)
+			//	{
+			//		HANDLE handle = serv.SendClientData((char*)data, nBytes + MSG_OFFSET, clients[i].pc, true);
+			//		TCPServ::WaitAndCloseHandle(handle);
+			//	}
 			}
 			else
 			{
@@ -509,23 +514,15 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		case MSG_WHITEBOARD_KICK:
 		{
 			std::tstring user = (TCHAR*)dat;
-			if (IsAdmin(clients[index].user))
+			if (IsAdmin(clients[index].user) || (clients[index].user.compare(wb->GetCreator()) == 0))
 			{
-				if (IsAdmin(user))//if the user to be kicked is not an admin
+				if (clients[index].user.compare(wb->GetCreator()) != 0)//if the user who initiated the kick is not the creator
 				{
-					if (clients[index].user.compare(adminList.front()) != 0)//if the user who initiated the kick is not the super admin
-					{
-						serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_CANNOTKICK);
-						break;
-					}
-					TransferMessageWithName(serv, clients[index].user, data);
+					serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_CANNOTKICK);
 					break;
 				}
-				else
-				{
-					TransferMessageWithName(serv, clients[index].user, data);
-					break;
-				}
+				TransferMessageWithName(serv, clients[index].user, data);
+				break;
 			}
 
 			serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_NOT);

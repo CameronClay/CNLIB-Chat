@@ -6,7 +6,8 @@ Whiteboard::Whiteboard()
 {
 }
 
-Whiteboard::Whiteboard(HWND WinHandle, USHORT Width, USHORT Height, USHORT FPS, UINT palIndex) :
+Whiteboard::Whiteboard(HWND WinHandle, USHORT Width, USHORT Height, USHORT FPS, UINT palIndex)
+	:
 hWnd(WinHandle),
 width(Width),
 height(Height),
