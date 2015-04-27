@@ -2,16 +2,14 @@
 #include <assert.h>
 #include "..\\Common\\HeapAlloc.h"
 
-Whiteboard::Whiteboard()
-{
-}
-
-Whiteboard::Whiteboard(HWND WinHandle, USHORT Width, USHORT Height, USHORT FPS, UINT palIndex)
+Whiteboard::Whiteboard(Palette& palette, HWND WinHandle, USHORT Width, USHORT Height, USHORT FPS, UINT palIndex)
 	:
+palette(palette),
 hWnd(WinHandle),
 width(Width),
 height(Height),
-interval(1.0f / (float)FPS)
+interval(1.0f / (float)FPS),
+tempSurface(nullptr)
 {
 	InitD3D();
 	bgColor = palette.GetRGBColor(palIndex);
@@ -20,6 +18,7 @@ interval(1.0f / (float)FPS)
 
 Whiteboard::Whiteboard(Whiteboard&& wb)
 	:
+	palette(wb.palette),
 	hWnd(wb.hWnd),
 	width(wb.width),
 	height(wb.height),

@@ -116,6 +116,7 @@ TCHAR folderPath[MAX_PATH + 30];
 std::list<std::tstring> servList;
 
 // Whiteboard declarations
+Palette palette;
 TCHAR wbClassName[] = _T("Whiteboard");
 TCHAR wbWindowName[] = _T("Client Whiteboard View");
 ATOM wbAtom = NULL;
@@ -476,8 +477,6 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					_stprintf(buffer, _T("%s wants to display a whiteboard"), (TCHAR*)dat, _tcslen((TCHAR*)dat));
 
 					DialogBoxParam(hInst, MAKEINTRESOURCE(REQUEST), hMainWind, RequestWBProc, (LPARAM)buffer);
-					
-					PostMessage( hMainWind, WM_CREATEWB, *(WPARAM*)dat, 0 );
 				}	break;
 			}// MSG_REQUEST
 			break;
@@ -558,17 +557,8 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 
 				const D3DCOLOR clr = *(D3DCOLOR*)(&dat[pos]);*/
 
-				WBParams *pParams = (WBParams*)dat;
-
-				PostMessage( hMainWind, WM_CREATEWB, 0, (LPARAM)pParams );
-				pWhiteboard = construct(
-					Whiteboard(
-					WBHnd, 
-					pParams->width, 
-					pParams->height, 
-					pParams->fps, 
-					pParams->clrIndex)
-					);
+				//need to construct because dat becomes invalid once case occurs
+				PostMessage(hMainWind, WM_CREATEWB, 0, (LPARAM)(construct<WBParams>(std::forward<WBParams>(*(WBParams*)dat))));
 				break;
 			}
 			case MSG_WHITEBOARD_TERMINATE:
@@ -921,8 +911,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		case ID_WHITEBOARD_START:
 		{
-			EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_GRAYED);
-			EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_ENABLED);
 			DialogBox(hInst, MAKEINTRESOURCE(WHITEBOARD_SETTINGS),hWnd, WBSettingsProc);
 			break;
 		}
@@ -931,6 +919,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_ENABLED);
 			EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_GRAYED);
+			DrawMenuBar(hMainWind);
+
 			client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
 			break;
 		}
@@ -1013,8 +1003,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_CREATEWB:
 	{
-		WBParams &wbp = *(WBParams*)lParam;
-		CreateWBWindow( hWnd, wbp.width, wbp.height );
+		WBParams* params = (WBParams*)lParam;
+		WBParams &wbp = *params;
+		HWND wnd = CreateWBWindow( hWnd, wbp.width, wbp.height );
+		pWhiteboard = construct(
+			Whiteboard(
+			palette,
+			wnd,
+			wbp.width,
+			wbp.height,
+			wbp.fps,
+			wbp.clrIndex)
+			);
+		//need to destruct because construction was required because it was going out of scope
+		destruct(params);
 	}	break;
 
 	case WM_SIZE:
@@ -1109,8 +1111,16 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_DESTROY:
+	{
+		EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_ENABLED);
+		EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_GRAYED);
+		DrawMenuBar(hMainWind);
+
+		client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_LEFT);
+
 		wbHandle = nullptr;
 		UnregisterClass((LPCWSTR)&wbAtom, hInst);
+	}
 		break;
 
 	default:
@@ -1623,6 +1633,10 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 			TCPClient::WaitAndCloseHandle(hnd);
 			dealloc(msg);
 
+			EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_GRAYED);
+			EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_ENABLED);
+			DrawMenuBar(hMainWind);
+
 			EndDialog(hWnd, id);
 			break;
 		}
@@ -1654,13 +1668,13 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		SetDlgItemInt(hWnd, WHITEBOARD_FPS, WB_DEF_FPS, FALSE);
 
 		BYTE count;
-		//D3DCOLOR *pal = pWhiteboard->GetPalette( count ).Get( count ); ??
+		D3DCOLOR* colors = palette.Get(count);
 		HIMAGELIST himl = ImageList_Create( 50, 16, ILC_COLOR, count, 0 );
 		D3DCOLOR* pBits = alloc<D3DCOLOR>( 50 * 16 );
 		for( int p = 0; p < count; p++ )
 		{
 			for( int i = 0; i < 50 * 16; i++ )
-				pBits[ i ] = pal[ p ];
+				pBits[i] = colors[p];
 			HBITMAP hbm = CreateBitmap( 50, 16, 1, 32, pBits );
 			ImageList_Add( himl, hbm, NULL );
 			DeleteObject( hbm );

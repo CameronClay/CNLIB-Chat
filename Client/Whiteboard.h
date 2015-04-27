@@ -9,8 +9,7 @@
 class Whiteboard
 {
 public:
-	Whiteboard();
-	Whiteboard(HWND WinHandle, USHORT Width, USHORT Height, USHORT FPS, UINT palIndex = 0);
+	Whiteboard(Palette& palette, HWND WinHandle, USHORT Width, USHORT Height, USHORT FPS, UINT palIndex = 0);
 	Whiteboard(Whiteboard&& wb);
 	~Whiteboard();
 
