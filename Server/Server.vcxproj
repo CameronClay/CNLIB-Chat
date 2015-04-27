@@ -158,6 +158,7 @@
     <ClInclude Include="..\Common\HeapAlloc.h" />
     <ClInclude Include="..\Common\Messages.h" />
     <ClInclude Include="..\Common\Mouse.h" />
+    <ClInclude Include="..\Common\Palette.h" />
     <ClInclude Include="..\Common\Socket.h" />
     <ClInclude Include="..\Common\Timer.h" />
     <ClInclude Include="..\Common\Typedefs.h" />
@@ -172,6 +173,7 @@
   <ItemGroup>
     <ClCompile Include="..\Common\File.cpp" />
     <ClCompile Include="..\Common\Mouse.cpp" />
+    <ClCompile Include="..\Common\Palette.cpp" />
     <ClCompile Include="..\Common\Socket.cpp" />
     <ClCompile Include="..\Common\Timer.cpp" />
     <ClCompile Include="..\Common\UPNP.cpp" />
