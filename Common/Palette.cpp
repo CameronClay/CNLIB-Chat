@@ -46,7 +46,7 @@ D3DCOLOR *Palette::Get(BYTE &numColors)
 	return palette;
 }
 
-D3DCOLOR Palette::GetColor(BYTE index)
+D3DCOLOR Palette::operator[](BYTE index)
 {
 	return palette[index];
 }

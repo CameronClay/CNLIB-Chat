@@ -21,21 +21,10 @@ bitmapSect(wb.bitmapSect),
 mapSect(wb.mapSect),
 serv(wb.serv),
 creator(wb.creator),
-clients(wb.clients),  // this was the only way to get it to use the mctor
+clients(wb.clients),  
 sendPcs(wb.sendPcs),
 rectList(wb.rectList)
 {
-	// Crashed when Zeroing unordered_map and TCPServ, that's why I didn't zero mem
-	// the whole class
-
-	memcpy(palette, wb.palette, ARRAYSIZE(palette));
-	/*wb.bgColor = 0;
-	wb.screenHeight = 0;
-	wb.screenWidth = 0;
-	wb.fps = 0;
-	wb.pixels = nullptr;
-	ZeroMemory(&wb.bitmapSect, sizeof(CRITICAL_SECTION));
-	ZeroMemory(&wb.mapSect, sizeof(CRITICAL_SECTION));	*/
 	wb.pixels = nullptr;
 }
 
@@ -137,46 +126,6 @@ void Whiteboard::Draw()
 	}
 
 	LeaveCriticalSection(&mapSect);
-}
-
-void Whiteboard::InitPalette()
-{
-	// Not sure I need this in here, might even need to put in global scope 
-	// for other functions to use like the WBSettingsProc.
-	BYTE i = 0;
-	palette[i++] = Black;
-	palette[i++] = DarkGray;
-	palette[i++] = LightGray;
-	palette[i++] = White;
-	palette[i++] = DarkRed;
-	palette[i++] = MediumRed;
-	palette[i++] = Red;
-	palette[i++] = LightRed;
-	palette[i++] = DarkOrange;
-	palette[i++] = MediumOrange;
-	palette[i++] = Orange;
-	palette[i++] = LightOrange;
-	palette[i++] = DarkYellow;
-	palette[i++] = MediumYellow;
-	palette[i++] = Yellow;
-	palette[i++] = LightYellow;
-	palette[i++] = DarkGreen;
-	palette[i++] = MediumGreen;
-	palette[i++] = Green;
-	palette[i++] = LightGreen;
-	palette[i++] = DarkCyan;
-	palette[i++] = MediumCyan;
-	palette[i++] = Cyan;
-	palette[i++] = LightCyan;
-	palette[i++] = DarkBlue;
-	palette[i++] = MediumBlue;
-	palette[i++] = Blue;
-	palette[i++] = LightBlue;
-	palette[i++] = DarkPurple;
-	palette[i++] = MediumPurple;
-	palette[i++] = Purple;
-	palette[i] = LightPurple;
-
 }
 
 void Whiteboard::DrawLine(PointU start, PointU end, BYTE clr)

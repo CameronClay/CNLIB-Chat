@@ -6,7 +6,7 @@ class Palette
 public:
 	Palette();
 	D3DCOLOR *Get(BYTE &numColors);
-	D3DCOLOR GetColor(BYTE index);
+	D3DCOLOR operator[](BYTE index);
 	~Palette();
 private:
 	D3DCOLOR *palette;

@@ -2,25 +2,23 @@
 #include <assert.h>
 #include "..\\Common\\HeapAlloc.h"
 
-Whiteboard::Whiteboard()
-{
-}
-
-Whiteboard::Whiteboard(HWND WinHandle, USHORT Width, USHORT Height, USHORT FPS, UINT palIndex)
+Whiteboard::Whiteboard(Palette& palette, HWND WinHandle, USHORT Width, USHORT Height, USHORT FPS, UINT palIndex)
 	:
+palette(palette),
 hWnd(WinHandle),
 width(Width),
 height(Height),
-interval(1.0f / (float)FPS)
+interval(1.0f / (float)FPS),
+tempSurface(nullptr)
 {
 	InitD3D();
-	InitPalette();
 	bgColor = palette[palIndex];
 	pDevice->Clear(0, NULL, D3DCLEAR_TARGET, bgColor, 0.0f, 0);
 }
 
 Whiteboard::Whiteboard(Whiteboard&& wb)
 	:
+	palette(wb.palette),
 	hWnd(wb.hWnd),
 	width(wb.width),
 	height(wb.height),
@@ -34,7 +32,6 @@ Whiteboard::Whiteboard(Whiteboard&& wb)
 	tempSurface(wb.tempSurface),
 	lockRect(wb.lockRect)
 {
-	memcpy(palette, wb.palette, sizeof(D3DCOLOR) * 32);
 	ZeroMemory(&wb, sizeof(Whiteboard));
 }
 
@@ -175,50 +172,6 @@ void Whiteboard::InitD3D()
 
 	hr = pBackBuffer->UnlockRect();
 	assert(SUCCEEDED(hr));
-}
-
-void Whiteboard::InitPalette()
-{
-	BYTE i = 0;
-	palette[i++] = Black;
-	palette[i++] = DarkGray;
-	palette[i++] = LightGray;
-	palette[i++] = White;
-	palette[i++] = DarkRed;
-	palette[i++] = MediumRed;
-	palette[i++] = Red;
-	palette[i++] = LightRed;
-	palette[i++] = DarkOrange;
-	palette[i++] = MediumOrange;
-	palette[i++] = Orange;
-	palette[i++] = LightOrange;
-	palette[i++] = DarkYellow;
-	palette[i++] = MediumYellow;
-	palette[i++] = Yellow;
-	palette[i++] = LightYellow;
-	palette[i++] = DarkGreen;
-	palette[i++] = MediumGreen;
-	palette[i++] = Green;
-	palette[i++] = LightGreen;
-	palette[i++] = DarkCyan;
-	palette[i++] = MediumCyan;
-	palette[i++] = Cyan;
-	palette[i++] = LightCyan;
-	palette[i++] = DarkBlue;
-	palette[i++] = MediumBlue;
-	palette[i++] = Blue;
-	palette[i++] = LightBlue;
-	palette[i++] = DarkPurple;
-	palette[i++] = MediumPurple;
-	palette[i++] = Purple;
-	palette[i] = LightPurple;
-
-}
-
-D3DCOLOR* Whiteboard::GetPalette(BYTE& count)
-{
-	count = 32;
-	return palette;
 }
 
 Whiteboard::~Whiteboard()

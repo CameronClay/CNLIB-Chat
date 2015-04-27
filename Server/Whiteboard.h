@@ -32,7 +32,6 @@ private:
 	BYTE *pixels;
 	CRITICAL_SECTION bitmapSect, mapSect;
 	TCPServ &serv;
-	D3DCOLOR palette[32];
 	std::tstring creator;
 
 	std::unordered_map<Socket, WBClientData, Socket::Hash> clients;
