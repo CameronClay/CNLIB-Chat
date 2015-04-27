@@ -16,3 +16,4 @@ ipch/
 
 
 /Debug/Client.exe
+/Debug/*.exe

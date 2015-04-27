@@ -1,7 +1,7 @@
 #pragma once
 #include <d3d9.h>
 
-
+typedef int GDICOLOR;
 class Palette
 {
 public:
@@ -15,4 +15,3 @@ private:
 	D3DCOLOR *palette;
 };
 
-typedef int GDICOLOR;

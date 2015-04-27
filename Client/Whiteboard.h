@@ -9,7 +9,7 @@
 class Whiteboard
 {
 public:
-	Whiteboard(Palette& palette, HWND WinHandle, USHORT Width, USHORT Height, USHORT FPS, UINT palIndex = 0);
+	Whiteboard(Palette& palette, HWND WinHandle, USHORT Width, USHORT Height, USHORT FPS, BYTE palIndex = 0);
 	Whiteboard(Whiteboard&& wb);
 	~Whiteboard();
 
@@ -30,7 +30,6 @@ private:
 	float interval;
 	Timer timer;
 	D3DCOLOR bgColor;
-	BYTE *pixels;
 	Palette palette;
 
 	IDirect3D9 *pDirect3D;

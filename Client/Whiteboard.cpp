@@ -2,7 +2,7 @@
 #include <assert.h>
 #include "..\\Common\\HeapAlloc.h"
 
-Whiteboard::Whiteboard(Palette& palette, HWND WinHandle, USHORT Width, USHORT Height, USHORT FPS, UINT palIndex)
+Whiteboard::Whiteboard(Palette& palette, HWND WinHandle, USHORT Width, USHORT Height, USHORT FPS, BYTE palIndex)
 	:
 palette(palette),
 hWnd(WinHandle),
@@ -18,7 +18,6 @@ tempSurface(nullptr)
 
 Whiteboard::Whiteboard(Whiteboard&& wb)
 	:
-	palette(wb.palette),
 	hWnd(wb.hWnd),
 	width(wb.width),
 	height(wb.height),
