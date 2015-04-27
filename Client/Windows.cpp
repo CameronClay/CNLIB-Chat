@@ -19,8 +19,8 @@
 #include "Messages.h"
 
 #include "Whiteboard.h"
-#include "..\\Common\\Mouse.h"
-#include "..\\Common\\DebugHelper.h"
+#include "Mouse.h"
+#include "DebugHelper.h"
 #include "WhiteboardClientData.h"
 
 #pragma comment(lib, "comctl32.lib")
@@ -64,6 +64,8 @@ const float CONFIGVERSION = .002f;
 #define WB_DEF_RES_X 800
 #define WB_DEF_RES_Y 600
 #define WB_DEF_FPS 20
+
+#define WM_CREATEWB WM_APP
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK WbProc(HWND, UINT, WPARAM, LPARAM);
@@ -152,7 +154,7 @@ HWND CreateWBWindow(HWND parent, USHORT width, USHORT height)
 	{
 		DWORD style =
 			WS_CHILD |			// Child window that
-			WS_POPUPWINDOW |	// Is not contained in parent window			
+			WS_POPUPWINDOW |	// Is not contained in parent window
 			WS_CAPTION |		// Shows the title bar
 			WS_MINIMIZEBOX;		// Shows the minimize button
 		
@@ -209,7 +211,7 @@ void Connect(const TCHAR* dest, const TCHAR* port, float timeOut)
 
 void ClearAll()
 {
-	SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)_T(""));
+	//SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)_T(""));
 	SendMessage(textInput, WM_SETTEXT, 0, (LPARAM)_T(""));
 	SendMessage(listClients, LB_RESETCONTENT, 0, (LPARAM)_T(""));
 }
@@ -317,6 +319,8 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				Flash();
 				break;
 			}
+			//case MSG_CHANGE_WHITEBOARD:
+				//break;
 			}
 			break;
 		}//TYPE_CHANGE
@@ -347,14 +351,11 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					Would pass dat and have Whiteboard deconstruct it, decompress 
 					and convert to RGB bitmap then draw
 					*/
-					struct CBitmap
-					{
-						RECT rect;
-						BYTE *pixels;
-					}*cBitmap;
+					RECT rect = *(RECT*)dat;
+					dat += sizeof( RECT );
+					BYTE *pixels = dat;
 
-					cBitmap = (CBitmap*)dat;
-					pWhiteboard->Frame(cBitmap->rect, cBitmap->pixels);
+					pWhiteboard->Frame(rect, pixels);
 				}
 			}
 			break;
@@ -466,7 +467,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					TCHAR buffer[255];
 					_stprintf(buffer, _T("%s wants to send you %g MB of file(s)"), fileReceive->GetUser().c_str(), fileReceive->GetSize());
 
-					DialogBoxParam(hInst, MAKEINTRESOURCE(REQUEST), hMainWind, RequestFileProc, (LPARAM)buffer);
+					CreateDialogParam(hInst, MAKEINTRESOURCE(REQUEST), hMainWind, RequestFileProc, (LPARAM)buffer);
 					break;
 				}
 				case MSG_REQUEST_WHITEBOARD:
@@ -475,8 +476,9 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					_stprintf(buffer, _T("%s wants to display a whiteboard"), (TCHAR*)dat, _tcslen((TCHAR*)dat));
 
 					DialogBoxParam(hInst, MAKEINTRESOURCE(REQUEST), hMainWind, RequestWBProc, (LPARAM)buffer);
-					break;
-				}
+					
+					PostMessage( hMainWind, WM_CREATEWB, *(WPARAM*)dat, 0 );
+				}	break;
 			}// MSG_REQUEST
 			break;
 		}//TYPE_REQUEST
@@ -557,9 +559,8 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				const D3DCOLOR clr = *(D3DCOLOR*)(&dat[pos]);*/
 
 				WBParams *pParams = (WBParams*)dat;
-				
-				HWND WBHnd = CreateWBWindow(hMainWind, pParams->width, pParams->height);
 
+				PostMessage( hMainWind, WM_CREATEWB, 0, (LPARAM)pParams );
 				pWhiteboard = construct(
 					Whiteboard(
 					WBHnd, 
@@ -573,7 +574,8 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			case MSG_WHITEBOARD_TERMINATE:
 			{
 				destruct(pWhiteboard);
-				MessageBox(hMainWind, _T("Whiteboard has been shutdown!"), _T("ERROR"), MB_ICONERROR);
+				MessageBox(wbHandle, _T("Whiteboard has been shutdown!"), _T("ERROR"), MB_ICONERROR);
+				CloseWindow(wbHandle);
 				break;
 			}
 			case MSG_WHITEBOARD_CANNOTCREATE:
@@ -592,7 +594,8 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 
 				TCHAR buffer[255];
 				_stprintf(buffer, _T("%s has kicked you from the server!"), dat);
-				MessageBox(hMainWind, buffer, _T("Kicked"), MB_ICONERROR);
+				MessageBox(wbHandle, buffer, _T("Kicked"), MB_ICONERROR);
+				CloseWindow( wbHandle );
 				break;
 			}
 			}
@@ -1008,6 +1011,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	}
 
+	case WM_CREATEWB:
+	{
+		WBParams &wbp = *(WBParams*)lParam;
+		CreateWBWindow( hWnd, wbp.width, wbp.height );
+	}	break;
+
 	case WM_SIZE:
 	{
 		RecalcSizeVars(LOWORD(lParam), HIWORD(lParam));
@@ -1087,7 +1096,7 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (message)
 	{
 	case WM_LBUTTONDOWN:
-		mServ.OnLeftPressed(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));		
+		mServ.OnLeftPressed(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
 	case WM_RBUTTONDOWN:
 		mServ.OnRightPressed(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
@@ -1606,7 +1615,7 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 			params.width = GetDlgItemInt(hWnd, WHITEBOARD_RES_X, NULL, FALSE);
 			params.height = GetDlgItemInt(hWnd, WHITEBOARD_RES_Y, NULL, FALSE);
 			params.fps = GetDlgItemInt(hWnd, WHITEBOARD_FPS, NULL, FALSE);
-			params.clrIndex = 0;
+			params.clrIndex = ComboBox_GetCurSel( Colors );
 
 			memcpy(&msg[MSG_OFFSET], &params, sizeof(WBParams));
 
@@ -1625,7 +1634,11 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		}
 		break;
 	}
-			
+
+	case WM_DESTROY:
+		ImageList_Destroy( (HIMAGELIST)SendMessage( Colors, CBEM_GETIMAGELIST, 0, 0 ) );
+		break;
+
 	case WM_INITDIALOG:
 	{
 		X = GetDlgItem(hWnd, WHITEBOARD_RES_X), 
@@ -1640,8 +1653,30 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		SetDlgItemInt(hWnd, WHITEBOARD_RES_Y, WB_DEF_RES_Y, FALSE);
 		SetDlgItemInt(hWnd, WHITEBOARD_FPS, WB_DEF_FPS, FALSE);
 
-		SetFocus(X);
+		BYTE count;
+		//D3DCOLOR *pal = pWhiteboard->GetPalette( count ).Get( count ); ??
+		HIMAGELIST himl = ImageList_Create( 50, 16, ILC_COLOR, count, 0 );
+		D3DCOLOR* pBits = alloc<D3DCOLOR>( 50 * 16 );
+		for( int p = 0; p < count; p++ )
+		{
+			for( int i = 0; i < 50 * 16; i++ )
+				pBits[ i ] = pal[ p ];
+			HBITMAP hbm = CreateBitmap( 50, 16, 1, 32, pBits );
+			ImageList_Add( himl, hbm, NULL );
+			DeleteObject( hbm );
 
+			COMBOBOXEXITEM cbei{};
+			cbei.iItem = -1;
+			cbei.mask = CBEIF_IMAGE | CBEIF_SELECTEDIMAGE;
+			cbei.iImage = cbei.iSelectedImage = p;
+			SendMessage( Colors, CBEM_INSERTITEM, 0, (LPARAM)&cbei );
+		}
+		dealloc( pBits );
+		SendDlgItemMessage( hWnd, WHITEBOARD_COLORSEL, CBEM_SETIMAGELIST, 0, (LPARAM)himl );
+		ComboBox_SetCurSel( Colors, 0 );
+		destruct( pWhiteboard );
+
+		SetFocus(X);
 		return 0;
 	}
 	}
