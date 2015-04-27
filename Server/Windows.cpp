@@ -396,7 +396,6 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		{
 			wb->AddClient(clients[index].pc);
 
-
 			const DWORD nBytes = MSG_OFFSET + sizeof(WBParams);
 			char* msg = alloc<char>(nBytes);
 
@@ -404,6 +403,8 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 			msg[1] = MSG_WHITEBOARD_ACTIVATE;
 			memcpy(&msg[MSG_OFFSET], &wb->GetParams(), sizeof(WBParams));
 			HANDLE hnd = serv.SendClientData(msg, nBytes, clients[index].pc, true);
+			TCPServ::WaitAndCloseHandle(hnd);
+			dealloc(msg);
 
 
 			TransferMessageWithName(serv, clients[index].user, data);
@@ -504,7 +505,6 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 				msg[1] = MSG_WHITEBOARD_ACTIVATE;
 				memcpy(&msg[MSG_OFFSET], params, sizeof(WBParams));
 				HANDLE hnd = serv.SendClientData(msg, nBytes, clients[index].pc, true);
-
 				TCPServ::WaitAndCloseHandle(hnd);
 				dealloc(msg);
 
