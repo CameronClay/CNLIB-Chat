@@ -130,6 +130,27 @@ struct RectU
 
 struct WBParams
 {
+	WBParams()
+		:
+		width(800),
+		height(600),
+		fps(20),
+		clrIndex(0)
+	{}
+	WBParams(USHORT width, USHORT height, USHORT fps, BYTE clrIndex)
+		:
+		width(width),
+		height(height),
+		fps(fps),
+		clrIndex(clrIndex)
+	{}
+	WBParams(WBParams&& params)
+		:
+		width(params.width),
+		height(params.height),
+		fps(params.fps),
+		clrIndex(params.clrIndex)
+	{}
 	USHORT width, height, fps;
 	BYTE clrIndex;
 };

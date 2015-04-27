@@ -395,7 +395,17 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		case MSG_RESPONSE_WHITEBOARD_CONFIRMED:
 		{
 			wb->AddClient(clients[index].pc);
-			serv.SendMsg(clients[index].pc, true, TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE);
+
+
+			const DWORD nBytes = MSG_OFFSET + sizeof(WBParams);
+			char* msg = alloc<char>(nBytes);
+
+			msg[0] = TYPE_WHITEBOARD;
+			msg[1] = MSG_WHITEBOARD_ACTIVATE;
+			memcpy(&msg[MSG_OFFSET], &wb->GetParams(), sizeof(WBParams));
+			HANDLE hnd = serv.SendClientData(msg, nBytes, clients[index].pc, true);
+
+
 			TransferMessageWithName(serv, clients[index].user, data);
 		}
 		case MSG_RESPONSE_WHITEBOARD_DECLINED:

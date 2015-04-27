@@ -26,10 +26,10 @@ public:
 	bool IsCreator(std::tstring& user) const;
 	void AddClient(Socket pc);
 	void RemoveClient(Socket pc);
+	WBParams& GetParams();
 private:
-	USHORT screenWidth, screenHeight, fps;
+	WBParams params;
 	BYTE *pixels;
-	BYTE bgColor;
 	CRITICAL_SECTION bitmapSect, mapSect;
 	TCPServ &serv;
 	D3DCOLOR palette[32];

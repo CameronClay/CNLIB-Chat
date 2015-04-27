@@ -135,12 +135,15 @@ std::tstring user;
 
 HWND CreateWBWindow(HWND parent, USHORT width, USHORT height)
 {
-	WNDCLASS wc = {};
-	wc.hInstance = hInst;
-	wc.lpfnWndProc = WbProc;
-	wc.lpszClassName = wbClassName;
+	if(!wbAtom)
+	{
+		WNDCLASS wc = {};
+		wc.hInstance = hInst;
+		wc.lpfnWndProc = WbProc;
+		wc.lpszClassName = wbClassName;
 
-	wbAtom = RegisterClass(&wc);
+		wbAtom = RegisterClass(&wc);
+	}
 
 	// Test whether the whiteboard handle is valid so that it can 
 	// safely recreated if it gets closed
@@ -556,6 +559,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				WBParams *pParams = (WBParams*)dat;
 				
 				HWND WBHnd = CreateWBWindow(hMainWind, pParams->width, pParams->height);
+
 				pWhiteboard = construct(
 					Whiteboard(
 					WBHnd, 

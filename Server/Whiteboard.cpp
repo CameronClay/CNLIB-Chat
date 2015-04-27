@@ -3,26 +3,20 @@
 
 Whiteboard::Whiteboard(TCPServ &serv, WBParams params, std::tstring creator)
 	:
-screenWidth(params.width),
-screenHeight(params.height),
-fps(params.fps),
-bgColor(params.clrIndex),
+params(std::forward<WBParams>(params)),
 serv(serv),
 creator(creator)
 {
-	pixels = alloc<BYTE>(screenWidth * screenHeight);
-	FillMemory(pixels, screenWidth * screenHeight, bgColor);
+	pixels = alloc<BYTE>(params.width * params.height);
+	FillMemory(pixels, params.width * params.height, params.clrIndex);
 
 	InitializeCriticalSection(&bitmapSect);
 	InitializeCriticalSection(&mapSect);
 }
 
 Whiteboard::Whiteboard(Whiteboard &&wb) :
-screenWidth(wb.screenWidth),
-screenHeight(wb.screenHeight),
-fps(wb.fps),
+params(std::forward<WBParams>(wb.params)),
 pixels(wb.pixels),
-bgColor(wb.bgColor),
 bitmapSect(wb.bitmapSect),
 mapSect(wb.mapSect),
 serv(wb.serv),
@@ -195,7 +189,7 @@ void Whiteboard::DrawLine(PointU start, PointU end, BYTE clr)
 	{
 		PointU pos = (dist * i) + start;
 
-		int index = (pos.y * screenWidth) + pos.x;
+		int index = (pos.y * params.width) + pos.x;
 		pixels[index] = clr;
 	}
 }
@@ -223,6 +217,11 @@ std::unordered_map<Socket, WBClientData, Socket::Hash>& Whiteboard::GetMap()
 std::vector<Socket>& Whiteboard::GetPcs()
 {
 	return sendPcs;
+}
+
+WBParams& Whiteboard::GetParams()
+{
+	return params;
 }
 
 void Whiteboard::AddClient(Socket pc)
