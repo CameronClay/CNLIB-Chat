@@ -564,8 +564,9 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			case MSG_WHITEBOARD_TERMINATE:
 			{
 				destruct(pWhiteboard);
-				MessageBox(wbHandle, _T("Whiteboard has been shutdown!"), _T("ERROR"), MB_ICONERROR);
 				CloseWindow(wbHandle);
+
+				MessageBox(wbHandle, _T("Whiteboard has been shutdown!"), _T("ERROR"), MB_ICONERROR);
 				break;
 			}
 			case MSG_WHITEBOARD_CANNOTCREATE:
@@ -1117,6 +1118,8 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		DrawMenuBar(hMainWind);
 
 		client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_LEFT);
+
+		destruct(pWhiteboard);
 
 		wbHandle = nullptr;
 		UnregisterClass((LPCWSTR)&wbAtom, hInst);
