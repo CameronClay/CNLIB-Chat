@@ -30,7 +30,7 @@ private:
 	float interval;
 	Timer timer;
 	D3DCOLOR bgColor;
-	Palette palette;
+	Palette& palette;
 
 	IDirect3D9 *pDirect3D;
 	IDirect3DDevice9 *pDevice;
