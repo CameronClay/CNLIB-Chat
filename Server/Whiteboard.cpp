@@ -201,7 +201,7 @@ void Whiteboard::RemoveClient(Socket pc)
 	LeaveCriticalSection(&mapSect);
 }
 
-const Palette const &Whiteboard::GetPalette() const
+const Palette &Whiteboard::GetPalette() const
 {
 	return palette;
 }

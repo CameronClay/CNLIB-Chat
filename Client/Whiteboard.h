@@ -23,7 +23,7 @@ private:
 	void ComposeImage(USHORT Width, USHORT Height, BYTE *pixelData);
 	void EndFrame();
 
-	const Palette const &GetPalette(BYTE& count);
+	const Palette &GetPalette(BYTE& count);
 
 	HWND hWnd;
 

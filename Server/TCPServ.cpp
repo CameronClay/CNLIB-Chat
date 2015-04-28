@@ -421,6 +421,7 @@ void TCPServ::AddClient(Socket pc)
 
 void TCPServ::RemoveClient(USHORT& pos)
 {
+	// TODO: Multiple client disconnect crash
 	EnterCriticalSection(&clientSect);
 
 	const std::tstring user = clients[pos].user;

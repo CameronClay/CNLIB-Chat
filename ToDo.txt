@@ -1,0 +1,19 @@
+-------------------------------------------------------------------
+Format goes as follows:
+Files updating - Comment - Name
+Example:
+server Windows.cpp/Messages.h - Adding admin commands - Cameron
+-------------------------------------------------------------------
+
+
+Crashes:
+Ping.cpp - GetPingTimer crash - 
+TCPServ.cpp - Multiple client disconnect crash - 
+server Windows.cpp - Whiteboard owner crash -
+
+Bugs:
+Unknown - Issue with name showing in user listbox - 
+
+Progress:
+
+Other:

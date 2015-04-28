@@ -108,7 +108,7 @@ TCHAR optionsFilePath[MAX_PATH + 50];
 
 const UINT maxUserLen = 10;
 
-const USHORT port = 566;
+const USHORT port = 565;
 const float timeOut = 5.0f;
 
 TCHAR folderPath[MAX_PATH + 30];
@@ -265,6 +265,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			}
 			case MSG_CONNECT:
 			{
+				// TODO: Issue with name showing in listbox
 				UINT nBy = 0;
 				TCHAR* buffer = FormatText(dat, nBytes, nBy, opts->TimeStamps());
 				DispText((BYTE*)buffer, nBy);
@@ -350,8 +351,8 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					Would pass dat and have Whiteboard deconstruct it, decompress 
 					and convert to RGB bitmap then draw
 					*/
-					RECT rect = *(RECT*)dat;
-					dat += sizeof( RECT );
+					RectU rect = *(RectU*)dat;
+					dat += sizeof(RectU);
 					BYTE *pixels = dat;
 
 					pWhiteboard->Frame(rect, pixels);

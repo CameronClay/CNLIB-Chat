@@ -1,0 +1,7 @@
+1: Use alloc/constuct over new
+2: Functions that return type ref or pointer declare as type* func() or type& func()
+3: Call/Declare functions/ifs/switches with spacing as follows (type param, type1 param1)
+4: Can declare vars with either type* name or type *name same with refs
+5: Always write move contructors for any classes/structs you write
+6: Always check if vars are valid before destructing in destructor
+7: Use smallest data types: USHORT for position, BYTE for palette index and so on

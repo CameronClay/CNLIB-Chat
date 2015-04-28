@@ -118,5 +118,6 @@ HANDLE PingHandler::GetInactivityTimer() const
 
 HANDLE PingHandler::GetPingTimer() const
 {
+	// TODO: GetPingTimer crash
 	return sendPingTimer;
 }

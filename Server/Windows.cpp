@@ -327,7 +327,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		}
 		case MSG_REQUEST_WHITEBOARD:
 		{
-			//need to allow creator to invite
+			// TODO: Whiteboard owner crash
 			if(IsAdmin(clients[index].user) || wb->IsCreator(clients[index].user))
 				TransferMessageWithName(serv, clients[index].user, data);
 			else
