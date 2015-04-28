@@ -7,13 +7,14 @@ server Windows.cpp/Messages.h - Adding admin commands - Cameron
 
 
 Crashes:
-Ping.cpp - GetPingTimer crash - 
+Ping.cpp - GetPingTimer crash - Cameron
 TCPServ.cpp - Multiple client disconnect crash - 
-server Windows.cpp - Whiteboard owner crash -
 
 Bugs:
-Unknown - Issue with name showing in user listbox - 
+Unknown - Issue with name showing in user listbox - Cameron
+client Windows.coo - Wb settings drop-down color list colors are strange -
 
 Progress:
+server/client Windows.cpp - Send initial bitmap out when join wb - Cameron
 
 Other:
