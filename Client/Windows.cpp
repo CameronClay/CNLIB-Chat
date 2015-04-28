@@ -1663,13 +1663,13 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		SetDlgItemInt(hWnd, WHITEBOARD_FPS, WB_DEF_FPS, FALSE);
 
 		BYTE count;
-		D3DCOLOR* colors = palette.Get(count);
+		palette.Get(count);
 		HIMAGELIST himl = ImageList_Create( 50, 16, ILC_COLOR, count, 0 );
 		D3DCOLOR* pBits = alloc<D3DCOLOR>( 50 * 16 );
 		for( int p = 0; p < count; p++ )
 		{
-			for( int i = 0; i < 50 * 16; i++ )
-				pBits[i] = colors[p];
+			for(int i = 0; i < 50 * 16; i++)
+				pBits[i] = palette.GetBGRColor(p);
 			HBITMAP hbm = CreateBitmap( 50, 16, 1, 32, pBits );
 			ImageList_Add( himl, hbm, NULL );
 			DeleteObject( hbm );
