@@ -396,9 +396,8 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		{
 			wb->AddClient(clients[index].pc);
 
-			const DWORD nBytes = MSG_OFFSET + sizeof(WBParams);
+			DWORD nBytes = MSG_OFFSET + sizeof(WBParams);
 			char* msg = alloc<char>(nBytes);
-
 			msg[0] = TYPE_WHITEBOARD;
 			msg[1] = MSG_WHITEBOARD_ACTIVATE;
 			memcpy(&msg[MSG_OFFSET], &wb->GetParams(), sizeof(WBParams));
@@ -406,14 +405,20 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 			TCPServ::WaitAndCloseHandle(hnd);
 			dealloc(msg);
 
-
-			TransferMessageWithName(serv, clients[index].user, data);
+			const DWORD nameLen = (clients[index].user.size() + 1) * sizeof(TCHAR);
+			nBytes = MSG_OFFSET + nameLen;
+			msg = alloc<char>(nBytes);
+			msg[0] = TYPE_WHITEBOARD;
+			msg[1] = MSG_RESPONSE_WHITEBOARD_CONFIRMED;
+			memcpy(&msg[MSG_OFFSET], clients[index].user.c_str(), nameLen);
+			hnd = serv.SendClientData(msg, nBytes, wb->GetPcs());
+			TCPServ::WaitAndCloseHandle(hnd);
+			dealloc(msg);
 		}
 		case MSG_RESPONSE_WHITEBOARD_DECLINED:
 		{
 			// Possibly do nothing, still need to allow client to be able to 
 			// join later
-			TransferMessageWithName(serv, clients[index].user, data);
 		}
 		}
 		break;

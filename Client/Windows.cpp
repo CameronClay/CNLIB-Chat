@@ -206,7 +206,6 @@ void Connect(const TCHAR* dest, const TCHAR* port, float timeOut)
 	{
 		EnableMenuItem(file, ID_SERV_CONNECT, MF_GRAYED);
 		EnableMenuItem(file, ID_SERV_DISCONNECT, MF_ENABLED);
-		DrawMenuBar(hMainWind);
 	}
 }
 
@@ -222,7 +221,6 @@ void Disconnect()
 	ClearAll();
 	EnableMenuItem(file, ID_SERV_CONNECT, MF_ENABLED);
 	EnableMenuItem(file, ID_SERV_DISCONNECT, MF_GRAYED);
-	DrawMenuBar(hMainWind);
 	client->Disconnect();
 }
 
@@ -403,7 +401,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				case MSG_RESPONSE_WHITEBOARD_CONFIRMED:
 				{
 					TCHAR buffer[255];
-					_stprintf(buffer, _T("%s has confirmed your whiteboard request!"), dat);
+					_stprintf(buffer, _T("%s has joined the Whiteboard!"), dat);
 					MessageBox(hMainWind, buffer, _T("Success"), MB_OK);
 					break;
 				}
@@ -411,7 +409,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				case MSG_RESPONSE_WHITEBOARD_DECLINED:
 				{
 					TCHAR buffer[255];
-					_stprintf(buffer, _T("%s has declined your whiteboard request!"), dat);
+					_stprintf(buffer, _T("%s has joined the whiteboard!"), dat);
 					MessageBox(hMainWind, buffer, _T("DECLINED"), MB_ICONERROR);
 					break;
 				}
@@ -602,7 +600,6 @@ void DisconnectHandler() // for auto disconnection
 	ClearAll();
 	EnableMenuItem(file, ID_SERV_CONNECT, MF_ENABLED);
 	EnableMenuItem(file, ID_SERV_DISCONNECT, MF_GRAYED);
-	DrawMenuBar(hMainWind);
 
 	Flash();
 	MessageBox(hMainWind, _T("You have been disconnected from server!"), _T("ERROR"), MB_ICONERROR);
@@ -920,7 +917,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_ENABLED);
 			EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_GRAYED);
-			DrawMenuBar(hMainWind);
 
 			client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
 			break;
@@ -1114,7 +1110,6 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_ENABLED);
 		EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_GRAYED);
-		DrawMenuBar(hMainWind);
 
 		destruct(pWhiteboard);
 
@@ -1636,7 +1631,6 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 
 			EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_GRAYED);
 			EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_ENABLED);
-			DrawMenuBar(hMainWind);
 
 			EndDialog(hWnd, id);
 			break;
@@ -1720,8 +1714,8 @@ INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 
 			msg[0] = TYPE_REQUEST;
 			msg[1] = MSG_REQUEST_WHITEBOARD;
-			memcpy(&msg[MSG_OFFSET], user.c_str(), len * sizeof(TCHAR));
-			*(bool*)msg[nBytes - 1] = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
+			memcpy(&msg[MSG_OFFSET], usersel.c_str(), len * sizeof(TCHAR));
+			*(bool*)&msg[nBytes - 1] = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
 
 			HANDLE hnd = client->SendServData(msg, nBytes);
 			TCPClient::WaitAndCloseHandle(hnd);
@@ -1742,8 +1736,7 @@ INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 	case WM_INITDIALOG:
 	{
 		const UINT i = SendMessage(listClients, LB_GETCURSEL, 0, 0);
-		len = SendMessage(listClients, LB_GETTEXTLEN, i, 0);
-		std::tstring usersel;
+		len = SendMessage(listClients, LB_GETTEXTLEN, i, 0) + 1;
 		usersel.resize(len);
 		SendMessage(listClients, LB_GETTEXT, i, (LPARAM)&usersel[0]);
 
