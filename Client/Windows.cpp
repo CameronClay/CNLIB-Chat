@@ -211,7 +211,7 @@ void Connect(const TCHAR* dest, const TCHAR* port, float timeOut)
 
 void ClearAll()
 {
-	//SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)_T(""));
+	SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)_T(""));
 	SendMessage(textInput, WM_SETTEXT, 0, (LPARAM)_T(""));
 	SendMessage(listClients, LB_RESETCONTENT, 0, (LPARAM)_T(""));
 }
@@ -319,8 +319,6 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				Flash();
 				break;
 			}
-			//case MSG_CHANGE_WHITEBOARD:
-				//break;
 			}
 			break;
 		}//TYPE_CHANGE
@@ -351,11 +349,14 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					Would pass dat and have Whiteboard deconstruct it, decompress 
 					and convert to RGB bitmap then draw
 					*/
-					RectU rect = *(RectU*)dat;
-					dat += sizeof(RectU);
-					BYTE *pixels = dat;
+					struct CBitmap
+					{
+						RECT rect;
+						BYTE *pixels;
+					}*cBitmap;
 
-					pWhiteboard->Frame(rect, pixels);
+					cBitmap = (CBitmap*)dat;
+					pWhiteboard->Frame(cBitmap->rect, cBitmap->pixels);
 				}
 			}
 			break;
@@ -467,7 +468,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					TCHAR buffer[255];
 					_stprintf(buffer, _T("%s wants to send you %g MB of file(s)"), fileReceive->GetUser().c_str(), fileReceive->GetSize());
 
-					CreateDialogParam(hInst, MAKEINTRESOURCE(REQUEST), hMainWind, RequestFileProc, (LPARAM)buffer);
+					DialogBoxParam(hInst, MAKEINTRESOURCE(REQUEST), hMainWind, RequestFileProc, (LPARAM)buffer);
 					break;
 				}
 				case MSG_REQUEST_WHITEBOARD:
@@ -476,7 +477,8 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					_stprintf(buffer, _T("%s wants to display a whiteboard"), (TCHAR*)dat, _tcslen((TCHAR*)dat));
 
 					DialogBoxParam(hInst, MAKEINTRESOURCE(REQUEST), hMainWind, RequestWBProc, (LPARAM)buffer);
-				}	break;
+					break;
+				}
 			}// MSG_REQUEST
 			break;
 		}//TYPE_REQUEST
