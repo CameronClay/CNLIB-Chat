@@ -552,8 +552,16 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		}
 		case MSG_WHITEBOARD_LEFT:
 		{
-			wb->RemoveClient(clients[index].pc);
-			break;
+			if(wb->IsCreator(clients[index].user))
+			{
+				serv.SendMsg(wb->GetPcs(), TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
+				destruct(wb);
+			}
+			else
+			{
+				wb->RemoveClient(clients[index].pc);
+			}
+		break;
 		}
 		}
 	}//TYPE_WHITEBOARD

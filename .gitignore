@@ -15,3 +15,5 @@ ipch/
 *.aps
 
 
+/Debug/Client.exe
+/Debug/*.exe

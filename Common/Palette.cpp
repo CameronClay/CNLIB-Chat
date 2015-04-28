@@ -46,7 +46,30 @@ D3DCOLOR *Palette::Get(BYTE &numColors)
 	return palette;
 }
 
-D3DCOLOR Palette::GetColor(BYTE index)
+GDICOLOR Palette::GetBGRColor(BYTE index)
+{
+	// Even if I set it up wrong, the vals are swapped
+	union Color
+	{
+		struct
+		{
+			char a, r, g, b;
+		};
+		D3DCOLOR color;
+	};
+	
+	Color color1, color2;
+	color1.color = palette[index];
+
+	color2.a = color1.b;
+	color2.r = color1.g;
+	color2.g = color1.r;
+	color2.b = color1.a;
+
+	return color2.color;
+}
+
+D3DCOLOR Palette::GetRGBColor(BYTE index)
 {
 	return palette[index];
 }
