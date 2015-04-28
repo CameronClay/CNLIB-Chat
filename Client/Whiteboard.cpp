@@ -1,6 +1,6 @@
 #include "Whiteboard.h"
 #include <assert.h>
-#include "..\\Common\\HeapAlloc.h"
+#include "HeapAlloc.h"
 
 Whiteboard::Whiteboard(Palette& palette, HWND WinHandle, USHORT Width, USHORT Height, USHORT FPS, BYTE palIndex)
 	:
@@ -35,7 +35,7 @@ Whiteboard::Whiteboard(Whiteboard&& wb)
 	ZeroMemory(&wb, sizeof(Whiteboard));
 }
 
-void Whiteboard::Frame(RECT &rect, BYTE *pixelData)
+void Whiteboard::Frame(RectU &rect, BYTE *pixelData)
 {
 	if (timer.GetTimeMilli() >= interval)
 	{

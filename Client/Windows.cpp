@@ -108,7 +108,7 @@ TCHAR optionsFilePath[MAX_PATH + 50];
 
 const UINT maxUserLen = 10;
 
-const USHORT port = 565;
+const USHORT port = 566;
 const float timeOut = 5.0f;
 
 TCHAR folderPath[MAX_PATH + 30];

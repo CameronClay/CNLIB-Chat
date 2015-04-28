@@ -87,35 +87,38 @@ struct PointU
 	USHORT x, y;
 };
 
-struct RectU
+struct RectU :RECT
 {
-	RectU() :
-		left(0),
-		top(0),
-		right(0),
-		bottom(0)
-	{}
-	RectU(USHORT Left, USHORT Top, USHORT Right, USHORT Bottom) :
-		left(Left),
-		top(Top),
-		right(Right),
-		bottom(Bottom)
-	{}
-	RectU(RectU &&rect) :
-		left(rect.left),
-		top(rect.top),
-		right(rect.right),
-		bottom(rect.bottom)
+	RectU()
 	{
+		left = 0;
+		top = 0;
+		right = 0;
+		bottom = 0;
+	}
+	RectU(USHORT Left, USHORT Top, USHORT Right, USHORT Bottom)
+	{
+		left = Left;
+		right = Right;
+		top = Top;
+		bottom = Bottom;
+	}
+	RectU(RectU &&rect)
+	{
+		left = rect.left;
+		top = rect.top;
+		right = rect.right;
+		bottom = rect.bottom;
+
 		ZeroMemory(&rect, sizeof(RectU));
 	}
 
 	RectU &operator=(RectU &&rect)
 	{
-		left = (rect.left);
-		top = (rect.top);
-		right = (rect.right);
-		bottom = (rect.bottom);
+		left = rect.left;
+		top = rect.top;
+		right = rect.right;
+		bottom = rect.bottom;
 		
 		ZeroMemory(&rect, sizeof(RectU));
 		return (*this);
@@ -124,7 +127,7 @@ struct RectU
 	~RectU()
 	{}
 
-	USHORT left, top, right, bottom;
+	
 };
 
 
