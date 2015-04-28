@@ -108,7 +108,7 @@ TCHAR optionsFilePath[MAX_PATH + 50];
 
 const UINT maxUserLen = 10;
 
-const USHORT port = 565;
+const USHORT port = 566;
 const float timeOut = 5.0f;
 
 TCHAR folderPath[MAX_PATH + 30];
@@ -1112,7 +1112,6 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_GRAYED);
 
 		destruct(pWhiteboard);
-
 		wbHandle = nullptr;
 		UnregisterClass((LPCWSTR)&wbAtom, hInst);
 
@@ -1683,6 +1682,7 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		dealloc( pBits );
 		SendDlgItemMessage( hWnd, WHITEBOARD_COLORSEL, CBEM_SETIMAGELIST, 0, (LPARAM)himl );
 		ComboBox_SetCurSel( Colors, 0 );
+		SendDlgItemMessage(hWnd, -1, CB_SETMINVISIBLE, 10, 0);
 		destruct( pWhiteboard );
 
 		SetFocus(X);

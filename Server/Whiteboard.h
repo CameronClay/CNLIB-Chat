@@ -30,7 +30,7 @@ private:
 	void MakeRect(PointU &p0, PointU &p1);
 private:
 	WBParams params;
-	BYTE *pixels;
+	BYTE *pixels; 
 	CRITICAL_SECTION bitmapSect, mapSect;
 	TCPServ &serv;
 	Palette palette;
