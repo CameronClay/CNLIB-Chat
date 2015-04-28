@@ -104,4 +104,8 @@
       <UniqueIdentifier>{58cb3057-d89a-40b6-9ef4-d574329ea053}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\Rules.txt" />
+    <Text Include="..\ToDo.txt" />
+  </ItemGroup>
 </Project>

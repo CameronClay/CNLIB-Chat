@@ -5,3 +5,4 @@
 5: Always write move contructors for any classes/structs you write
 6: Always check if vars are valid before destructing in destructor
 7: Use smallest data types: USHORT for position, BYTE for palette index and so on
+8: Use operator[] as follows: [index]
