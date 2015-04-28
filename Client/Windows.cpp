@@ -583,7 +583,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					DestroyWindow(wbHandle);
 
 				TCHAR buffer[255];
-				_stprintf(buffer, _T("%s has kicked you from the server!"), dat);
+				_stprintf(buffer, _T("%s has removed you from the whiteboard!"), dat);
 				MessageBox(hMainWind, buffer, _T("Kicked"), MB_ICONERROR);
 				break;
 			}

@@ -408,7 +408,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 			const DWORD nameLen = (clients[index].user.size() + 1) * sizeof(TCHAR);
 			nBytes = MSG_OFFSET + nameLen;
 			msg = alloc<char>(nBytes);
-			msg[0] = TYPE_WHITEBOARD;
+			msg[0] = TYPE_RESPONSE;
 			msg[1] = MSG_RESPONSE_WHITEBOARD_CONFIRMED;
 			memcpy(&msg[MSG_OFFSET], clients[index].user.c_str(), nameLen);
 			hnd = serv.SendClientData(msg, nBytes, wb->GetPcs());
@@ -543,7 +543,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 			std::tstring user = (TCHAR*)dat;
 			if(IsAdmin(clients[index].user) || wb->IsCreator(clients[index].user))
 			{
-				if(!wb->IsCreator(user))//if the user to be picked is not the creator
+				if(wb->IsCreator(user))//if the user to be kicked is the creator
 				{
 					serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_CANNOTKICK);
 					break;
