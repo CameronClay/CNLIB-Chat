@@ -564,8 +564,8 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			case MSG_WHITEBOARD_TERMINATE:
 			{
 				destruct(pWhiteboard);
-				CloseWindow(wbHandle);
-
+				//CloseWindow(wbHandle);
+				DestroyWindow(wbHandle);
 				MessageBox(wbHandle, _T("Whiteboard has been shutdown!"), _T("ERROR"), MB_ICONERROR);
 				break;
 			}
@@ -1120,7 +1120,6 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_LEFT);
 
 		destruct(pWhiteboard);
-
 		wbHandle = nullptr;
 		UnregisterClass((LPCWSTR)&wbAtom, hInst);
 	}
@@ -1691,6 +1690,7 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		dealloc( pBits );
 		SendDlgItemMessage( hWnd, WHITEBOARD_COLORSEL, CBEM_SETIMAGELIST, 0, (LPARAM)himl );
 		ComboBox_SetCurSel( Colors, 0 );
+		SendDlgItemMessage(hWnd, -1, CB_SETMINVISIBLE, 10, 0);
 		destruct( pWhiteboard );
 
 		SetFocus(X);

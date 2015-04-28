@@ -40,6 +40,12 @@ Palette::Palette()
 	palette[i] = LightPurple;
 }
 
+Palette::Palette(Palette &&pal) :
+palette(pal.palette)
+{
+	pal.palette = nullptr;
+}
+
 D3DCOLOR *Palette::Get(BYTE &numColors)
 {
 	numColors = 32;

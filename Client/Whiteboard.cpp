@@ -185,4 +185,5 @@ Whiteboard::~Whiteboard()
 		pDirect3D->Release();
 		pDirect3D = nullptr;
 	}
+	
 }
