@@ -53,6 +53,8 @@ PingHandler::~PingHandler()
 		CloseHandle(sendPingThread);
 		sendPingThread = NULL;
 	}
+
+	destruct(pingDataEx);
 }
 
 DWORD CALLBACK Inactivity(LPVOID info)

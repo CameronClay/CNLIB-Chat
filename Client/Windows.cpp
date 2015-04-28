@@ -352,7 +352,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					*/
 					struct CBitmap
 					{
-						RECT rect;
+						RectU rect;
 						BYTE *pixels;
 					}*cBitmap;
 
