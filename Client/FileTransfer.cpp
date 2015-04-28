@@ -355,7 +355,10 @@ FileReceive::FileReceive(TCPClient& client, HWND wnd, AlertFunc finished, AlertF
 	FileTransfer(client, wnd, finished, canceled),
 	file(),
 	bytesWritten(0)
-{}
+{
+	HRESULT res = CoInitialize(NULL);
+	assert(SUCCEEDED(res));
+}
 
 FileReceive::FileReceive(FileReceive&& ft)
 	:
@@ -368,6 +371,7 @@ FileReceive::FileReceive(FileReceive&& ft)
 
 FileReceive::~FileReceive()
 {
+	CoUninitialize();
 	StopReceive();
 }
 

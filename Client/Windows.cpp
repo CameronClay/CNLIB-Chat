@@ -234,8 +234,8 @@ void Flash()
 
 void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 {
-	HRESULT res = CoInitialize(NULL);
-	assert(SUCCEEDED(res));
+	//HRESULT res = CoInitialize(NULL);
+	//assert(SUCCEEDED(res));
 
 	TCPClient& clint = *(TCPClient*)clientObj;
 	const char type = ((char*)data)[0], msg = ((char*)data)[1];
@@ -563,10 +563,10 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			}
 			case MSG_WHITEBOARD_TERMINATE:
 			{
-				destruct(pWhiteboard);
-				//CloseWindow(wbHandle);
-				DestroyWindow(wbHandle);
-				MessageBox(wbHandle, _T("Whiteboard has been shutdown!"), _T("ERROR"), MB_ICONERROR);
+				if(wbHandle)
+					DestroyWindow(wbHandle);
+
+				MessageBox(hMainWind, _T("Whiteboard has been shutdown!"), _T("ERROR"), MB_ICONERROR);
 				break;
 			}
 			case MSG_WHITEBOARD_CANNOTCREATE:
@@ -581,12 +581,12 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			}
 			case MSG_WHITEBOARD_KICK:
 			{
-				destruct(pWhiteboard);
+				if(wbHandle)
+					DestroyWindow(wbHandle);
 
 				TCHAR buffer[255];
 				_stprintf(buffer, _T("%s has kicked you from the server!"), dat);
-				MessageBox(wbHandle, buffer, _T("Kicked"), MB_ICONERROR);
-				CloseWindow( wbHandle );
+				MessageBox(hMainWind, buffer, _T("Kicked"), MB_ICONERROR);
 				break;
 			}
 			}
@@ -594,7 +594,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 		}
 
 	}// TYPE
-	CoUninitialize();
+	/*CoUninitialize();*/
 }
 
 void DisconnectHandler() // for auto disconnection
@@ -1112,17 +1112,15 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_DESTROY:
-	{
 		EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_ENABLED);
 		EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_GRAYED);
 		DrawMenuBar(hMainWind);
 
-		client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_LEFT);
-
 		destruct(pWhiteboard);
 		wbHandle = nullptr;
 		UnregisterClass((LPCWSTR)&wbAtom, hInst);
-	}
+
+		client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_LEFT);
 		break;
 
 	default:
@@ -1722,9 +1720,8 @@ INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 
 			msg[0] = TYPE_REQUEST;
 			msg[1] = MSG_REQUEST_WHITEBOARD;
-			memcpy(&msg[MSG_OFFSET], user.c_str(), len * sizeof(TCHAR));
-			*(bool*)msg[nBytes - 1] = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
-
+			memcpy(&msg[MSG_OFFSET], user.c_str(), len * sizeof(TCHAR));			
+			*(bool*)&msg[nBytes - 1] = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
 			HANDLE hnd = client->SendServData(msg, nBytes);
 			TCPClient::WaitAndCloseHandle(hnd);
 			dealloc(msg);
