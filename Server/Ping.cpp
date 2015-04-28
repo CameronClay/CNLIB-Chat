@@ -8,7 +8,8 @@ PingHandler::PingHandler()
 	inactivityThread(NULL),
 	inactivityTimer(CreateWaitableTimer(NULL, FALSE, NULL)),
 	sendPingThread(NULL),
-	sendPingTimer(CreateWaitableTimer(NULL, FALSE, NULL))
+	sendPingTimer(CreateWaitableTimer(NULL, FALSE, NULL)),
+	pingDataEx(nullptr)
 {}
 
 PingHandler::PingHandler(PingHandler&& ping)
@@ -17,7 +18,8 @@ PingHandler::PingHandler(PingHandler&& ping)
 	inactivityThread(ping.inactivityThread),
 	inactivityTimer(ping.inactivityTimer),
 	sendPingThread(ping.sendPingThread),
-	sendPingTimer(ping.sendPingTimer)
+	sendPingTimer(ping.sendPingTimer),
+	pingDataEx(ping.pingDataEx)
 {
 	ZeroMemory(&ping, sizeof(PingHandler));
 }
@@ -63,8 +65,6 @@ DWORD CALLBACK Inactivity(LPVOID info)
 		dat.pingHandler.AutoPingHandlerOn(dat);
 	}
 
-	destruct(data);
-
 	return 0;
 }
 
@@ -108,7 +108,11 @@ void PingHandler::SetInactivityTimer(TCPServ& serv, Socket& socket, float inacti
 	LI.QuadPart = (LONGLONG)(inactiveInterval * -10000000.0f);
 	BOOL res = SetWaitableTimer(inactivityTimer, &LI, (LONG)(inactiveInterval * 1000.0f), NULL, NULL, FALSE);
 	if(!inactivityThread)
-		inactivityThread = CreateThread(NULL, 0, Inactivity, (LPVOID)construct<PingDataEx>(PingDataEx(serv, *this, socket, inactiveInterval, pingInterval)), NULL, NULL);
+	{
+		destruct(pingDataEx);
+		pingDataEx = construct<PingDataEx>(PingDataEx(serv, *this, socket, inactiveInterval, pingInterval));
+		inactivityThread = CreateThread(NULL, 0, Inactivity, (LPVOID)pingDataEx, NULL, NULL);
+	}
 }
 
 HANDLE PingHandler::GetInactivityTimer() const

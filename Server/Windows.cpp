@@ -241,6 +241,8 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 
 			std::tstring authent = (TCHAR*)dat;
 			const UINT pos = authent.find(_T(":"));
+			assert(pos != std::tstring::npos);
+
 			std::tstring user = authent.substr(0, pos), pass = authent.substr(pos + 1, (nBytes / sizeof(TCHAR) - pos));
 			bool inList = false, auth = false;
 
@@ -258,7 +260,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 			}
 
 			//If user is already connected, reject
-			for (UINT i = 0; i < clients.size(); i++)
+			for (USHORT i = 0; i < clients.size(); i++)
 			{
 				if (clients[i].user.compare(user) == 0)
 				{
@@ -283,13 +285,13 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 				serv.SendMsg(clients[index].pc, true, TYPE_RESPONSE, MSG_RESPONSE_AUTH_CONFIRMED);
 
 				//Transer currentlist of clients to new client
-				for (UINT i = 0; i < clients.size(); i++)
+				for (USHORT i = 0; i < clients.size(); i++)
 				{
 					if (i != index && !clients[i].user.empty())
 					{
 						const UINT nameLenS = clients[i].user.size() + 1;
 						const UINT nBytesS = MSG_OFFSET + (sizeof(TCHAR) * (nameLenS));
-						char* msgNameS = alloc<char>(nBytesS);//dealloced in send
+						char* msgNameS = alloc<char>(nBytesS);
 						msgNameS[0] = TYPE_CHANGE;
 						msgNameS[1] = MSG_CONNECTINIT;
 						memcpy(&msgNameS[MSG_OFFSET], clients[i].user.c_str(), nameLenS * sizeof(TCHAR));

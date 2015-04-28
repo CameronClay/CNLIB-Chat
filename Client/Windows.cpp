@@ -272,6 +272,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				dealloc(buffer);
 				std::tstring str = (TCHAR*)dat;
 				const UINT first = str.find(_T("<"), 0) + 1, second = str.find(_T(">"), first), len = second - first;
+				assert((first != std::tstring::npos) || (second != std::tstring::npos));
 				const std::tstring name = str.substr(first, len);
 
 				if(SendMessage(listClients, LB_FINDSTRING, -1, (LPARAM)name.c_str()) == LB_ERR)
