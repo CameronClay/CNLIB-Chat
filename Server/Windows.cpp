@@ -529,7 +529,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		{
 			if(wb->IsCreator(clients[index].user))
 			{
-				serv.SendMsg(wb->GetPcs(), TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
+				serv.SendMsg(wb->GetPcs(), TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);				
 				destruct(wb);
 			}
 			else
@@ -560,14 +560,17 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		}
 		case MSG_WHITEBOARD_LEFT:
 		{
-			if(wb->IsCreator(clients[index].user))
+			if (wb)
 			{
-				serv.SendMsg(wb->GetPcs(), TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
-				destruct(wb);
-			}
-			else
-			{
-				wb->RemoveClient(clients[index].pc);
+				if (wb->IsCreator(clients[index].user))
+				{
+					serv.SendMsg(wb->GetPcs(), TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
+					destruct(wb);
+				}
+				else
+				{
+					wb->RemoveClient(clients[index].pc);
+				}
 			}
 		break;
 		}

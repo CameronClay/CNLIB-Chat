@@ -547,18 +547,6 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			{
 			case MSG_WHITEBOARD_ACTIVATE:
 			{
-				/*UINT pos = 0;
-				const USHORT width = *(USHORT*)(&dat[pos]);
-				pos += sizeof(USHORT);
-
-				const USHORT height = *(USHORT*)(&dat[pos]);
-				pos += sizeof(USHORT);
-
-				const USHORT FPS = *(USHORT*)(&dat[pos]);
-				pos += sizeof(USHORT);
-
-				const D3DCOLOR clr = *(D3DCOLOR*)(&dat[pos]);*/
-
 				//need to construct because dat becomes invalid once case occurs
 				PostMessage(hMainWind, WM_CREATEWB, 0, (LPARAM)(construct<WBParams>(std::forward<WBParams>(*(WBParams*)dat))));
 				break;
@@ -566,9 +554,10 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			case MSG_WHITEBOARD_TERMINATE:
 			{
 				// BUG: DestroyWindow is failing to destroy window with "Access is denied".  Probably not right thread.
-				if(wbHandle)
-					DestroyWindow(wbHandle);
-
+				// HACK: Post WM_CLOSE to wbHandle, moved destruct and DestroyWindow to WM_CLOSE
+				if (wbHandle)
+					PostMessage(wbHandle, WM_CLOSE, 0, 0);
+				// client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_LEFT);
 				MessageBox(hMainWind, _T("Whiteboard has been shutdown!"), _T("ERROR"), MB_ICONERROR);
 				break;
 			}
@@ -585,14 +574,10 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			case MSG_WHITEBOARD_KICK:
 			{
 				// BUG: DestroyWindow is failing with "Access Denied"
-				BOOL wasDestroyed = FALSE;
-				if(wbHandle)
-					wasDestroyed = DestroyWindow(wbHandle);
-				if (!wasDestroyed)
-				{
-					CheckForError(_T("MSG_WHITEBOARD_KICK"));
-				}
-				
+				// HACK: Post WM_CLOSE to wbHandle, moved destruct and DestroyWindow to WM_CLOSE
+				if (wbHandle)
+					PostMessage(wbHandle, WM_CLOSE, 0, 0);
+
 				TCHAR buffer[255];
 				_stprintf(buffer, _T("%s has removed you from the whiteboard!"), dat);
 				MessageBox(hMainWind, buffer, _T("Kicked"), MB_ICONERROR);
@@ -1117,18 +1102,20 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_RBUTTONUP:
 		mServ.OnRightReleased(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
-
-	case WM_DESTROY:
+	case WM_CLOSE:
+		// HACK: Moved window destruction code to WM_CLOSE case
 		EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_ENABLED);
 		EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_GRAYED);
 
 		destruct(pWhiteboard);
+
+		DestroyWindow(wbHandle);
 		wbHandle = nullptr;
 		UnregisterClass((LPCWSTR)&wbAtom, hInst);
 
 		client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_LEFT);
-		break;
 
+		break;
 	default:
 		result = DefWindowProc(hWnd, message, wParam, lParam);
 	}

@@ -9,14 +9,12 @@ server Windows.cpp/Messages.h - Adding admin commands - Cameron
 Crashes:
 Ping.cpp - GetPingTimer crash - Cameron
 TCPServ.cpp - Multiple client disconnect crash - 
+// <Josh> Put a note about why I think crash happens in TCPServ.cpp, can't find solution
+
 
 Bugs:
 Unknown - Issue with name showing in user listbox - Cameron
 client Windows.cpp - Wb settings drop-down color list colors are strange - Luis
-
-client/server Windows.cpp - Crash on clients still connected to whiteboard after creator closes whiteboard, 
-	possible solution is to remove everyone from list and send a close message to all connected clients
-client/server Windows.cpp - Whiteboard window doesn't close after being kicked.
 
 Progress:
 server/client Windows.cpp - Send initial bitmap out when join wb - Cameron
