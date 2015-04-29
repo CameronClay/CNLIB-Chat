@@ -12,7 +12,7 @@ TCPServ.cpp - Multiple client disconnect crash -
 
 Bugs:
 Unknown - Issue with name showing in user listbox - Cameron
-client Windows.coo - Wb settings drop-down color list colors are strange - Luis
+client Windows.cpp - Wb settings drop-down color list colors are strange - Luis
 
 Progress:
 server/client Windows.cpp - Send initial bitmap out when join wb - Cameron
