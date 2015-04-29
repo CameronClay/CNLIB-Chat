@@ -156,11 +156,11 @@ UINT MouseServer::Extract(BYTE *byteBuffer)
 	serv->isInWindow = isInWindow;
 	const UINT offsetToBuffer = sizeof(MouseServer) - sizeof(std::deque<MouseEvent>);
 
-	for (int i = 0; i < buffer.size(); i++)
+	for (unsigned int i = 0; i < buffer.size(); i++)
 	{
 		MouseEvent *mEvent = (MouseEvent*)&byteBuffer[offsetToBuffer];
 		mEvent[i] = buffer.front();
-		buffer.pop();
+		buffer.pop();		
 	}
 
 	return bufLen;

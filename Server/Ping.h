@@ -24,7 +24,7 @@ public:
 		}
 
 		PingData& operator=(PingData&& data)
-		{
+		{		
 			//serv = std::move(data.serv);
 			serv = std::forward<TCPServ>(data.serv);
 			pingHandler = data.pingHandler;

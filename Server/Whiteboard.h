@@ -23,7 +23,7 @@ public:
 	void AddClient(Socket pc);
 	void RemoveClient(Socket pc);
 	WBParams& GetParams();
-	const Palette const &GetPalette() const;
+	const Palette &GetPalette() const;
 private:
 	void PaintBrush(std::deque<PointU> &pointList, BYTE clr);
 	void DrawLine(PointU start, PointU end, BYTE clr);
