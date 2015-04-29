@@ -565,6 +565,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			}
 			case MSG_WHITEBOARD_TERMINATE:
 			{
+				// BUG: DestroyWindow is failing to destroy window with "Access is denied".  Probably not right thread.
 				if(wbHandle)
 					DestroyWindow(wbHandle);
 
@@ -583,9 +584,15 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			}
 			case MSG_WHITEBOARD_KICK:
 			{
+				// BUG: DestroyWindow is failing with "Access Denied"
+				BOOL wasDestroyed = FALSE;
 				if(wbHandle)
-					DestroyWindow(wbHandle);
-
+					wasDestroyed = DestroyWindow(wbHandle);
+				if (!wasDestroyed)
+				{
+					CheckForError(_T("MSG_WHITEBOARD_KICK"));
+				}
+				
 				TCHAR buffer[255];
 				_stprintf(buffer, _T("%s has removed you from the whiteboard!"), dat);
 				MessageBox(hMainWind, buffer, _T("Kicked"), MB_ICONERROR);

@@ -549,6 +549,8 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 					serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_CANNOTKICK);
 					break;
 				}
+				// BUG: Creator leaving before clients causes clients to crash
+				// TODO: Before destroying whiteboard, remove all clients, check for wb before accessing.			
 				TransferMessageWithName(serv, clients[index].user, data);
 				break;
 			}
