@@ -12,7 +12,7 @@ TCPServ.cpp - Multiple client disconnect crash -
 
 Bugs:
 Unknown - Issue with name showing in user listbox - Cameron
-client Windows.coo - Wb settings drop-down color list colors are strange - Luis
+client Windows.cpp - Wb settings drop-down color list colors are strange - Luis
 
 client/server Windows.cpp - Crash on clients still connected to whiteboard after creator closes whiteboard, 
 	possible solution is to remove everyone from list and send a close message to all connected clients

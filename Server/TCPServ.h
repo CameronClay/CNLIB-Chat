@@ -32,6 +32,15 @@ public:
 			ZeroMemory(&clint, sizeof(ClientData));
 		}
 
+		ClientData operator=(ClientData& data)
+		{
+			pc = data.pc;
+			recvThread = data.recvThread;
+			func = data.func;
+			user = std::move(data.user);
+			pingHandler = data.pingHandler;
+		}
+
 		Socket pc;
 		HANDLE recvThread;
 		sfunc func;
@@ -45,6 +54,8 @@ public:
 	TCPServ(USHORT maxCon, sfunc func, void* obj, int compression, customFunc conFunc, customFunc disFunc);
 	TCPServ(TCPServ&& serv);
 	~TCPServ();
+
+	TCPServ& operator=(TCPServ&& serv);
 
 	void AllowConnections(const TCHAR* port);//Starts receiving as well
 
