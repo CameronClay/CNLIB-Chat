@@ -52,27 +52,21 @@ D3DCOLOR *Palette::Get(BYTE &numColors)
 	return palette;
 }
 
-GDICOLOR Palette::GetBGRColor(BYTE index)
+COLORREF Palette::GetBGRColor(BYTE index)
 {
-	// Even if I set it up wrong, the vals are swapped
 	union Color
 	{
 		struct
 		{
-			char b, g, r, a;
+			unsigned char b, g, r, a;
 		};
 		D3DCOLOR color;
 	};
 	
-	Color color1, color2;
-	color1.color = palette[index];
-
-	color2.a = color1.b;
-	color2.r = color1.g;
-	color2.g = color1.r;
-	color2.b = color1.a;
-
-	return color2.color;
+	Color color1;
+	color1.color = palette[index];	
+	
+	return RGB(color1.r, color1.g, color1.b);
 }
 
 D3DCOLOR Palette::GetRGBColor(BYTE index)

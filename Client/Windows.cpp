@@ -22,6 +22,7 @@
 #include "Mouse.h"
 #include "DebugHelper.h"
 #include "WhiteboardClientData.h"
+#include <functional>
 
 #pragma comment(lib, "comctl32.lib")
 
@@ -108,7 +109,7 @@ TCHAR optionsFilePath[MAX_PATH + 50];
 
 const UINT maxUserLen = 10;
 
-const USHORT port = 566;
+const USHORT port = 565;
 const float timeOut = 5.0f;
 
 TCHAR folderPath[MAX_PATH + 30];
@@ -1601,6 +1602,8 @@ INT_PTR CALLBACK RequestWBProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	static HWND X, Y, FPS, Colors;
+	INT_PTR result = 1;
+
 	switch(message)
 	{
 	case WM_COMMAND:
@@ -1610,32 +1613,38 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		{
 		case IDOK:
 		{
-			const DWORD nBytes = MSG_OFFSET + sizeof(WBParams);
-			char* msg = alloc<char>(nBytes);
-			msg[0] = TYPE_WHITEBOARD;
-			msg[1] = MSG_WHITEBOARD_SETTINGS;
+			INT_PTR(*OnOK)(HWND WinHandle, const short id) = 
+				[](HWND WinHandle, const short id)->INT_PTR
+			{
+				const DWORD nBytes = MSG_OFFSET + sizeof(WBParams);
+				char* msg = alloc<char>(nBytes);
+				msg[0] = TYPE_WHITEBOARD;
+				msg[1] = MSG_WHITEBOARD_SETTINGS;
 
-			WBParams params;
-			params.width = GetDlgItemInt(hWnd, WHITEBOARD_RES_X, NULL, FALSE);
-			params.height = GetDlgItemInt(hWnd, WHITEBOARD_RES_Y, NULL, FALSE);
-			params.fps = GetDlgItemInt(hWnd, WHITEBOARD_FPS, NULL, FALSE);
-			params.clrIndex = ComboBox_GetCurSel( Colors );
+				WBParams params;
+				params.width = GetDlgItemInt(WinHandle, WHITEBOARD_RES_X, NULL, FALSE);
+				params.height = GetDlgItemInt(WinHandle, WHITEBOARD_RES_Y, NULL, FALSE);
+				params.fps = GetDlgItemInt(WinHandle, WHITEBOARD_FPS, NULL, FALSE);
+				params.clrIndex = ComboBox_GetCurSel(Colors);
 
-			memcpy(&msg[MSG_OFFSET], &params, sizeof(WBParams));
+				memcpy(&msg[MSG_OFFSET], &params, sizeof(WBParams));
 
-			HANDLE hnd = client->SendServData(msg, nBytes);
-			TCPClient::WaitAndCloseHandle(hnd);
-			dealloc(msg);
+				HANDLE hnd = client->SendServData(msg, nBytes);
+				TCPClient::WaitAndCloseHandle(hnd);
+				dealloc(msg);
 
-			EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_GRAYED);
-			EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_ENABLED);
+				EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_GRAYED);
+				EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_ENABLED);
 
-			EndDialog(hWnd, id);
-			break;
+				EndDialog(WinHandle, id);
+				return 0;
+			};
+
+			result = OnOK(hWnd, id);
 		}
 		case IDCANCEL:
 		{
-			EndDialog(hWnd, id);
+			result = EndDialog(hWnd, id);
 			break;
 		}
 		}
@@ -1643,7 +1652,7 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 	}
 
 	case WM_DESTROY:
-		ImageList_Destroy( (HIMAGELIST)SendMessage( Colors, CBEM_GETIMAGELIST, 0, 0 ) );
+		result = ImageList_Destroy( (HIMAGELIST)SendMessage( Colors, CBEM_GETIMAGELIST, 0, 0 ) );
 		break;
 
 	case WM_INITDIALOG:
@@ -1662,16 +1671,21 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 
 		BYTE count;
 		palette.Get(count);
-		HIMAGELIST himl = ImageList_Create( 50, 16, ILC_COLOR, count, 0 );
+		HIMAGELIST himl = ImageList_Create(50, 16, ILC_COLOR, count, 0);
+
 		D3DCOLOR* pBits = alloc<D3DCOLOR>( 50 * 16 );
+
 		for( int p = 0; p < count; p++ )
 		{
-			for(int i = 0; i < 50 * 16; i++)
+			for (int i = 0; i < 50 * 16; i++)
+			{				
 				pBits[i] = palette.GetBGRColor(p);
-			HBITMAP hbm = CreateBitmap( 50, 16, 1, 32, pBits );
+			}
+			
+			HBITMAP hbm = CreateBitmap(50, 16, 1, 32, pBits);
 			ImageList_Add( himl, hbm, NULL );
 			DeleteObject( hbm );
-
+			
 			COMBOBOXEXITEM cbei{};
 			cbei.iItem = -1;
 			cbei.mask = CBEIF_IMAGE | CBEIF_SELECTEDIMAGE;
