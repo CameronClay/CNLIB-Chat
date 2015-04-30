@@ -15,6 +15,7 @@ TCPServ.cpp - Multiple client disconnect crash -
 Bugs:
 Unknown - Issue with name showing in user listbox - Cameron
 client Windows.cpp - Wb settings drop-down color list colors are strange - Luis
+Client/Server Windows.cpp - Whiteboard window not closing after wb terminated or client being kicked - Josh - fixed
 
 Progress:
 server/client Windows.cpp - Send initial bitmap out when join wb - Cameron
