@@ -108,7 +108,7 @@ TCHAR optionsFilePath[MAX_PATH + 50];
 
 const UINT maxUserLen = 10;
 
-const USHORT port = 565;
+const USHORT port = 566;
 const float timeOut = 5.0f;
 
 TCHAR folderPath[MAX_PATH + 30];
@@ -1116,6 +1116,7 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_LEFT);
 
 		break;
+
 	default:
 		result = DefWindowProc(hWnd, message, wParam, lParam);
 	}

@@ -59,7 +59,7 @@ GDICOLOR Palette::GetBGRColor(BYTE index)
 	{
 		struct
 		{
-			char a, r, g, b;
+			char b, g, r, a;
 		};
 		D3DCOLOR color;
 	};
