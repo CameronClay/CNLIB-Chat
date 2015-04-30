@@ -230,6 +230,27 @@ void Flash()
 	opts->FlashTaskbar(hMainWind);
 }
 
+//returns index if found, -1 if not found
+int FindClient(std::tstring& name)
+{
+	const UINT count = SendMessage(listClients, LB_GETCOUNT, 0, 0);
+	TCHAR* buffer = alloc<TCHAR>(maxUserLen + 1);
+	int found = -1;
+
+	for(UINT i = 0; i < count; i++)
+	{
+		SendMessage(listClients, LB_GETTEXT, i, (LPARAM)buffer);
+		if(name.compare(buffer) == 0)
+		{
+			found = i;
+			break;
+		}
+	}
+
+	dealloc(buffer);
+	return found;
+}
+
 void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 {
 	//HRESULT res = CoInitialize(NULL);
@@ -265,7 +286,6 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			}
 			case MSG_CONNECT:
 			{
-				// TODO: Issue with name showing in listbox
 				UINT nBy = 0;
 				TCHAR* buffer = FormatText(dat, nBytes, nBy, opts->TimeStamps());
 				DispText((BYTE*)buffer, nBy);
@@ -275,7 +295,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				assert((first != std::tstring::npos) || (second != std::tstring::npos));
 				const std::tstring name = str.substr(first, len);
 
-				if(SendMessage(listClients, LB_FINDSTRING, -1, (LPARAM)name.c_str()) == LB_ERR)
+				if(FindClient((std::tstring)name) == -1)
 					SendMessage(listClients, LB_ADDSTRING, 0, (LPARAM)name.c_str());
 
 				Flash();
@@ -283,7 +303,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			}
 			case MSG_CONNECTINIT:
 			{
-				if(SendMessage(listClients, LB_FINDSTRING, -1, (LPARAM)dat) == LB_ERR)
+				if(FindClient(std::tstring((TCHAR*)dat)) == -1)
 					SendMessage(listClients, LB_ADDSTRING, 0, (LPARAM)dat);
 
 				break;
@@ -293,7 +313,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				std::tstring str = (TCHAR*)dat;
 				const UINT first = str.find(_T("<"), 0) + 1, second = str.find(_T(">"), first), len = second - first;
 				std::tstring name = str.substr(first, len);
-				UINT item = 0;
+				int item = 0;
 				if(fileReceive->Running())
 				{
 					if(name.compare(fileReceive->GetUser()) == 0)
@@ -310,7 +330,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					}
 				}
 
-				if((item = SendMessage(listClients, LB_FINDSTRING, -1, (LPARAM)name.c_str())) != LB_ERR)
+				if((item = FindClient((std::tstring)name)) != -1)
 					SendMessage(listClients, LB_DELETESTRING, item, 0);
 
 				UINT nBy = 0;

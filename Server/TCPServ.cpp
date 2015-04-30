@@ -438,7 +438,6 @@ void TCPServ::AddClient(Socket pc)
 
 void TCPServ::RemoveClient(USHORT& pos)
 {
-	// TODO: Multiple client disconnect crash
 	EnterCriticalSection(&clientSect);
 
 	const std::tstring user = clients[pos].user;
@@ -451,7 +450,8 @@ void TCPServ::RemoveClient(USHORT& pos)
 	*recvIndex[pos] = pos;
 	recvIndex.pop_back();
 
-	clients[pos] = clients.back();
+	clients[pos].~ClientData();
+	clients[pos] = std::move(clients.back());
 	clients.pop_back();
 
 	if (!user.empty())//if user wasnt declined authentication

@@ -3,6 +3,60 @@
 #include "HeapAlloc.h"
 #include "Messages.h"
 
+PingHandler::PingData::PingData(TCPServ& serv, PingHandler& pingHandler, Socket& socket)
+	:
+	pingHandler(pingHandler),
+	serv(serv),
+	socket(socket)
+{}
+
+PingHandler::PingData::PingData(PingData&& pingData)
+	:
+	pingHandler(pingData.pingHandler),
+	serv(pingData.serv),
+	socket(pingData.socket)
+{
+	ZeroMemory(&pingData, sizeof(PingData));
+}
+
+
+PingHandler::PingData& PingHandler::PingData::operator=(PingHandler::PingData&& data)
+{
+	serv = std::move(data.serv);
+	pingHandler = data.pingHandler;
+	socket = data.socket;
+
+	ZeroMemory(&data, sizeof(PingData));
+	return *this;
+}
+
+
+PingHandler::PingDataEx::PingDataEx(TCPServ& serv, PingHandler& pingHandler, Socket& socket, float inactiveInterval, float pingInterval)
+	:
+	PingData(serv, pingHandler, socket),
+	inactiveInterval(inactiveInterval),
+	pingInterval(pingInterval)
+{}
+
+PingHandler::PingDataEx::PingDataEx(PingDataEx&& pingDataEx)
+	:
+	PingData(std::forward<PingData>(pingDataEx)),
+	inactiveInterval(pingDataEx.inactiveInterval),
+	pingInterval(pingDataEx.pingInterval)
+{
+	ZeroMemory(&pingDataEx, sizeof(PingDataEx));
+}
+
+PingHandler::PingDataEx& PingHandler::PingDataEx::operator=(PingHandler::PingDataEx&& data)
+{
+	*(PingData*)this = (PingData)data;
+	const_cast<float&>(inactiveInterval) = data.inactiveInterval;
+	const_cast<float&>(pingInterval) = data.pingInterval;
+
+	ZeroMemory(&data, sizeof(PingDataEx));
+	return *this;
+}
+
 PingHandler::PingHandler()
 	:
 	inactivityThread(NULL),
@@ -22,6 +76,19 @@ PingHandler::PingHandler(PingHandler&& ping)
 	pingDataEx(ping.pingDataEx)
 {
 	ZeroMemory(&ping, sizeof(PingHandler));
+}
+
+PingHandler& PingHandler::operator=(PingHandler&& data)
+{
+	recvThread = data.recvThread;
+	inactivityThread = data.inactivityThread;
+	inactivityTimer = data.inactivityTimer;
+	sendPingThread = data.sendPingThread;
+	sendPingTimer = data.sendPingTimer;
+	pingDataEx = data.pingDataEx;
+
+	ZeroMemory(&data, sizeof(PingHandler));
+	return *this;
 }
 
 PingHandler::~PingHandler()
@@ -124,6 +191,5 @@ HANDLE PingHandler::GetInactivityTimer() const
 
 HANDLE PingHandler::GetPingTimer() const
 {
-	// TODO: GetPingTimer crash
 	return sendPingTimer;
 }
