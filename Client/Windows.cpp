@@ -359,28 +359,8 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					break;
 				}
 				case MSG_DATA_BITMAP:
-				{
-					// For now width and height is set to screen size, but will
-					// need to send the rect size.
-					// Maybe a struct for our bitmap type
-					/*
-					struct CBitmap
-					{
-						RECT rect;
-						BYTE *pixels;
-					};
-					Would pass dat and have Whiteboard deconstruct it, decompress 
-					and convert to RGB bitmap then draw
-					*/
-					struct CBitmap
-					{
-						RectU rect;
-						BYTE *pixels;
-					}*cBitmap;
-
-					cBitmap = (CBitmap*)dat;
-					pWhiteboard->Frame(cBitmap->rect, cBitmap->pixels);
-				}
+					pWhiteboard->Frame(*(RectU*)dat, &dat[sizeof(RectU)]);
+					break;
 			}
 			break;
 		}//TYPE_DATA

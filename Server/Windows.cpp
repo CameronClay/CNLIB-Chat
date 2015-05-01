@@ -351,11 +351,9 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 			dealloc(msg);
 			break;
 		}
-		case MSG_DATA_BITMAP:
+		case MSG_DATA_MOUSE:
 		{
-			// Not sure what server needs to do here, I'm guessing this is where
-			// server would send the compressed images, whiteboard would call
-			// serv->SendClientData??
+			break;
 		}
 		break;
 		}
@@ -397,14 +395,18 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		{
 			wb->AddClient(clients[index].pc);
 
+			const WBParams& wbParams = wb->GetParams();
+
 			DWORD nBytes = MSG_OFFSET + sizeof(WBParams);
 			char* msg = alloc<char>(nBytes);
 			msg[0] = TYPE_WHITEBOARD;
 			msg[1] = MSG_WHITEBOARD_ACTIVATE;
-			memcpy(&msg[MSG_OFFSET], &wb->GetParams(), sizeof(WBParams));
+			memcpy(&msg[MSG_OFFSET], &wbParams, sizeof(WBParams));
 			HANDLE hnd = serv.SendClientData(msg, nBytes, clients[index].pc, true);
 			TCPServ::WaitAndCloseHandle(hnd);
 			dealloc(msg);
+
+			wb->SendBitmap(RectU(0, 0, wbParams.width, wbParams.height), clients[index].pc, true);
 
 			const DWORD nameLen = (clients[index].user.size() + 1) * sizeof(TCHAR);
 			nBytes = MSG_OFFSET + nameLen;

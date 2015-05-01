@@ -109,7 +109,8 @@ public:
 	void OnWheelUp(USHORT x, USHORT y);
 	void OnWheelDown(USHORT x, USHORT y);
 	bool IsInWindow() const;
-	UINT Extract(BYTE *byteBuffer);
+	void Extract(BYTE *byteBuffer);
+	UINT GetBufferLen() const;
 private:
 	USHORT x, y;
 	bool leftIsPressed, rightIsPressed, isInWindow;
