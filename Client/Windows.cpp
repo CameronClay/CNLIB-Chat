@@ -65,7 +65,8 @@ const float CONFIGVERSION = .002f;
 #define WB_DEF_RES_Y 600
 #define WB_DEF_FPS 20
 
-#define WM_CREATEWB WM_APP
+#define WM_CREATEWIN WM_APP
+#define ID_WB 1
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK WbProc(HWND, UINT, WPARAM, LPARAM);
@@ -136,7 +137,7 @@ std::tstring user;
 #pragma endregion
 
 
-HWND CreateWBWindow(HWND parent, USHORT width, USHORT height)
+HWND CreateWBWindow(HWND owner, USHORT width, USHORT height)
 {
 	if(!wbAtom)
 	{
@@ -144,17 +145,18 @@ HWND CreateWBWindow(HWND parent, USHORT width, USHORT height)
 		wc.hInstance = hInst;
 		wc.lpfnWndProc = WbProc;
 		wc.lpszClassName = wbClassName;
+		wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 
 		wbAtom = RegisterClass(&wc);
 	}
 
 	// Test whether the whiteboard handle is valid so that it can 
-	// safely recreated if it gets closed
+	// safely be recreated if it gets closed
 
 	if(!IsWindow(wbHandle))
 	{
 		DWORD style =
-			WS_CHILD |			// Child window that
+			//WS_CHILD |			// Child window that
 			WS_POPUPWINDOW |	// Is not contained in parent window
 			WS_CAPTION |		// Shows the title bar
 			WS_MINIMIZEBOX;		// Shows the minimize button
@@ -166,7 +168,7 @@ HWND CreateWBWindow(HWND parent, USHORT width, USHORT height)
 			style,
 			0, 0,
 			width, height,
-			parent, NULL,
+			owner, NULL,
 			hInst, nullptr);
 
 		if(!wbHandle)
@@ -175,7 +177,7 @@ HWND CreateWBWindow(HWND parent, USHORT width, USHORT height)
 		}
 	}
 
-	ShowWindow(wbHandle, SW_SHOW);
+	ShowWindow(wbHandle, SW_SHOWNORMAL);
 	return wbHandle;
 }
 
@@ -432,7 +434,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				case MSG_RESPONSE_WHITEBOARD_DECLINED:
 				{
 					TCHAR buffer[255];
-					_stprintf(buffer, _T("%s has joined the whiteboard!"), dat);
+					_stprintf(buffer, _T("%s has declined the whiteboard!"), dat);
 					MessageBox(hMainWind, buffer, _T("DECLINED"), MB_ICONERROR);
 					break;
 				}
@@ -497,7 +499,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					TCHAR buffer[255];
 					_stprintf(buffer, _T("%s wants to display a whiteboard"), (TCHAR*)dat, _tcslen((TCHAR*)dat));
 
-					DialogBoxParam(hInst, MAKEINTRESOURCE(REQUEST), hMainWind, RequestWBProc, (LPARAM)buffer);
+					SendMessage(hMainWind, WM_CREATEWIN, ID_WB, (LPARAM)buffer);
 					break;
 				}
 			}// MSG_REQUEST
@@ -579,36 +581,46 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 
 				const D3DCOLOR clr = *(D3DCOLOR*)(&dat[pos]);*/
 
-				//need to construct because dat becomes invalid once case occurs
-				PostMessage(hMainWind, WM_CREATEWB, 0, (LPARAM)(construct<WBParams>(std::forward<WBParams>(*(WBParams*)dat))));
+				WBParams *pParams = (WBParams*)dat;
+
+				SendMessage(hMainWind, WM_CREATEWIN, ID_WB, (LPARAM)pParams);
+				pWhiteboard = construct(
+					Whiteboard(
+					palette,
+					wbHandle, 
+					pParams->width, 
+					pParams->height, 
+					pParams->fps, 
+					pParams->clrIndex)
+					);
 				break;
 			}
 			case MSG_WHITEBOARD_TERMINATE:
 			{
-				if(wbHandle)
-					DestroyWindow(wbHandle);
-
-				MessageBox(hMainWind, _T("Whiteboard has been shutdown!"), _T("ERROR"), MB_ICONERROR);
+				// in case user declined
+				if(IsWindow(wbHandle))
+				{
+					MessageBox(wbHandle, _T("Whiteboard has been shutdown!"), _T("Whiteboard Status"), MB_ICONINFORMATION);
+					SendMessage(wbHandle, WM_DESTROY, 0, 0);
+				}
 				break;
 			}
 			case MSG_WHITEBOARD_CANNOTCREATE:
 			{
-				MessageBox(hMainWind, _T("A whiteboard is already being displayed!"), _T("ERROR"), MB_ICONERROR);
+				MessageBox(hMainWind, _T("A whiteboard is already being displayed!"), _T("ERROR"), MB_ICONHAND);
 				break;
 			}
 			case MSG_WHITEBOARD_CANNOTTERMINATE:
 			{
-				MessageBox(hMainWind, _T("Only whiteboard creator can terminate the whiteboard!"), _T("ERROR"), MB_ICONERROR);
+				MessageBox(hMainWind, _T("Only whiteboard creator can terminate the whiteboard!"), _T("ERROR"), MB_ICONSTOP);
 				break;
 			}
 			case MSG_WHITEBOARD_KICK:
 			{
-				if(wbHandle)
-					DestroyWindow(wbHandle);
-
 				TCHAR buffer[255];
 				_stprintf(buffer, _T("%s has removed you from the whiteboard!"), dat);
-				MessageBox(hMainWind, buffer, _T("Kicked"), MB_ICONERROR);
+				MessageBox(wbHandle, buffer, _T("Kicked"), MB_ICONEXCLAMATION);
+				SendMessage(wbHandle, WM_DESTROY, 0, 0);
 				break;
 			}
 			}
@@ -745,7 +757,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 	HACCEL hndAccel = LoadAccelerators(hInst, MAKEINTRESOURCE(HOTKEYS));
 
-	ShowWindow(hMainWind, SW_SHOWDEFAULT);
+	ShowWindow(hMainWind, nCmdShow);
 	UpdateWindow(hMainWind);
 
 	MSG msg;
@@ -939,9 +951,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		case ID_WHITEBOARD_TERMINATE:
 		{
-			EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_ENABLED);
-			EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_GRAYED);
-
 			client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
 			break;
 		}
@@ -1022,22 +1031,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	}
 
-	case WM_CREATEWB:
+	case WM_CREATEWIN:
 	{
-		WBParams* params = (WBParams*)lParam;
-		WBParams &wbp = *params;
-		HWND wnd = CreateWBWindow( hWnd, wbp.width, wbp.height );
-		pWhiteboard = construct(
-			Whiteboard(
-			palette,
-			wnd,
-			wbp.width,
-			wbp.height,
-			wbp.fps,
-			wbp.clrIndex)
-			);
-		//need to destruct because construction was required because it was going out of scope
-		destruct(params);
+		switch( wParam )
+		{
+		case ID_WB:
+		{
+			WBParams *wbp = (WBParams*)lParam;
+			CreateWBWindow( hWnd, wbp->width, wbp->height );
+		}	break;
+		}
 	}	break;
 
 	case WM_SIZE:
@@ -1131,15 +1134,17 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		mServ.OnRightReleased(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
 
+	case WM_CLOSE:
+		client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_LEFT);
+		DestroyWindow(wbHandle);
+		break;
 	case WM_DESTROY:
 		EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_ENABLED);
 		EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_GRAYED);
 
-		destruct(pWhiteboard);
 		wbHandle = nullptr;
-		UnregisterClass((LPCWSTR)&wbAtom, hInst);
-
-		client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_LEFT);
+		UnregisterClass(wbClassName, hInst);
+		destruct(pWhiteboard);
 		break;
 
 	default:
@@ -1644,7 +1649,7 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 			params.width = GetDlgItemInt(hWnd, WHITEBOARD_RES_X, NULL, FALSE);
 			params.height = GetDlgItemInt(hWnd, WHITEBOARD_RES_Y, NULL, FALSE);
 			params.fps = GetDlgItemInt(hWnd, WHITEBOARD_FPS, NULL, FALSE);
-			params.clrIndex = ComboBox_GetCurSel( Colors );
+			params.clrIndex = ComboBox_GetCurSel(Colors);
 
 			memcpy(&msg[MSG_OFFSET], &params, sizeof(WBParams));
 
@@ -1778,4 +1783,3 @@ INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 	}
 	return 0;
 }
-

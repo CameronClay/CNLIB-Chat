@@ -14,7 +14,12 @@ Bugs:
 Unknown - Issue with name showing in user listbox - Cameron
 client Windows.cpp - Wb settings drop-down color list colors are strange - Luis
 
+client/server Windows.cpp - Crash on clients still connected to whiteboard after creator closes whiteboard, 
+	possible solution is to remove everyone from list and send a close message to all connected clients
+UI cpp files - MessageBoxes not displayed correctly. - Luis
+
 Progress:
 server/client Windows.cpp - Send initial bitmap out when join wb - Cameron
 
 Other:
+Implement better window handling (as figured by comments from web)
