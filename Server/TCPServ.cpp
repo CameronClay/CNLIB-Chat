@@ -391,7 +391,7 @@ TCPServ::TCPServ(TCPServ&& serv)
 
 TCPServ& TCPServ::operator=(TCPServ&& serv)
 {
-	host = serv.host;
+	host = std::move(serv.host);
 	openCon = serv.openCon;
 	clients = std::move(serv.clients);
 	recvIndex = std::move(serv.recvIndex);

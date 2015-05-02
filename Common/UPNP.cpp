@@ -34,7 +34,7 @@ bool UPNP::Initialize()
 	return upnpS && collectionS;
 }
 
-bool UPNP::PortMapExists(USHORT port, const TCHAR* protocal)
+bool UPNP::PortMapExists(USHORT port, const TCHAR* protocal) const
 {
 	IStaticPortMapping* spm = nullptr;
 	bool result = false;

@@ -23,8 +23,8 @@ PingHandler::PingData::PingData(PingData&& pingData)
 PingHandler::PingData& PingHandler::PingData::operator=(PingHandler::PingData&& data)
 {
 	serv = std::move(data.serv);
-	pingHandler = data.pingHandler;
-	socket = data.socket;
+	pingHandler = std::move(data.pingHandler);
+	socket = std::move(data.socket);
 
 	ZeroMemory(&data, sizeof(PingData));
 	return *this;
@@ -40,7 +40,7 @@ PingHandler::PingDataEx::PingDataEx(TCPServ& serv, PingHandler& pingHandler, Soc
 
 PingHandler::PingDataEx::PingDataEx(PingDataEx&& pingDataEx)
 	:
-	PingData(std::forward<PingData>(pingDataEx)),
+	PingData(std::move(pingDataEx)),
 	inactiveInterval(pingDataEx.inactiveInterval),
 	pingInterval(pingDataEx.pingInterval)
 {
