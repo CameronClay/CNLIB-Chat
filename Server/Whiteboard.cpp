@@ -189,8 +189,6 @@ void Whiteboard::MakeRectPixels(RectU& rect, char* ptr)
 			ptr[offset + (y * width) + x] = pixels[((y + rect.top) * width) + (rect.left + x)];
 		}
 	}
-
-	rectList.pop();
 }
 
 std::unordered_map<Socket, WBClientData, Socket::Hash>& Whiteboard::GetMap()
@@ -255,6 +253,8 @@ void Whiteboard::SendBitmap()
 		HANDLE hnd = serv.SendClientData(msg, nBytes, sendPcs);
 		TCPServ::WaitAndCloseHandle(hnd);
 		dealloc(msg);
+
+		rectList.pop();
 	}
 }
 
