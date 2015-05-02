@@ -32,15 +32,20 @@ public:
 			ZeroMemory(&clint, sizeof(ClientData));
 		}
 
-		ClientData operator=(ClientData& data)
+		~ClientData(){}
+
+		ClientData& operator=(ClientData&& data)
 		{
 			pc = data.pc;
 			recvThread = data.recvThread;
 			func = data.func;
 			user = std::move(data.user);
 			pingHandler = data.pingHandler;
-		}
 
+			ZeroMemory(&data, sizeof(ClientData));
+			return *this;
+		}
+		
 		Socket pc;
 		HANDLE recvThread;
 		sfunc func;

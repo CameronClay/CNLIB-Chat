@@ -1,11 +1,13 @@
 #include "Whiteboard.h"
 #include "HeapAlloc.h"
+#include "Messages.h"
 
 Whiteboard::Whiteboard(TCPServ &serv, WBParams params, std::tstring creator)
 	:
 params(std::forward<WBParams>(params)),
 serv(serv),
-creator(creator)
+creator(creator),
+interval(1.0f / (float)params.fps)
 {
 	pixels = alloc<BYTE>(params.width * params.height);
 	FillMemory(pixels, params.width * params.height, params.clrIndex);
@@ -19,16 +21,18 @@ params(std::forward<WBParams>(wb.params)),
 pixels(wb.pixels),
 bitmapSect(wb.bitmapSect),
 mapSect(wb.mapSect),
-serv(wb.serv),
+serv(std::forward<TCPServ>(wb.serv)),
 creator(wb.creator),
-clients(wb.clients),
-sendPcs(wb.sendPcs),
-rectList(wb.rectList)
+interval(wb.interval),
+timer(wb.timer),
+clients(std::move(wb.clients)),
+sendPcs(std::move(wb.sendPcs)),
+rectList(std::move(wb.rectList))
 {
 	wb.pixels = nullptr;
 }
 
-BYTE *Whiteboard::GetBitmap()
+BYTE* Whiteboard::GetBitmap()
 {
 	// LeaveCriticalSection will never be executed in this case, probably could 
 	// use a wrapper for something like this where Enter in ctor and Leave in dtor
@@ -57,7 +61,7 @@ CRITICAL_SECTION& Whiteboard::GetMapSect()
 	return mapSect;
 }
 
-CRITICAL_SECTION &Whiteboard::GetBitmapSection()
+CRITICAL_SECTION& Whiteboard::GetBitmapSection()
 {
 	return bitmapSect;
 }
@@ -99,7 +103,7 @@ void Whiteboard::PaintBrush(std::deque<PointU> &pointList, BYTE clr)
 
 void Whiteboard::Draw()
 {
-	EnterCriticalSection(&mapSect);
+	EnterCriticalSection(&bitmapSect);
 	for (auto it : clients)
 	{		
 		MouseClient mouse(it.second.mServ);
@@ -125,7 +129,7 @@ void Whiteboard::Draw()
 		pointList.clear();
 	}
 
-	LeaveCriticalSection(&mapSect);
+	LeaveCriticalSection(&bitmapSect);
 }
 
 void Whiteboard::DrawLine(PointU start, PointU end, BYTE clr)
@@ -155,7 +159,36 @@ void Whiteboard::MakeRect(PointU &p0, PointU &p1)
 		rect.top = p0.y, rect.bottom = p1.y :
 		rect.top = p1.y, rect.bottom = p0.y;
 
-	rectList.push_back(rect);
+	rectList.push(rect);
+}
+
+void Whiteboard::Frame()
+{
+	if(timer.GetTimeMilli() >= interval)
+	{
+		SendBitmap();
+		timer.Reset();
+	}
+}
+
+UINT Whiteboard::GetBufferLen() const
+{
+	const RectU& rec = rectList.front();
+	return sizeof(RectU) + ((rec.right - rec.left) * (rec.bottom - rec.top));
+}
+
+void Whiteboard::MakeRectPixels(RectU& rect, char* ptr)
+{
+	const USHORT offset = sizeof(RectU);
+	memcpy(ptr, &rect, offset);
+
+	for(USHORT height = rect.bottom - rect.top, y = 0; y < height; y++)
+	{
+		for(USHORT width = rect.right - rect.left, x = 0; x < width; x++)
+		{
+			ptr[offset + (y * width) + x] = pixels[((y + rect.top) * width) + (rect.left + x)];
+		}
+	}
 }
 
 std::unordered_map<Socket, WBClientData, Socket::Hash>& Whiteboard::GetMap()
@@ -168,7 +201,7 @@ std::vector<Socket>& Whiteboard::GetPcs()
 	return sendPcs;
 }
 
-WBParams& Whiteboard::GetParams()
+const WBParams& Whiteboard::GetParams() const
 {
 	return params;
 }
@@ -201,9 +234,42 @@ void Whiteboard::RemoveClient(Socket pc)
 	LeaveCriticalSection(&mapSect);
 }
 
-const Palette &Whiteboard::GetPalette() const
+const Palette& Whiteboard::GetPalette() const
 {
 	return palette;
+}
+
+void Whiteboard::SendBitmap()
+{
+	if(!rectList.empty())
+	{
+		const DWORD nBytes = GetBufferLen() + MSG_OFFSET;
+		char* msg = alloc<char>(nBytes);
+		msg[0] = TYPE_DATA;
+		msg[1] = MSG_DATA_BITMAP;
+
+		MakeRectPixels(rectList.front(), &msg[MSG_OFFSET]);
+
+		HANDLE hnd = serv.SendClientData(msg, nBytes, sendPcs);
+		TCPServ::WaitAndCloseHandle(hnd);
+		dealloc(msg);
+
+		rectList.pop();
+	}
+}
+
+void Whiteboard::SendBitmap(RectU& rect, Socket& sock, bool single)
+{
+	const DWORD nBytes = GetBufferLen() + MSG_OFFSET;
+	char* msg = alloc<char>(nBytes);
+	msg[0] = TYPE_DATA;
+	msg[1] = MSG_DATA_BITMAP;
+
+	MakeRectPixels(rect, &msg[MSG_OFFSET]);	
+
+	HANDLE hnd = serv.SendClientData(msg, nBytes, sock, single);
+	TCPServ::WaitAndCloseHandle(hnd);
+	dealloc(msg);
 }
 
 Whiteboard::~Whiteboard()

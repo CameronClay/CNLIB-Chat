@@ -51,6 +51,19 @@ TCPClient::TCPClient(TCPClient&& client)
 	ZeroMemory(&client, sizeof(TCPClient));
 }
 
+TCPClient& TCPClient::operator=(TCPClient&& client)
+{
+	host = client.host;
+	function = client.function;
+	const_cast<void(*&)()>(disconFunc) = client.disconFunc;
+	obj = client.obj;
+	recv = client.recv;
+	compression = client.compression;
+
+	ZeroMemory(&client, sizeof(TCPClient));
+	return *this;
+}
+
 TCPClient::~TCPClient()
 {
 	Disconnect();

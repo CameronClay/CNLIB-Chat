@@ -52,6 +52,14 @@ Socket& Socket::operator=(Socket&& pc)
 	return *this;
 }
 
+Socket& Socket::operator= (Socket&& pc)
+{
+	this->pc = pc.pc;
+	ZeroMemory(&pc, sizeof(Socket));
+
+	return *this;
+}
+
 bool Socket::operator== (const Socket pc) const
 {
 	return pc.pc == this->pc;

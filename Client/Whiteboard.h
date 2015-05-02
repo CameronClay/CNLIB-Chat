@@ -23,12 +23,12 @@ private:
 	void ComposeImage(USHORT Width, USHORT Height, BYTE *pixelData);
 	void EndFrame();
 
-	const Palette &GetPalette(BYTE& count);
+	const Palette& GetPalette(BYTE& count);
 
 	HWND hWnd;
 
 	USHORT width, height, pitch;
-	float interval;
+	const float interval;
 	Timer timer;
 	D3DCOLOR bgColor;
 	Palette& palette;
