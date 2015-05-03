@@ -103,98 +103,68 @@ void AddToList(std::tstring& user, std::tstring& pass)
 
 void SendSingleUserData(TCPServ& serv, char* dat, DWORD nBytes, char type, char message)
 {
-	auto& clients = serv.GetClients();
 	const UINT userLen = *(UINT*)&(dat[0]);
 	//																	   - 1 for \0
 	std::tstring user = std::tstring((TCHAR*)&(dat[sizeof(UINT)]), userLen - 1);
-	for (USHORT i = 0; i < clients.size(); i++)
-	{
-		if (clients[i].user.compare(user) == 0)
-		{
-			const UINT offset = sizeof(UINT) + (userLen * sizeof(TCHAR));
-			const DWORD nBy = (nBytes - offset) + MSG_OFFSET;
-			char* msg = alloc<char>(nBy);
-			
-			msg[0] = type;
-			msg[1] = message;
-			memcpy(&msg[MSG_OFFSET], &dat[offset], nBytes - offset);
+	auto &client = serv.FindClient(user);
 
-			HANDLE hnd = serv.SendClientData(msg, nBy, clients[i].pc, true);
-			TCPServ::WaitAndCloseHandle(hnd);
-			dealloc(msg);
+	const UINT offset = sizeof(UINT) + (userLen * sizeof(TCHAR));
+	const DWORD nBy = (nBytes - offset) + MSG_OFFSET;
+	char* msg = alloc<char>(nBy);
 
-			break;
-		}
-	}
+	msg[0] = type;
+	msg[1] = message;
+	memcpy(&msg[MSG_OFFSET], &dat[offset], nBytes - offset);
+
+	HANDLE hnd = serv.SendClientData(msg, nBy, client.pc, true);
+	TCPServ::WaitAndCloseHandle(hnd);
+	dealloc(msg);
+
 }
 
 void TransferMessageWithName(TCPServ& serv, std::tstring& srcUserName, BYTE* dat)
 {
-	auto& clients = serv.GetClients();
 	std::tstring user = std::tstring((TCHAR*)&(dat[MSG_OFFSET]));
-	for (USHORT i = 0; i < clients.size(); i++)
-	{
-		if (clients[i].user.compare(user) == 0)
-		{
-			const DWORD nBy = MSG_OFFSET + ((srcUserName.size() + 1) * sizeof(TCHAR));
-			char* msg = alloc<char>(nBy);
-			memcpy(msg, dat, MSG_OFFSET);
-			memcpy(&msg[MSG_OFFSET], srcUserName.c_str(), nBy - MSG_OFFSET);
+	auto &client = serv.FindClient(user);
 
-			HANDLE hnd = serv.SendClientData(msg, nBy, clients[i].pc, true);
-			TCPServ::WaitAndCloseHandle(hnd);
-			dealloc(msg);
+	const DWORD nBy = ((srcUserName.size() + 1) * sizeof(TCHAR));
+	MsgStreamWriter streamWriter(dat[0], dat[1], nBy + sizeof(DWORD));
 
-			break;
-		}
-	}
+	streamWriter.Write(nBy);
+	streamWriter.Write(user.c_str(), nBy);
+
+	HANDLE hnd = serv.SendClientData(streamWriter, nBy + MSG_OFFSET, client.pc, true);
+	TCPServ::WaitAndCloseHandle(hnd);
 }
 
 void TransferMessage(TCPServ& serv, char* dat)
 {
-	auto& clients = serv.GetClients();
 	std::tstring user = std::tstring((TCHAR*)&(dat[MSG_OFFSET]));
-	for (USHORT i = 0; i < clients.size(); i++)
-	{
-		if (clients[i].user.compare(user) == 0)
-		{
-			const DWORD nBy = MSG_OFFSET;
-			char* msg = alloc<char>(nBy);
-			memcpy(msg, dat, MSG_OFFSET);
+	auto &client = serv.FindClient(user);
 
-			HANDLE hnd = serv.SendClientData(msg, nBy, clients[i].pc, true);
-			TCPServ::WaitAndCloseHandle(hnd);
-			dealloc(msg);
+	MsgStreamWriter mStreamOut(dat[0], dat[1], 0);
 
-			break;
-		}
-	}
+	HANDLE hnd = serv.SendClientData(mStreamOut, MSG_OFFSET, client.pc, true);
+	TCPServ::WaitAndCloseHandle(hnd);
 }
 
 void RequestTransfer(TCPServ& serv, std::tstring& srcUserName, BYTE* dat)
 {
-	auto& clients = serv.GetClients();
 	const UINT srcUserLen = *(UINT*)&(dat[MSG_OFFSET]);
 	std::tstring user = std::tstring((TCHAR*)&(dat[MSG_OFFSET + sizeof(UINT)]), srcUserLen - 1);
-	
-	for (USHORT i = 0; i < clients.size(); i++)
-	{
-		if (clients[i].user.compare(user) == 0)
-		{
-			const UINT nameLen = srcUserName.size() + 1;
-			const DWORD nameSize = nameLen * sizeof(TCHAR);
-			const DWORD nBy = sizeof(UINT) + nameSize + sizeof(double);
-			MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_TRANSFER, nBy);
-			streamWriter.Write(nameLen);
-			streamWriter.Write(srcUserName.c_str(), nameSize);
-			streamWriter.Write<double>(*(double*)&(dat[MSG_OFFSET + sizeof(UINT) + (srcUserLen * sizeof(TCHAR))]));
+	auto &client = serv.FindClient(user);
 
-			HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clients[i].pc, true);
-			TCPServ::WaitAndCloseHandle(hnd);
+	const UINT nameLen = srcUserName.size() + 1;
+	const DWORD nameSize = nameLen * sizeof(TCHAR);
+	const DWORD nBy = sizeof(UINT) + nameSize + sizeof(double);
+	MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_TRANSFER, nBy);
+	streamWriter.Write(nameLen);
+	streamWriter.Write(srcUserName.c_str(), nameSize);
+	streamWriter.Write<double>(*(double*)&(dat[MSG_OFFSET + sizeof(UINT) + (srcUserLen * sizeof(TCHAR))]));
 
-			break;
-		}
-	}
+	HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), client.pc, true);
+	TCPServ::WaitAndCloseHandle(hnd);
+
 }
 
 void DispIPMsg(Socket& pc, const TCHAR* str)
@@ -223,6 +193,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 {
 	TCPServ& serv = *(TCPServ*)server;
 	auto& clients = serv.GetClients();
+	
 	char* dat = (char*)(&data[MSG_OFFSET]);
 	nBytes -= MSG_OFFSET;
 	MsgStreamReader streamReader((char*)data, nBytes);
@@ -258,13 +229,12 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 				}
 			}
 
+			TCPServ::ClientData &client = serv.FindClient(user);
+			
 			//If user is already connected, reject
-			for (USHORT i = 0; i < clients.size(); i++)
+			if (client.user.compare(user) == 0)
 			{
-				if (clients[i].user.compare(user) == 0)
-				{
-					auth = false;
-				}
+				auth = false;
 			}
 
 			if (!inList)
@@ -272,18 +242,18 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 				//Add name to list
 				userList.push_back(Authent(user, pass));
 				auth = true;
-				clients[index].user = user;
+				client.user = user;
 				AddToList(user, pass);
 			}
 
 			if (auth)
 			{
-				clients[index].user = user;
+				client.user = user;
 
 				//Confirm authentication
-				serv.SendMsg(clients[index].pc, true, TYPE_RESPONSE, MSG_RESPONSE_AUTH_CONFIRMED);
+				serv.SendMsg(client.pc, true, TYPE_RESPONSE, MSG_RESPONSE_AUTH_CONFIRMED);
 
-				//Transer currentlist of clients to new client
+				//Transfer currentlist of clients to new client
 				for (USHORT i = 0; i < clients.size(); i++)
 				{
 					if (i != index && !clients[i].user.empty())
@@ -292,7 +262,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 						MsgStreamWriter streamWriter(TYPE_CHANGE, MSG_CONNECTINIT, nBy);
 						streamWriter.Write(clients[i].user.c_str(), nBy);
 
-						HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clients[index].pc, true);
+						HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), client.pc, true);
 						TCPServ::WaitAndCloseHandle(hnd);
 					}
 				}
@@ -300,16 +270,16 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 				//Send new client to currently connected clients
 				UINT nBy;
 				std::tstring d = _T("has connected!");
-				TCHAR* msgA = FormatMsg(TYPE_CHANGE, MSG_CONNECT, (BYTE*)d.c_str(), d.size() * sizeof(TCHAR), clients[index].user, nBy);
+				TCHAR* msgA = FormatMsg(TYPE_CHANGE, MSG_CONNECT, (BYTE*)d.c_str(), d.size() * sizeof(TCHAR), client.user, nBy);
 
-				HANDLE hnd = serv.SendClientData((char*)msgA, nBy, clients[index].pc, false);
+				HANDLE hnd = serv.SendClientData((char*)msgA, nBy, client.pc, false);
 				TCPServ::WaitAndCloseHandle(hnd);
 				dealloc(msgA);
 			}
 			else
 			{
 				//Decline authentication
-				serv.SendMsg(clients[index].pc, true, TYPE_RESPONSE, MSG_RESPONSE_AUTH_DECLINED);
+				serv.SendMsg(client.pc, true, TYPE_RESPONSE, MSG_RESPONSE_AUTH_DECLINED);
 			}
 
 			LeaveCriticalSection(&authentSect);
