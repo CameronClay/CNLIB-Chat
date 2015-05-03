@@ -62,7 +62,7 @@ public:
 
 	bool End() const
 	{
-		return (pos + 2) == nBytes;
+		return pos >= nBytes;
 	}
 
 	operator char*()

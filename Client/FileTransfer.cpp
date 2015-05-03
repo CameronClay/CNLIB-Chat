@@ -208,7 +208,7 @@ void FileSend::SendFileNameList()
 		streamWriter.Write(it->dateModified);
 		const UINT fileLen = it->fileName.size() + 1;
 		streamWriter.Write(fileLen);
-		streamWriter.Write(it->fileName.c_str(), fileLen);
+		streamWriter.Write(it->fileName.c_str(), fileLen * sizeof(TCHAR));
 	}
 
 	HANDLE hnd = client.SendServData(streamWriter, streamWriter.GetSize());

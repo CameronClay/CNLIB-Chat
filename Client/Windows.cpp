@@ -461,7 +461,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				case MSG_REQUEST_TRANSFER:
 				{
 					const UINT len = streamReader.Read<UINT>();
-					fileReceive->GetUser() = streamReader.Read<TCHAR>(len - 1);
+					fileReceive->GetUser() = streamReader.Read<TCHAR>(len * sizeof(TCHAR));
 					fileReceive->SetSize(streamReader.Read<double>());
 					if (fileReceive->Running())
 					{
