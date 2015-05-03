@@ -37,14 +37,11 @@ Whiteboard::Whiteboard(Whiteboard&& wb)
 
 void Whiteboard::Frame(RectU &rect, BYTE *pixelData)
 {
-	if (timer.GetTimeMilli() >= interval)
-	{
-		BeginFrame();
-		Render(rect, pixelData);
-		EndFrame();
+	BeginFrame();
+	Render(rect, pixelData);
+	EndFrame();
 
-		timer.Reset();
-	}
+	timer.Reset();
 }
 
 void Whiteboard::BeginFrame()
