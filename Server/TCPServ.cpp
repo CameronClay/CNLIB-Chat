@@ -391,18 +391,21 @@ TCPServ::TCPServ(TCPServ&& serv)
 
 TCPServ& TCPServ::operator=(TCPServ&& serv)
 {
-	host = std::move(serv.host);
-	openCon = serv.openCon;
-	clients = std::move(serv.clients);
-	recvIndex = std::move(serv.recvIndex);
-	function = serv.function;
-	obj = serv.obj;
-	compression = serv.compression;
-	const_cast<void(*&)(ClientData&)>(conFunc) = serv.conFunc;
-	const_cast<void(*&)(ClientData&)>(disFunc) = serv.disFunc;
-	maxCon = serv.maxCon;
-	ZeroMemory(&serv, sizeof(TCPServ));
-
+	if(this != &serv)
+	{
+		Shutdown();  // gotta free resources used by this instance
+		host = serv.host;
+		openCon = serv.openCon;
+		clients = std::move(serv.clients);
+		recvIndex = std::move(serv.recvIndex);
+		function = serv.function;
+		obj = serv.obj;
+		compression = serv.compression;
+		const_cast<void( *& )(ClientData&)>(conFunc) = serv.conFunc;
+		const_cast<void( *& )(ClientData&)>(disFunc) = serv.disFunc;
+		maxCon = serv.maxCon;
+		ZeroMemory(&serv, sizeof(TCPServ));
+	}
 	return *this;
 }
 

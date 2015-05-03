@@ -12,21 +12,24 @@ PingHandler::PingData::PingData(TCPServ& serv, PingHandler& pingHandler, Socket&
 
 PingHandler::PingData::PingData(PingData&& pingData)
 	:
-	pingHandler(pingData.pingHandler),
-	serv(pingData.serv),
-	socket(pingData.socket)
+	pingHandler(std::move(pingData.pingHandler)),
+	serv(std::move(pingData.serv)),
+	socket(std::move(pingData.socket))
 {
 	ZeroMemory(&pingData, sizeof(PingData));
 }
 
 
-PingHandler::PingData& PingHandler::PingData::operator=(PingHandler::PingData&& data)
+auto PingHandler::PingData::operator=(PingData&& data) -> PingData&
 {
-	serv = std::move(data.serv);
-	pingHandler = std::move(data.pingHandler);
-	socket = std::move(data.socket);
+	if(this != &data)
+	{
+		serv = std::move(data.serv);
+		pingHandler = std::move(data.pingHandler);
+		socket = std::move(data.socket);
 
-	ZeroMemory(&data, sizeof(PingData));
+		ZeroMemory(&data, sizeof(PingData));
+	}
 	return *this;
 }
 
@@ -40,20 +43,23 @@ PingHandler::PingDataEx::PingDataEx(TCPServ& serv, PingHandler& pingHandler, Soc
 
 PingHandler::PingDataEx::PingDataEx(PingDataEx&& pingDataEx)
 	:
-	PingData(std::move(pingDataEx)),
+	PingData(std::forward<PingData>(pingDataEx)),
 	inactiveInterval(pingDataEx.inactiveInterval),
 	pingInterval(pingDataEx.pingInterval)
 {
 	ZeroMemory(&pingDataEx, sizeof(PingDataEx));
 }
 
-PingHandler::PingDataEx& PingHandler::PingDataEx::operator=(PingHandler::PingDataEx&& data)
+auto PingHandler::PingDataEx::operator=(PingDataEx&& data) -> PingDataEx&
 {
-	*(PingData*)this = (PingData)data;
-	const_cast<float&>(inactiveInterval) = data.inactiveInterval;
-	const_cast<float&>(pingInterval) = data.pingInterval;
+	if(this != &data)
+	{
+		*(PingData*)this = (PingData)data;
+		const_cast<float&>(inactiveInterval) = data.inactiveInterval;
+		const_cast<float&>(pingInterval) = data.pingInterval;
 
-	ZeroMemory(&data, sizeof(PingDataEx));
+		ZeroMemory(&data, sizeof(PingDataEx));
+	}
 	return *this;
 }
 
@@ -80,14 +86,18 @@ PingHandler::PingHandler(PingHandler&& ping)
 
 PingHandler& PingHandler::operator=(PingHandler&& data)
 {
-	recvThread = data.recvThread;
-	inactivityThread = data.inactivityThread;
-	inactivityTimer = data.inactivityTimer;
-	sendPingThread = data.sendPingThread;
-	sendPingTimer = data.sendPingTimer;
-	pingDataEx = data.pingDataEx;
+	if(this != &data)
+	{
+		this->~PingHandler();
+		recvThread = data.recvThread;
+		inactivityThread = data.inactivityThread;
+		inactivityTimer = data.inactivityTimer;
+		sendPingThread = data.sendPingThread;
+		sendPingTimer = data.sendPingTimer;
+		pingDataEx = data.pingDataEx;
 
-	ZeroMemory(&data, sizeof(PingHandler));
+		ZeroMemory(&data, sizeof(PingHandler));
+	}
 	return *this;
 }
 

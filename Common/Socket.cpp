@@ -47,9 +47,11 @@ Socket& Socket::operator= (Socket& pc)
 
 Socket& Socket::operator= (Socket&& pc)
 {
-	this->pc = pc.pc;
-	ZeroMemory(&pc, sizeof(Socket));
-
+	if(this != &pc)
+	{
+		this->pc = pc.pc;
+		ZeroMemory(&pc, sizeof(Socket));
+	}
 	return *this;
 }
 

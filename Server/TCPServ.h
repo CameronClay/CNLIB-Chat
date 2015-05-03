@@ -23,24 +23,27 @@ public:
 
 		ClientData(ClientData&& clint)
 			:
-			pc(clint.pc),
+			pc(std::move(clint.pc)),
 			recvThread(clint.recvThread),
 			func(clint.func),
-			user(clint.user),
-			pingHandler(clint.pingHandler)
+			user(std::move(clint.user)),
+			pingHandler(std::move(clint.pingHandler))
 		{
 			ZeroMemory(&clint, sizeof(ClientData));
 		}
 
 		ClientData& operator=(ClientData&& data)
 		{
-			pc = std::move(data.pc);
-			recvThread = data.recvThread;
-			func = data.func;
-			user = std::move(data.user);
-			pingHandler = std::move(data.pingHandler);
+			if( this != &data )
+			{
+				pc = std::move( data.pc );
+				recvThread = data.recvThread;
+				func = data.func;
+				user = std::move( data.user );
+				pingHandler = std::move( data.pingHandler );
 
-			ZeroMemory(&data, sizeof(ClientData));
+				ZeroMemory( &data, sizeof( ClientData ) );
+			}
 			return *this;
 		}
 

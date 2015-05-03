@@ -53,14 +53,19 @@ TCPClient::TCPClient(TCPClient&& client)
 
 TCPClient& TCPClient::operator=(TCPClient&& client)
 {
-	host = client.host;
-	function = client.function;
-	const_cast<void(*&)()>(disconFunc) = client.disconFunc;
-	obj = client.obj;
-	recv = client.recv;
-	compression = client.compression;
+	if(this != &client)
+	{
+		this->~TCPClient();
 
-	ZeroMemory(&client, sizeof(TCPClient));
+		host = client.host;
+		function = client.function;
+		const_cast<void(*&)()>(disconFunc) = client.disconFunc;
+		obj = client.obj;
+		recv = client.recv;
+		compression = client.compression;
+
+		ZeroMemory(&client, sizeof(TCPClient));
+	}
 	return *this;
 }
 
