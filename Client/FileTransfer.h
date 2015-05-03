@@ -72,6 +72,8 @@ private:
 	HANDLE thread;
 };
 
+class MsgStreamReader;
+
 class FileReceive : public FileTransfer
 {
 public:
@@ -79,7 +81,7 @@ public:
 	FileReceive(FileReceive&& ft);
 	~FileReceive();
 
-	void RecvFileNameList(BYTE* data, DWORD nBytes, std::tstring& downloadPath);
+	void RecvFileNameList(MsgStreamReader& streamReader, std::tstring& downloadPath);
 	void RecvFile(BYTE* data, DWORD nBytes);
 
 	void StopReceive();

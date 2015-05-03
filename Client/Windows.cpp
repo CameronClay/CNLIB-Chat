@@ -1,5 +1,6 @@
 // Client version of Windows.cpp
 #include "TCPClient.h"
+#include "MsgStream.h"
 #include "File.h"
 #include "FileTransfer.h"
 
@@ -235,11 +236,11 @@ void Flash()
 //returns index if found, -1 if not found
 int FindClient(std::tstring& name)
 {
-	const UINT count = SendMessage(listClients, LB_GETCOUNT, 0, 0);
+	const USHORT count = SendMessage(listClients, LB_GETCOUNT, 0, 0);
 	TCHAR* buffer = alloc<TCHAR>(maxUserLen + 1);
 	int found = -1;
 
-	for(UINT i = 0; i < count; i++)
+	for(USHORT i = 0; i < count; i++)
 	{
 		SendMessage(listClients, LB_GETTEXT, i, (LPARAM)buffer);
 		if(name.compare(buffer) == 0)
@@ -259,9 +260,10 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 	//assert(SUCCEEDED(res));
 
 	TCPClient& clint = *(TCPClient*)clientObj;
-	const char type = ((char*)data)[0], msg = ((char*)data)[1];
-	BYTE* dat = (BYTE*)&(((char*)data)[MSG_OFFSET]);
+	char* dat = (char*)(&data[MSG_OFFSET]);
 	nBytes -= MSG_OFFSET;
+	MsgStreamReader streamReader((char*)data, nBytes);
+	const char type = streamReader.GetType(), msg = streamReader.GetMsg();
 
 	switch (type)
 	{
@@ -289,7 +291,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			case MSG_CONNECT:
 			{
 				UINT nBy = 0;
-				TCHAR* buffer = FormatText(dat, nBytes, nBy, opts->TimeStamps());
+				TCHAR* buffer = FormatText((BYTE*)dat, nBytes, nBy, opts->TimeStamps());
 				DispText((BYTE*)buffer, nBy);
 				dealloc(buffer);
 				std::tstring str = (TCHAR*)dat;
@@ -336,7 +338,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					SendMessage(listClients, LB_DELETESTRING, item, 0);
 
 				UINT nBy = 0;
-				TCHAR* buffer = FormatText(dat, nBytes, nBy, opts->TimeStamps());
+				TCHAR* buffer = FormatText((BYTE*)dat, nBytes, nBy, opts->TimeStamps());
 				DispText((BYTE*)buffer, nBy);
 				dealloc(buffer);
 				Flash();
@@ -352,14 +354,14 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				case MSG_DATA_TEXT:
 				{
 					UINT nBy = 0;
-					TCHAR* buffer = FormatText(dat, nBytes, nBy, opts->TimeStamps());
+					TCHAR* buffer = FormatText((BYTE*)dat, nBytes, nBy, opts->TimeStamps());
 					DispText((BYTE*)buffer, nBy);
 					dealloc(buffer);
 					Flash();
 					break;
 				}
 				case MSG_DATA_BITMAP:
-					pWhiteboard->Frame(*(RectU*)dat, &dat[sizeof(RectU)]);
+					pWhiteboard->Frame(*(RectU*)dat, (BYTE*)&dat[sizeof(RectU)]);
 					break;
 			}
 			break;
@@ -429,12 +431,12 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			{
 				case MSG_FILE_LIST:
 				{
-					fileReceive->RecvFileNameList(dat, nBytes, opts->GetDownloadPath());
+					fileReceive->RecvFileNameList(streamReader, opts->GetDownloadPath());
 					break;
 				}
 				case MSG_FILE_DATA:
 				{
-					fileReceive->RecvFile(dat, nBytes);
+					fileReceive->RecvFile((BYTE*)dat, nBytes);
 					break;
 				}
 				case MSG_FILE_SEND_CANCELED:
@@ -458,9 +460,9 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			{
 				case MSG_REQUEST_TRANSFER:
 				{
-					const UINT len = *(UINT*)dat;
-					fileReceive->GetUser() = std::tstring((TCHAR*)&(dat[sizeof(UINT)]), len - 1);
-					fileReceive->SetSize( *(long double*)&(dat[sizeof(UINT) + (len * sizeof(TCHAR))]));
+					const UINT len = streamReader.Read<UINT>();
+					fileReceive->GetUser() = streamReader.Read<TCHAR>(len - 1);
+					fileReceive->SetSize(streamReader.Read<double>());
 					if (fileReceive->Running())
 					{
 						client->SendMsg(fileReceive->GetUser(), TYPE_RESPONSE, MSG_RESPONSE_TRANSFER_DECLINED);
@@ -561,7 +563,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 
 				const D3DCOLOR clr = *(D3DCOLOR*)(&dat[pos]);*/
 
-				WBParams *pParams = (WBParams*)dat;
+				WBParams *pParams =	&streamReader.Read<WBParams>();
 
 				SendMessage(hMainWind, WM_CREATEWIN, ID_WB, (LPARAM)pParams);
 				pWhiteboard = construct(
@@ -1161,16 +1163,11 @@ INT_PTR CALLBACK ConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 			if (client->Connected())
 			{
 				client->RecvServData();
+				MsgStreamWriter streamWriter(TYPE_VERSION, MSG_VERSION_CHECK, sizeof(float));
+				streamWriter.Write(APPVERSION);
 
-				const UINT nBytes = MSG_OFFSET + sizeof(float);
-				char* msg = alloc<char>(nBytes);
-				msg[0] = TYPE_VERSION;
-				msg[1] = MSG_VERSION_CHECK;
-				*(float*)(&msg[MSG_OFFSET]) = APPVERSION;
-
-				HANDLE hnd = client->SendServData(msg, nBytes);
+				HANDLE hnd = client->SendServData(streamWriter, streamWriter.GetSize());
 				TCPClient::WaitAndCloseHandle(hnd);
-				dealloc(msg);
 
 				EndDialog(hWnd, id);
 			}
@@ -1333,14 +1330,12 @@ INT_PTR CALLBACK AuthenticateProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 			}
 
 			std::tstring send = user + _T(":") + pass;
-			const UINT nBytes = (sizeof(TCHAR) * (send.size() + 1)) + MSG_OFFSET;
-			char* buffer = alloc<char>(nBytes);
-			buffer[0] = TYPE_REQUEST;
-			buffer[1] = MSG_REQUEST_AUTHENTICATION;
-			memcpy(&buffer[MSG_OFFSET], send.c_str(), (send.size() + 1) * sizeof(TCHAR));
-			HANDLE hnd = client->SendServData(buffer, nBytes);
+			const UINT nBytes = sizeof(TCHAR) * (send.size() + 1);
+			MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_AUTHENTICATION, nBytes);
+			streamWriter.Write(send.c_str(), nBytes);
+
+			HANDLE hnd = client->SendServData(streamWriter, streamWriter.GetSize());
 			TCPClient::WaitAndCloseHandle(hnd);
-			dealloc(buffer);
 
 			EndDialog(hWnd, id);
 			break;
@@ -1620,22 +1615,11 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		{
 		case IDOK:
 		{
-			const DWORD nBytes = MSG_OFFSET + sizeof(WBParams);
-			char* msg = alloc<char>(nBytes);
-			msg[0] = TYPE_WHITEBOARD;
-			msg[1] = MSG_WHITEBOARD_SETTINGS;
+			MsgStreamWriter streamWriter(TYPE_WHITEBOARD, MSG_WHITEBOARD_SETTINGS, sizeof(WBParams));
+			streamWriter.Write(WBParams(GetDlgItemInt(hWnd, WHITEBOARD_RES_X, NULL, FALSE), GetDlgItemInt(hWnd, WHITEBOARD_RES_Y, NULL, FALSE), GetDlgItemInt(hWnd, WHITEBOARD_FPS, NULL, FALSE), ComboBox_GetCurSel(Colors)));
 
-			WBParams params;
-			params.width = GetDlgItemInt(hWnd, WHITEBOARD_RES_X, NULL, FALSE);
-			params.height = GetDlgItemInt(hWnd, WHITEBOARD_RES_Y, NULL, FALSE);
-			params.fps = GetDlgItemInt(hWnd, WHITEBOARD_FPS, NULL, FALSE);
-			params.clrIndex = ComboBox_GetCurSel(Colors);
-
-			memcpy(&msg[MSG_OFFSET], &params, sizeof(WBParams));
-
-			HANDLE hnd = client->SendServData(msg, nBytes);
+			HANDLE hnd = client->SendServData(streamWriter, streamWriter.GetSize());
 			TCPClient::WaitAndCloseHandle(hnd);
-			dealloc(msg);
 
 			EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_GRAYED);
 			EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_ENABLED);
@@ -1717,18 +1701,13 @@ INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 		{
 			//const bool canInvite = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANINVITE));
 			//const bool canDraw = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
+			const DWORD nBytes = (len * sizeof(TCHAR)) + sizeof(bool);
+			MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_WHITEBOARD, nBytes);
+			streamWriter.Write(usersel.c_str(), nBytes - sizeof(bool));
+			streamWriter.Write(BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
 
-			const DWORD nBytes = MSG_OFFSET + (len * sizeof(TCHAR)) + sizeof(bool);
-			char* msg = alloc<char>(nBytes);
-
-			msg[0] = TYPE_REQUEST;
-			msg[1] = MSG_REQUEST_WHITEBOARD;
-			memcpy(&msg[MSG_OFFSET], usersel.c_str(), len * sizeof(TCHAR));
-			*(bool*)&msg[nBytes - 1] = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
-
-			HANDLE hnd = client->SendServData(msg, nBytes);
+			HANDLE hnd = client->SendServData(streamWriter, streamWriter.GetSize());
 			TCPClient::WaitAndCloseHandle(hnd);
-			dealloc(msg);
 
 			EndDialog(hWnd, id);
 			break;

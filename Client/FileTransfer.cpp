@@ -2,6 +2,7 @@
 #include <assert.h>
 #include "HeapAlloc.h"
 #include "Messages.h"
+#include "MsgStream.h"
 
 FileTransfer::FileTransfer(TCPClient& client, HWND wnd, AlertFunc finished, AlertFunc canceled, std::vector<FileMisc::FileData>&& list)
 	:
@@ -129,7 +130,7 @@ bool FileTransfer::Running() const
 
 FileSend::FileSend(TCPClient& client, HWND wnd, AlertFunc finished, AlertFunc canceled, std::vector<FileMisc::FileData>&& list, DWORD nBytesPerLoop)
 	:
-	FileTransfer(client, wnd, finished, canceled, std::forward<std::vector<FileMisc::FileData>>(list)),
+	FileTransfer(client, wnd, finished, canceled, std::move(list)),
 	nBytesPerLoop(nBytesPerLoop),
 	thread(NULL),
 	fullFilepathSrc()
@@ -146,7 +147,7 @@ FileSend::FileSend(TCPClient& client, HWND wnd, AlertFunc finished, AlertFunc ca
 
 FileSend::FileSend(FileSend&& ft)
 	:
-	FileTransfer(std::forward<FileTransfer>(ft)),
+	FileTransfer(std::move(ft)),
 	nBytesPerLoop(ft.nBytesPerLoop),
 	thread(ft.thread),
 	fullFilepathSrc(ft.fullFilepathSrc)
@@ -168,30 +169,20 @@ void FileSend::RequestTransfer()
 {
 	const UINT nameLen = username.size() + 1;
 	const DWORD nameSize = (nameLen * sizeof(TCHAR));
-	const DWORD nBytes = MSG_OFFSET + sizeof(UINT) + nameSize + sizeof(long double);
-	DWORD pos = MSG_OFFSET;
+	const DWORD nBytes = sizeof(UINT) + nameSize + sizeof(double);
+	MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_TRANSFER, nBytes);
 
 	for(auto& i : list)
 		size += i.size;
 
 	size /= (1024 * 1024);
 
-	char* msg = alloc<char>(nBytes);
-	msg[0] = TYPE_REQUEST;
-	msg[1] = MSG_REQUEST_TRANSFER;
+	streamWriter.Write(nameLen);
+	streamWriter.Write(username.c_str(), nameSize);
+	streamWriter.Write(size);
 
-	*(UINT*)&(msg[pos]) = nameLen;
-	pos += sizeof(UINT);
-
-	memcpy(&msg[pos], username.c_str(), nameSize);
-	pos += nameSize;
-
-	*(double*)&(msg[pos]) = size;
-	pos += sizeof(double);
-
-	HANDLE hnd = client.SendServData(msg, nBytes);
+	HANDLE hnd = client.SendServData(streamWriter, streamWriter.GetSize());
 	TCPClient::WaitAndCloseHandle(hnd);
-	dealloc(msg);
 
 	running = true;
 }
@@ -206,34 +197,22 @@ void FileSend::SendFileNameList()
 		nChars += i.fileName.size() + 1;
 
 	const UINT userLen = username.size() + 1;
-	const DWORD nBytes = ((nChars + userLen) * sizeof(TCHAR)) + ((sizeof(SYSTEMTIME) + sizeof(DWORD64) + sizeof(UINT)) * list.size()) + sizeof(UINT) + MSG_OFFSET;
-	char* buffer = alloc<char>(nBytes);
-
-	buffer[0] = TYPE_FILE;
-	buffer[1] = MSG_FILE_LIST;
-
-	UINT pos = MSG_OFFSET;
-	*(UINT*)&(buffer[pos]) = userLen;
-	pos += sizeof(UINT);
-	memcpy(&buffer[pos], username.c_str(), userLen * sizeof(TCHAR));
-	pos += userLen * sizeof(TCHAR);
+	const DWORD nBytes = ((nChars + userLen) * sizeof(TCHAR)) + ((sizeof(SYSTEMTIME) + sizeof(DWORD64) + sizeof(UINT)) * list.size()) + sizeof(UINT);
+	MsgStreamWriter streamWriter(TYPE_FILE, MSG_FILE_LIST, nBytes);
+	streamWriter.Write((UINT)userLen);
+	streamWriter.Write(username.c_str(), userLen * sizeof(TCHAR));
 
 	for(auto it = list.begin(), end = list.end(); it != end; it++)
 	{
-		*(DWORD64*)&(buffer[pos]) = it->size;
-		pos += sizeof(DWORD64);
-		*(SYSTEMTIME*)&(buffer[pos]) = it->dateModified;
-		pos += sizeof(SYSTEMTIME);
-		const UINT fileLen = *(UINT*)&(buffer[pos]) = it->fileName.size() + 1;
-		pos += sizeof(UINT);
-		memcpy(&buffer[pos], it->fileName.c_str(), fileLen * sizeof(TCHAR));
-		pos += fileLen * sizeof(TCHAR);
+		streamWriter.Write(it->size);
+		streamWriter.Write(it->dateModified);
+		const UINT fileLen = it->fileName.size() + 1;
+		streamWriter.Write(fileLen);
+		streamWriter.Write(it->fileName.c_str(), fileLen);
 	}
 
-	HANDLE hnd = client.SendServData(buffer, nBytes);
+	HANDLE hnd = client.SendServData(streamWriter, streamWriter.GetSize());
 	TCPClient::WaitAndCloseHandle(hnd);
-	dealloc(buffer);
-
 }
 
 void FileSend::SendCurrentFile()
@@ -362,7 +341,7 @@ FileReceive::FileReceive(TCPClient& client, HWND wnd, AlertFunc finished, AlertF
 
 FileReceive::FileReceive(FileReceive&& ft)
 	:
-	FileTransfer(std::forward<FileReceive>(ft)),
+	FileTransfer(std::move(ft)),
 	file(ft.file),
 	bytesWritten(ft.bytesWritten)
 {
@@ -375,24 +354,21 @@ FileReceive::~FileReceive()
 	StopReceive();
 }
 
-void FileReceive::RecvFileNameList(BYTE* data, DWORD nBytes, std::tstring& downloadPath)
+void FileReceive::RecvFileNameList(MsgStreamReader& streamReader, std::tstring& downloadPath)
 {
 	canceled = false;
 	running = true;
-	UINT pos = 0;
-	while(pos < nBytes)
+
+	//PROBLEM HERE
+	while(!streamReader.End())
 	{
-		const DWORD64 size = *(DWORD64*)&(data[pos]);
-		pos += sizeof(DWORD64);
-		const SYSTEMTIME time = *(SYSTEMTIME*)&(data[pos]);
-		pos += sizeof(SYSTEMTIME);
-		const UINT nameLen = *(UINT*)&(data[pos]);
-		pos += sizeof(UINT);
-		// - 1 for \0
-		std::tstring temp = std::tstring((TCHAR*)(&data[pos]), nameLen - 1);
+		const DWORD64 size = streamReader.Read<DWORD64>();
+		const SYSTEMTIME time = streamReader.Read<SYSTEMTIME>();
+		const UINT nameLen = streamReader.Read<UINT>();
+		std::tstring temp(streamReader.Read<TCHAR>((nameLen - 1) * sizeof(TCHAR)));
 		temp.insert(0, downloadPath + _T("\\"));
 		list.push_back(FileMisc::FileData(temp, time, size));
-		pos += nameLen * sizeof(TCHAR);
+
 	}
 	it = list.begin();
 
