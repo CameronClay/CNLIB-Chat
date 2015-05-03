@@ -36,11 +36,11 @@ public:
 
 		ClientData& operator=(ClientData&& data)
 		{
-			pc = data.pc;
+			pc = std::move(data.pc);
 			recvThread = data.recvThread;
 			func = data.func;
 			user = std::move(data.user);
-			pingHandler = data.pingHandler;
+			pingHandler = std::move(data.pingHandler);
 
 			ZeroMemory(&data, sizeof(ClientData));
 			return *this;

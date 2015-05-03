@@ -4,7 +4,7 @@
 
 Whiteboard::Whiteboard(TCPServ &serv, WBParams params, std::tstring creator)
 	:
-params(std::forward<WBParams>(params)),
+params(std::move(params)),
 serv(serv),
 creator(creator),
 interval(1.0f / (float)params.fps)
@@ -16,13 +16,14 @@ interval(1.0f / (float)params.fps)
 	InitializeCriticalSection(&mapSect);
 }
 
-Whiteboard::Whiteboard(Whiteboard &&wb) :
-params(std::forward<WBParams>(wb.params)),
+Whiteboard::Whiteboard(Whiteboard &&wb)
+	:
+params(std::move(wb.params)),
 pixels(wb.pixels),
 bitmapSect(wb.bitmapSect),
 mapSect(wb.mapSect),
-serv(std::forward<TCPServ>(wb.serv)),
-creator(wb.creator),
+serv(std::move(wb.serv)),
+creator(std::move(wb.creator)),
 interval(wb.interval),
 timer(wb.timer),
 clients(std::move(wb.clients)),

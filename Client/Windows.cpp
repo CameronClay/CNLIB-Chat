@@ -1,5 +1,6 @@
 // Client version of Windows.cpp
 #include "TCPClient.h"
+#include "MsgStream.h"
 #include "File.h"
 #include "FileTransfer.h"
 
@@ -22,7 +23,6 @@
 #include "Mouse.h"
 #include "DebugHelper.h"
 #include "WhiteboardClientData.h"
-#include <functional>
 
 #pragma comment(lib, "comctl32.lib")
 
@@ -66,7 +66,8 @@ const float CONFIGVERSION = .002f;
 #define WB_DEF_RES_Y 600
 #define WB_DEF_FPS 20
 
-#define WM_CREATEWB WM_APP
+#define WM_CREATEWIN WM_APP
+#define ID_WB 1
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK WbProc(HWND, UINT, WPARAM, LPARAM);
@@ -137,7 +138,7 @@ std::tstring user;
 #pragma endregion
 
 
-HWND CreateWBWindow(HWND parent, USHORT width, USHORT height)
+HWND CreateWBWindow(HWND owner, USHORT width, USHORT height)
 {
 	if(!wbAtom)
 	{
@@ -145,17 +146,18 @@ HWND CreateWBWindow(HWND parent, USHORT width, USHORT height)
 		wc.hInstance = hInst;
 		wc.lpfnWndProc = WbProc;
 		wc.lpszClassName = wbClassName;
+		wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 
 		wbAtom = RegisterClass(&wc);
 	}
 
 	// Test whether the whiteboard handle is valid so that it can 
-	// safely recreated if it gets closed
+	// safely be recreated if it gets closed
 
 	if(!IsWindow(wbHandle))
 	{
 		DWORD style =
-			WS_CHILD |			// Child window that
+			//WS_CHILD |			// Child window that
 			WS_POPUPWINDOW |	// Is not contained in parent window
 			WS_CAPTION |		// Shows the title bar
 			WS_MINIMIZEBOX;		// Shows the minimize button
@@ -167,7 +169,7 @@ HWND CreateWBWindow(HWND parent, USHORT width, USHORT height)
 			style,
 			0, 0,
 			width, height,
-			parent, NULL,
+			owner, NULL,
 			hInst, nullptr);
 
 		if(!wbHandle)
@@ -176,7 +178,7 @@ HWND CreateWBWindow(HWND parent, USHORT width, USHORT height)
 		}
 	}
 
-	ShowWindow(wbHandle, SW_SHOW);
+	ShowWindow(wbHandle, SW_SHOWNORMAL);
 	return wbHandle;
 }
 
@@ -234,11 +236,11 @@ void Flash()
 //returns index if found, -1 if not found
 int FindClient(std::tstring& name)
 {
-	const UINT count = SendMessage(listClients, LB_GETCOUNT, 0, 0);
+	const USHORT count = SendMessage(listClients, LB_GETCOUNT, 0, 0);
 	TCHAR* buffer = alloc<TCHAR>(maxUserLen + 1);
 	int found = -1;
 
-	for(UINT i = 0; i < count; i++)
+	for(USHORT i = 0; i < count; i++)
 	{
 		SendMessage(listClients, LB_GETTEXT, i, (LPARAM)buffer);
 		if(name.compare(buffer) == 0)
@@ -258,9 +260,10 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 	//assert(SUCCEEDED(res));
 
 	TCPClient& clint = *(TCPClient*)clientObj;
-	const char type = ((char*)data)[0], msg = ((char*)data)[1];
-	BYTE* dat = (BYTE*)&(((char*)data)[MSG_OFFSET]);
+	char* dat = (char*)(&data[MSG_OFFSET]);
 	nBytes -= MSG_OFFSET;
+	MsgStreamReader streamReader((char*)data, nBytes);
+	const char type = streamReader.GetType(), msg = streamReader.GetMsg();
 
 	switch (type)
 	{
@@ -288,7 +291,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			case MSG_CONNECT:
 			{
 				UINT nBy = 0;
-				TCHAR* buffer = FormatText(dat, nBytes, nBy, opts->TimeStamps());
+				TCHAR* buffer = FormatText((BYTE*)dat, nBytes, nBy, opts->TimeStamps());
 				DispText((BYTE*)buffer, nBy);
 				dealloc(buffer);
 				std::tstring str = (TCHAR*)dat;
@@ -335,7 +338,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					SendMessage(listClients, LB_DELETESTRING, item, 0);
 
 				UINT nBy = 0;
-				TCHAR* buffer = FormatText(dat, nBytes, nBy, opts->TimeStamps());
+				TCHAR* buffer = FormatText((BYTE*)dat, nBytes, nBy, opts->TimeStamps());
 				DispText((BYTE*)buffer, nBy);
 				dealloc(buffer);
 				Flash();
@@ -351,14 +354,14 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				case MSG_DATA_TEXT:
 				{
 					UINT nBy = 0;
-					TCHAR* buffer = FormatText(dat, nBytes, nBy, opts->TimeStamps());
+					TCHAR* buffer = FormatText((BYTE*)dat, nBytes, nBy, opts->TimeStamps());
 					DispText((BYTE*)buffer, nBy);
 					dealloc(buffer);
 					Flash();
 					break;
 				}
 				case MSG_DATA_BITMAP:
-					pWhiteboard->Frame(*(RectU*)dat, &dat[sizeof(RectU)]);
+					pWhiteboard->Frame(*(RectU*)dat, (BYTE*)&dat[sizeof(RectU)]);
 					break;
 			}
 			break;
@@ -413,7 +416,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				case MSG_RESPONSE_WHITEBOARD_DECLINED:
 				{
 					TCHAR buffer[255];
-					_stprintf(buffer, _T("%s has joined the whiteboard!"), dat);
+					_stprintf(buffer, _T("%s has declined the whiteboard!"), dat);
 					MessageBox(hMainWind, buffer, _T("DECLINED"), MB_ICONERROR);
 					break;
 				}
@@ -428,12 +431,12 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			{
 				case MSG_FILE_LIST:
 				{
-					fileReceive->RecvFileNameList(dat, nBytes, opts->GetDownloadPath());
+					fileReceive->RecvFileNameList(streamReader, opts->GetDownloadPath());
 					break;
 				}
 				case MSG_FILE_DATA:
 				{
-					fileReceive->RecvFile(dat, nBytes);
+					fileReceive->RecvFile((BYTE*)dat, nBytes);
 					break;
 				}
 				case MSG_FILE_SEND_CANCELED:
@@ -457,9 +460,9 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			{
 				case MSG_REQUEST_TRANSFER:
 				{
-					const UINT len = *(UINT*)dat;
-					fileReceive->GetUser() = std::tstring((TCHAR*)&(dat[sizeof(UINT)]), len - 1);
-					fileReceive->SetSize( *(long double*)&(dat[sizeof(UINT) + (len * sizeof(TCHAR))]));
+					const UINT len = streamReader.Read<UINT>();
+					fileReceive->GetUser() = streamReader.Read<TCHAR>(len - 1);
+					fileReceive->SetSize(streamReader.Read<double>());
 					if (fileReceive->Running())
 					{
 						client->SendMsg(fileReceive->GetUser(), TYPE_RESPONSE, MSG_RESPONSE_TRANSFER_DECLINED);
@@ -478,7 +481,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					TCHAR buffer[255];
 					_stprintf(buffer, _T("%s wants to display a whiteboard"), (TCHAR*)dat, _tcslen((TCHAR*)dat));
 
-					DialogBoxParam(hInst, MAKEINTRESOURCE(REQUEST), hMainWind, RequestWBProc, (LPARAM)buffer);
+					SendMessage(hMainWind, WM_CREATEWIN, ID_WB, (LPARAM)buffer);
 					break;
 				}
 			}// MSG_REQUEST
@@ -548,40 +551,58 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			{
 			case MSG_WHITEBOARD_ACTIVATE:
 			{
-				//need to construct because dat becomes invalid once case occurs
-				PostMessage(hMainWind, WM_CREATEWB, 0, (LPARAM)(construct<WBParams>(std::forward<WBParams>(*(WBParams*)dat))));
+				/*UINT pos = 0;
+				const USHORT width = *(USHORT*)(&dat[pos]);
+				pos += sizeof(USHORT);
+
+				const USHORT height = *(USHORT*)(&dat[pos]);
+				pos += sizeof(USHORT);
+
+				const USHORT FPS = *(USHORT*)(&dat[pos]);
+				pos += sizeof(USHORT);
+
+				const D3DCOLOR clr = *(D3DCOLOR*)(&dat[pos]);*/
+
+				WBParams *pParams =	&streamReader.Read<WBParams>();
+
+				SendMessage(hMainWind, WM_CREATEWIN, ID_WB, (LPARAM)pParams);
+				pWhiteboard = construct(
+					Whiteboard(
+					palette,
+					wbHandle, 
+					pParams->width, 
+					pParams->height, 
+					pParams->fps, 
+					pParams->clrIndex)
+					);
 				break;
 			}
 			case MSG_WHITEBOARD_TERMINATE:
 			{
-				// BUG: DestroyWindow is failing to destroy window with "Access is denied".  Probably not right thread.
-				// HACK: Post WM_CLOSE to wbHandle, moved destruct and DestroyWindow to WM_CLOSE
-				if (wbHandle)
-					PostMessage(wbHandle, WM_CLOSE, 0, 0);
-				// client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_LEFT);
-				MessageBox(hMainWind, _T("Whiteboard has been shutdown!"), _T("ERROR"), MB_ICONERROR);
+				// in case user declined
+				if(IsWindow(wbHandle))
+				{
+					MessageBox(wbHandle, _T("Whiteboard has been shutdown!"), _T("Whiteboard Status"), MB_ICONINFORMATION);
+					SendMessage(wbHandle, WM_DESTROY, 0, 0);
+				}
 				break;
 			}
 			case MSG_WHITEBOARD_CANNOTCREATE:
 			{
-				MessageBox(hMainWind, _T("A whiteboard is already being displayed!"), _T("ERROR"), MB_ICONERROR);
+				MessageBox(hMainWind, _T("A whiteboard is already being displayed!"), _T("ERROR"), MB_ICONHAND);
 				break;
 			}
 			case MSG_WHITEBOARD_CANNOTTERMINATE:
 			{
-				MessageBox(hMainWind, _T("Only whiteboard creator can terminate the whiteboard!"), _T("ERROR"), MB_ICONERROR);
+				MessageBox(hMainWind, _T("Only whiteboard creator can terminate the whiteboard!"), _T("ERROR"), MB_ICONSTOP);
 				break;
 			}
 			case MSG_WHITEBOARD_KICK:
 			{
-				// BUG: DestroyWindow is failing with "Access Denied"
-				// HACK: Post WM_CLOSE to wbHandle, moved destruct and DestroyWindow to WM_CLOSE
-				if (wbHandle)
-					PostMessage(wbHandle, WM_CLOSE, 0, 0);
-
 				TCHAR buffer[255];
 				_stprintf(buffer, _T("%s has removed you from the whiteboard!"), dat);
-				MessageBox(hMainWind, buffer, _T("Kicked"), MB_ICONERROR);
+				MessageBox(wbHandle, buffer, _T("Kicked"), MB_ICONEXCLAMATION);
+				SendMessage(wbHandle, WM_DESTROY, 0, 0);
 				break;
 			}
 			}
@@ -718,7 +739,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 	HACCEL hndAccel = LoadAccelerators(hInst, MAKEINTRESOURCE(HOTKEYS));
 
-	ShowWindow(hMainWind, SW_SHOWDEFAULT);
+	ShowWindow(hMainWind, nCmdShow);
 	UpdateWindow(hMainWind);
 
 	MSG msg;
@@ -912,9 +933,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		case ID_WHITEBOARD_TERMINATE:
 		{
-			EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_ENABLED);
-			EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_GRAYED);
-
 			client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
 			break;
 		}
@@ -995,22 +1013,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	}
 
-	case WM_CREATEWB:
+	case WM_CREATEWIN:
 	{
-		WBParams* params = (WBParams*)lParam;
-		WBParams &wbp = *params;
-		HWND wnd = CreateWBWindow( hWnd, wbp.width, wbp.height );
-		pWhiteboard = construct(
-			Whiteboard(
-			palette,
-			wnd,
-			wbp.width,
-			wbp.height,
-			wbp.fps,
-			wbp.clrIndex)
-			);
-		//need to destruct because construction was required because it was going out of scope
-		destruct(params);
+		switch( wParam )
+		{
+		case ID_WB:
+		{
+			WBParams *wbp = (WBParams*)lParam;
+			CreateWBWindow( hWnd, wbp->width, wbp->height );
+		}	break;
+		}
 	}	break;
 
 	case WM_SIZE:
@@ -1103,19 +1115,18 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_RBUTTONUP:
 		mServ.OnRightReleased(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
+
 	case WM_CLOSE:
-		// HACK: Moved window destruction code to WM_CLOSE case
+		client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_LEFT);
+		DestroyWindow(wbHandle);
+		break;
+	case WM_DESTROY:
 		EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_ENABLED);
 		EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_GRAYED);
 
-		destruct(pWhiteboard);
-
-		DestroyWindow(wbHandle);
 		wbHandle = nullptr;
-		UnregisterClass((LPCWSTR)&wbAtom, hInst);
-
-		client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_LEFT);
-
+		UnregisterClass(wbClassName, hInst);
+		destruct(pWhiteboard);
 		break;
 
 	default:
@@ -1152,16 +1163,11 @@ INT_PTR CALLBACK ConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 			if (client->Connected())
 			{
 				client->RecvServData();
+				MsgStreamWriter streamWriter(TYPE_VERSION, MSG_VERSION_CHECK, sizeof(float));
+				streamWriter.Write(APPVERSION);
 
-				const UINT nBytes = MSG_OFFSET + sizeof(float);
-				char* msg = alloc<char>(nBytes);
-				msg[0] = TYPE_VERSION;
-				msg[1] = MSG_VERSION_CHECK;
-				*(float*)(&msg[MSG_OFFSET]) = APPVERSION;
-
-				HANDLE hnd = client->SendServData(msg, nBytes);
+				HANDLE hnd = client->SendServData(streamWriter, streamWriter.GetSize());
 				TCPClient::WaitAndCloseHandle(hnd);
-				dealloc(msg);
 
 				EndDialog(hWnd, id);
 			}
@@ -1324,14 +1330,12 @@ INT_PTR CALLBACK AuthenticateProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 			}
 
 			std::tstring send = user + _T(":") + pass;
-			const UINT nBytes = (sizeof(TCHAR) * (send.size() + 1)) + MSG_OFFSET;
-			char* buffer = alloc<char>(nBytes);
-			buffer[0] = TYPE_REQUEST;
-			buffer[1] = MSG_REQUEST_AUTHENTICATION;
-			memcpy(&buffer[MSG_OFFSET], send.c_str(), (send.size() + 1) * sizeof(TCHAR));
-			HANDLE hnd = client->SendServData(buffer, nBytes);
+			const UINT nBytes = sizeof(TCHAR) * (send.size() + 1);
+			MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_AUTHENTICATION, nBytes);
+			streamWriter.Write(send.c_str(), nBytes);
+
+			HANDLE hnd = client->SendServData(streamWriter, streamWriter.GetSize());
 			TCPClient::WaitAndCloseHandle(hnd);
-			dealloc(buffer);
 
 			EndDialog(hWnd, id);
 			break;
@@ -1602,8 +1606,6 @@ INT_PTR CALLBACK RequestWBProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	static HWND X, Y, FPS, Colors;
-	INT_PTR result = 1;
-
 	switch(message)
 	{
 	case WM_COMMAND:
@@ -1613,38 +1615,21 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		{
 		case IDOK:
 		{
-			INT_PTR(*OnOK)(HWND WinHandle, const short id) = 
-				[](HWND WinHandle, const short id)->INT_PTR
-			{
-				const DWORD nBytes = MSG_OFFSET + sizeof(WBParams);
-				char* msg = alloc<char>(nBytes);
-				msg[0] = TYPE_WHITEBOARD;
-				msg[1] = MSG_WHITEBOARD_SETTINGS;
+			MsgStreamWriter streamWriter(TYPE_WHITEBOARD, MSG_WHITEBOARD_SETTINGS, sizeof(WBParams));
+			streamWriter.Write(WBParams(GetDlgItemInt(hWnd, WHITEBOARD_RES_X, NULL, FALSE), GetDlgItemInt(hWnd, WHITEBOARD_RES_Y, NULL, FALSE), GetDlgItemInt(hWnd, WHITEBOARD_FPS, NULL, FALSE), ComboBox_GetCurSel(Colors)));
 
-				WBParams params;
-				params.width = GetDlgItemInt(WinHandle, WHITEBOARD_RES_X, NULL, FALSE);
-				params.height = GetDlgItemInt(WinHandle, WHITEBOARD_RES_Y, NULL, FALSE);
-				params.fps = GetDlgItemInt(WinHandle, WHITEBOARD_FPS, NULL, FALSE);
-				params.clrIndex = ComboBox_GetCurSel(Colors);
+			HANDLE hnd = client->SendServData(streamWriter, streamWriter.GetSize());
+			TCPClient::WaitAndCloseHandle(hnd);
 
-				memcpy(&msg[MSG_OFFSET], &params, sizeof(WBParams));
+			EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_GRAYED);
+			EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_ENABLED);
 
-				HANDLE hnd = client->SendServData(msg, nBytes);
-				TCPClient::WaitAndCloseHandle(hnd);
-				dealloc(msg);
-
-				EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_GRAYED);
-				EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_ENABLED);
-
-				EndDialog(WinHandle, id);
-				return 0;
-			};
-
-			result = OnOK(hWnd, id);
+			EndDialog(hWnd, id);
+			break;
 		}
 		case IDCANCEL:
 		{
-			result = EndDialog(hWnd, id);
+			EndDialog(hWnd, id);
 			break;
 		}
 		}
@@ -1652,7 +1637,7 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 	}
 
 	case WM_DESTROY:
-		result = ImageList_Destroy( (HIMAGELIST)SendMessage( Colors, CBEM_GETIMAGELIST, 0, 0 ) );
+		ImageList_Destroy( (HIMAGELIST)SendMessage( Colors, CBEM_GETIMAGELIST, 0, 0 ) );
 		break;
 
 	case WM_INITDIALOG:
@@ -1671,21 +1656,16 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 
 		BYTE count;
 		palette.Get(count);
-		HIMAGELIST himl = ImageList_Create(50, 16, ILC_COLOR, count, 0);
-
+		HIMAGELIST himl = ImageList_Create( 50, 16, ILC_COLOR, count, 0 );
 		D3DCOLOR* pBits = alloc<D3DCOLOR>( 50 * 16 );
-
 		for( int p = 0; p < count; p++ )
 		{
-			for (int i = 0; i < 50 * 16; i++)
-			{				
+			for(int i = 0; i < 50 * 16; i++)
 				pBits[i] = palette.GetBGRColor(p);
-			}
-			
-			HBITMAP hbm = CreateBitmap(50, 16, 1, 32, pBits);
+			HBITMAP hbm = CreateBitmap( 50, 16, 1, 32, pBits );
 			ImageList_Add( himl, hbm, NULL );
 			DeleteObject( hbm );
-			
+
 			COMBOBOXEXITEM cbei{};
 			cbei.iItem = -1;
 			cbei.mask = CBEIF_IMAGE | CBEIF_SELECTEDIMAGE;
@@ -1721,18 +1701,13 @@ INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 		{
 			//const bool canInvite = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANINVITE));
 			//const bool canDraw = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
+			const DWORD nBytes = (len * sizeof(TCHAR)) + sizeof(bool);
+			MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_WHITEBOARD, nBytes);
+			streamWriter.Write(usersel.c_str(), nBytes - sizeof(bool));
+			streamWriter.Write(BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
 
-			const DWORD nBytes = MSG_OFFSET + (len * sizeof(TCHAR)) + sizeof(bool);
-			char* msg = alloc<char>(nBytes);
-
-			msg[0] = TYPE_REQUEST;
-			msg[1] = MSG_REQUEST_WHITEBOARD;
-			memcpy(&msg[MSG_OFFSET], usersel.c_str(), len * sizeof(TCHAR));
-			*(bool*)&msg[nBytes - 1] = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
-
-			HANDLE hnd = client->SendServData(msg, nBytes);
+			HANDLE hnd = client->SendServData(streamWriter, streamWriter.GetSize());
 			TCPClient::WaitAndCloseHandle(hnd);
-			dealloc(msg);
 
 			EndDialog(hWnd, id);
 			break;
@@ -1767,4 +1742,3 @@ INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 	}
 	return 0;
 }
-

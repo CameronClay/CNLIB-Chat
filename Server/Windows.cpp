@@ -1,5 +1,6 @@
 #include "resource.h"
 #include "TCPServ.h"
+#include "MsgStream.h"
 #include "File.h"
 #include "WinFirewall.h"
 #include "UPNP.h"
@@ -100,13 +101,13 @@ void AddToList(std::tstring& user, std::tstring& pass)
 	LeaveCriticalSection(&fileSect);
 }
 
-void SendSingleUserData(TCPServ& serv, BYTE* dat, DWORD nBytes, char type, char message)
+void SendSingleUserData(TCPServ& serv, char* dat, DWORD nBytes, char type, char message)
 {
 	auto& clients = serv.GetClients();
 	const UINT userLen = *(UINT*)&(dat[0]);
 	//																	   - 1 for \0
 	std::tstring user = std::tstring((TCHAR*)&(dat[sizeof(UINT)]), userLen - 1);
-	for (UINT i = 0; i < clients.size(); i++)
+	for (USHORT i = 0; i < clients.size(); i++)
 	{
 		if (clients[i].user.compare(user) == 0)
 		{
@@ -121,6 +122,8 @@ void SendSingleUserData(TCPServ& serv, BYTE* dat, DWORD nBytes, char type, char 
 			HANDLE hnd = serv.SendClientData(msg, nBy, clients[i].pc, true);
 			TCPServ::WaitAndCloseHandle(hnd);
 			dealloc(msg);
+
+			break;
 		}
 	}
 }
@@ -129,7 +132,7 @@ void TransferMessageWithName(TCPServ& serv, std::tstring& srcUserName, BYTE* dat
 {
 	auto& clients = serv.GetClients();
 	std::tstring user = std::tstring((TCHAR*)&(dat[MSG_OFFSET]));
-	for (UINT i = 0; i < clients.size(); i++)
+	for (USHORT i = 0; i < clients.size(); i++)
 	{
 		if (clients[i].user.compare(user) == 0)
 		{
@@ -141,15 +144,17 @@ void TransferMessageWithName(TCPServ& serv, std::tstring& srcUserName, BYTE* dat
 			HANDLE hnd = serv.SendClientData(msg, nBy, clients[i].pc, true);
 			TCPServ::WaitAndCloseHandle(hnd);
 			dealloc(msg);
+
+			break;
 		}
 	}
 }
 
-void TransferMessage(TCPServ& serv, BYTE* dat)
+void TransferMessage(TCPServ& serv, char* dat)
 {
 	auto& clients = serv.GetClients();
 	std::tstring user = std::tstring((TCHAR*)&(dat[MSG_OFFSET]));
-	for (UINT i = 0; i < clients.size(); i++)
+	for (USHORT i = 0; i < clients.size(); i++)
 	{
 		if (clients[i].user.compare(user) == 0)
 		{
@@ -160,6 +165,8 @@ void TransferMessage(TCPServ& serv, BYTE* dat)
 			HANDLE hnd = serv.SendClientData(msg, nBy, clients[i].pc, true);
 			TCPServ::WaitAndCloseHandle(hnd);
 			dealloc(msg);
+
+			break;
 		}
 	}
 }
@@ -170,31 +177,22 @@ void RequestTransfer(TCPServ& serv, std::tstring& srcUserName, BYTE* dat)
 	const UINT srcUserLen = *(UINT*)&(dat[MSG_OFFSET]);
 	std::tstring user = std::tstring((TCHAR*)&(dat[MSG_OFFSET + sizeof(UINT)]), srcUserLen - 1);
 	
-	for (UINT i = 0; i < clients.size(); i++)
+	for (USHORT i = 0; i < clients.size(); i++)
 	{
 		if (clients[i].user.compare(user) == 0)
 		{
 			const UINT nameLen = srcUserName.size() + 1;
-			const UINT nameSize = nameLen * sizeof(TCHAR);
-			const DWORD nBy = MSG_OFFSET + sizeof(UINT) + nameSize + sizeof(double);
-			DWORD pos = 0;
-			char* msg = alloc<char>(nBy);
+			const DWORD nameSize = nameLen * sizeof(TCHAR);
+			const DWORD nBy = sizeof(UINT) + nameSize + sizeof(double);
+			MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_TRANSFER, nBy);
+			streamWriter.Write(nameLen);
+			streamWriter.Write(srcUserName.c_str(), nameSize);
+			streamWriter.Write<double>(*(double*)&(dat[MSG_OFFSET + sizeof(UINT) + (srcUserLen * sizeof(TCHAR))]));
 
-			memcpy(msg, dat, MSG_OFFSET);
-			pos += MSG_OFFSET;
-
-			*(UINT*)&(msg[pos]) = nameLen;
-			pos += sizeof(UINT);
-
-			memcpy(&msg[pos], srcUserName.c_str(), nameSize);
-			pos += nameSize;
-
-			*(double*)&(msg[pos]) = *(double*)&(dat[MSG_OFFSET + sizeof(UINT) + (srcUserLen * sizeof(TCHAR))]);
-			pos += sizeof(double);
-
-			HANDLE hnd = serv.SendClientData(msg, nBy, clients[i].pc, true);
+			HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clients[i].pc, true);
 			TCPServ::WaitAndCloseHandle(hnd);
-			dealloc(msg);
+
+			break;
 		}
 	}
 }
@@ -225,9 +223,10 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 {
 	TCPServ& serv = *(TCPServ*)server;
 	auto& clients = serv.GetClients();
-	const char type = ((char*)data)[0], msg = ((char*)data)[1];
-	BYTE* dat = (BYTE*)&(((char*)data)[MSG_OFFSET]);
+	char* dat = (char*)(&data[MSG_OFFSET]);
 	nBytes -= MSG_OFFSET;
+	MsgStreamReader streamReader((char*)data, nBytes);
+	const char type = streamReader.GetType(), msg = streamReader.GetMsg();
 
 	switch (type)
 	{
@@ -239,7 +238,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		{
 			EnterCriticalSection(&authentSect);
 
-			std::tstring authent = (TCHAR*)dat;
+			std::tstring authent(streamReader.Read<TCHAR>(streamReader.GetDataSize()));
 			const UINT pos = authent.find(_T(":"));
 			assert(pos != std::tstring::npos);
 
@@ -289,16 +288,12 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 				{
 					if (i != index && !clients[i].user.empty())
 					{
-						const UINT nameLenS = clients[i].user.size() + 1;
-						const UINT nBytesS = MSG_OFFSET + (sizeof(TCHAR) * (nameLenS));
-						char* msgNameS = alloc<char>(nBytesS);
-						msgNameS[0] = TYPE_CHANGE;
-						msgNameS[1] = MSG_CONNECTINIT;
-						memcpy(&msgNameS[MSG_OFFSET], clients[i].user.c_str(), nameLenS * sizeof(TCHAR));
+						const DWORD nBy = (clients[i].user.size() + 1) * sizeof(TCHAR);
+						MsgStreamWriter streamWriter(TYPE_CHANGE, MSG_CONNECTINIT, nBy);
+						streamWriter.Write(clients[i].user.c_str(), nBy);
 
-						HANDLE hnd = serv.SendClientData(msgNameS, nBytesS, clients[index].pc, true);
+						HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clients[index].pc, true);
 						TCPServ::WaitAndCloseHandle(hnd);
-						dealloc(msgNameS);
 					}
 				}
 
@@ -344,7 +339,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		case MSG_DATA_TEXT:
 		{
 			UINT nBy;
-			TCHAR* msg = FormatMsg(TYPE_DATA, MSG_DATA_TEXT, dat, nBytes, clients[index].user, nBy);
+			TCHAR* msg = FormatMsg(TYPE_DATA, MSG_DATA_TEXT, (BYTE*)dat, nBytes, clients[index].user, nBy);
 
 			HANDLE hnd = serv.SendClientData((char*)msg, nBy, clients[index].pc, false);
 			TCPServ::WaitAndCloseHandle(hnd);
@@ -375,7 +370,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		case MSG_FILE_SEND_CANCELED:
 		case MSG_FILE_RECEIVE_CANCELED:
 		{
-			TransferMessage(serv, data);
+			TransferMessage(serv, (char*)data);
 			break;
 		}
 		}
@@ -394,29 +389,24 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		case MSG_RESPONSE_WHITEBOARD_CONFIRMED:
 		{
 			wb->AddClient(clients[index].pc);
-
 			const WBParams& wbParams = wb->GetParams();
 
-			DWORD nBytes = MSG_OFFSET + sizeof(WBParams);
-			char* msg = alloc<char>(nBytes);
-			msg[0] = TYPE_WHITEBOARD;
-			msg[1] = MSG_WHITEBOARD_ACTIVATE;
-			memcpy(&msg[MSG_OFFSET], &wbParams, sizeof(WBParams));
-			HANDLE hnd = serv.SendClientData(msg, nBytes, clients[index].pc, true);
-			TCPServ::WaitAndCloseHandle(hnd);
-			dealloc(msg);
+			{
+				MsgStreamWriter streamWriter(TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE, sizeof(WBParams));
+				streamWriter.Write<WBParams>(wbParams);
+				HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clients[index].pc, true);
+				TCPServ::WaitAndCloseHandle(hnd);
+			}
 
 			wb->SendBitmap(RectU(0, 0, wbParams.width, wbParams.height), clients[index].pc, true);
 
-			const DWORD nameLen = (clients[index].user.size() + 1) * sizeof(TCHAR);
-			nBytes = MSG_OFFSET + nameLen;
-			msg = alloc<char>(nBytes);
-			msg[0] = TYPE_RESPONSE;
-			msg[1] = MSG_RESPONSE_WHITEBOARD_CONFIRMED;
-			memcpy(&msg[MSG_OFFSET], clients[index].user.c_str(), nameLen);
-			hnd = serv.SendClientData(msg, nBytes, wb->GetPcs());
-			TCPServ::WaitAndCloseHandle(hnd);
-			dealloc(msg);
+			{
+				const DWORD nBy = (clients[index].user.size() + 1) * sizeof(TCHAR);
+				MsgStreamWriter streamWriter(TYPE_RESPONSE, MSG_RESPONSE_WHITEBOARD_CONFIRMED, nBy);
+				streamWriter.Write(clients[index].user.c_str(), nBy);
+				HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), wb->GetPcs());
+				TCPServ::WaitAndCloseHandle(hnd);
+			}
 		}
 		case MSG_RESPONSE_WHITEBOARD_DECLINED:
 		{
@@ -432,7 +422,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		{
 		case MSG_ADMIN_KICK:
 		{
-			std::tstring user = (TCHAR*)dat;
+			std::tstring user((TCHAR*)dat);
 			if (IsAdmin(clients[index].user))
 			{
 				if (IsAdmin(user))//if the user to be kicked is not an admin
@@ -505,17 +495,10 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 			{
 				WBParams* params = (WBParams*)dat;
 
-
-				const DWORD nBytes = MSG_OFFSET + sizeof(WBParams);
-				char* msg = alloc<char>(nBytes);
-
-				msg[0] = TYPE_WHITEBOARD;
-				msg[1] = MSG_WHITEBOARD_ACTIVATE;
-				memcpy(&msg[MSG_OFFSET], params, sizeof(WBParams));
-				HANDLE hnd = serv.SendClientData(msg, nBytes, clients[index].pc, true);
+				MsgStreamWriter streamWriter(TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE, sizeof(WBParams));
+				streamWriter.Write(std::move(*params));
+				HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clients[index].pc, true);
 				TCPServ::WaitAndCloseHandle(hnd);
-				dealloc(msg);
-
 
 				wb = construct<Whiteboard>(Whiteboard(serv, *params, clients[index].user));
 
@@ -543,7 +526,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		}
 		case MSG_WHITEBOARD_KICK:
 		{
-			std::tstring user = (TCHAR*)dat;
+			std::tstring user((TCHAR*)dat);
 			if(IsAdmin(clients[index].user) || wb->IsCreator(clients[index].user))
 			{
 				if(wb->IsCreator(user))//if the user to be kicked is the creator
