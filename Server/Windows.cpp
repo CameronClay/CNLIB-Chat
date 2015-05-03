@@ -535,7 +535,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 					break;
 				}
 				// BUG: Creator leaving before clients causes clients to crash
-				// TODO: Before destroying whiteboard, remove all clients, check for wb before accessing.			
+				// TODO: Before destroying whiteboard, remove all clients, check for wb before accessing.
 				TransferMessageWithName(serv, clients[index].user, data);
 				break;
 			}
@@ -545,14 +545,11 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		}
 		case MSG_WHITEBOARD_LEFT:
 		{
+			wb->RemoveClient( clients[ index ].pc );
 			if(wb->IsCreator(clients[index].user))
 			{
 				serv.SendMsg(wb->GetPcs(), TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
 				destruct(wb);
-			}
-			else
-			{
-				wb->RemoveClient(clients[index].pc);
 			}
 		break;
 		}

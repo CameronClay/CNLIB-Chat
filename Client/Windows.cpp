@@ -583,7 +583,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				if(IsWindow(wbHandle))
 				{
 					MessageBox(wbHandle, _T("Whiteboard has been shutdown!"), _T("Whiteboard Status"), MB_ICONINFORMATION);
-					SendMessage(wbHandle, WM_DESTROY, 0, 0);
+					SendMessage(wbHandle, WM_CLOSE, 0, 0);
 				}
 				break;
 			}
@@ -602,7 +602,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				TCHAR buffer[255];
 				_stprintf(buffer, _T("%s has removed you from the whiteboard!"), dat);
 				MessageBox(wbHandle, buffer, _T("Kicked"), MB_ICONEXCLAMATION);
-				SendMessage(wbHandle, WM_DESTROY, 0, 0);
+				SendMessage(wbHandle, WM_CLOSE, 0, 0);
 				break;
 			}
 			}
@@ -1118,7 +1118,7 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_CLOSE:
 		client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_LEFT);
-		DestroyWindow(wbHandle);
+		DestroyWindow(hWnd);
 		break;
 	case WM_DESTROY:
 		EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_ENABLED);
