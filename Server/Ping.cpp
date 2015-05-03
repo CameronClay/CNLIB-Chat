@@ -126,12 +126,11 @@ PingHandler::~PingHandler()
 
 DWORD CALLBACK Inactivity(LPVOID info)
 {
-	PingHandler::PingDataEx* data = (PingHandler::PingDataEx*)info;
-	PingHandler::PingDataEx& dat = *data;
+	PingHandler::PingDataEx& data = *(PingHandler::PingDataEx*)info;
 
-	while(WaitForSingleObject(dat.pingHandler.GetInactivityTimer(), INFINITE) == WAIT_OBJECT_0)
+	while(WaitForSingleObject(data.pingHandler.GetInactivityTimer(), INFINITE) == WAIT_OBJECT_0)
 	{
-		dat.pingHandler.AutoPingHandlerOn(dat);
+		data.pingHandler.AutoPingHandlerOn(data);
 	}
 
 	return 0;

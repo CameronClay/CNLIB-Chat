@@ -32,8 +32,6 @@ public:
 			ZeroMemory(&clint, sizeof(ClientData));
 		}
 
-		~ClientData(){}
-
 		ClientData& operator=(ClientData&& data)
 		{
 			pc = std::move(data.pc);
@@ -45,12 +43,12 @@ public:
 			ZeroMemory(&data, sizeof(ClientData));
 			return *this;
 		}
-		
+
 		Socket pc;
 		HANDLE recvThread;
 		sfunc func;
 		std::tstring user;
-		PingHandler pingHandler;	
+		PingHandler pingHandler;
 	};
 
 	typedef void(*const customFunc)(ClientData& data);

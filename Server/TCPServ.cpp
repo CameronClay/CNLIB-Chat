@@ -450,7 +450,6 @@ void TCPServ::RemoveClient(USHORT& pos)
 	*recvIndex[pos] = pos;
 	recvIndex.pop_back();
 
-	clients[pos].~ClientData();
 	clients[pos] = std::move(clients.back());
 	clients.pop_back();
 

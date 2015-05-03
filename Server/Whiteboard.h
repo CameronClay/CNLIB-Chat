@@ -1,8 +1,8 @@
 #pragma once
 #include "TCPServ.h"
 #include <unordered_map>
-#include "..\\Common\\ColorDef.h"
-#include "..\\Common\\WhiteboardClientData.h"
+#include "ColorDef.h"
+#include "WhiteboardClientData.h"
 #include "Palette.h"
 #include "Timer.h"
 
