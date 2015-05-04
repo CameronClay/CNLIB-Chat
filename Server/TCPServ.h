@@ -75,7 +75,7 @@ public:
 
 	void AddClient(Socket pc);
 	void RemoveClient(USHORT& pos);
-	ClientData &FindClient(std::tstring &user);
+	ClientData* FindClient(std::tstring &user);
 	void Shutdown();
 
 	static void WaitAndCloseHandle(HANDLE& hnd);

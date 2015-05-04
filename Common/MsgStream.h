@@ -52,10 +52,6 @@ public:
 
 	void SetPos(DWORD position)
 	{
-		if(pos <= nBytes + 2)
-		{
-			int a = 0;
-		}
 		assert(pos <= nBytes + 2);
 		pos = position;
 	}
@@ -128,10 +124,6 @@ public:
 	{
 		*((T*)(&data[pos])) = t;
 		pos += sizeof(T);
-		if(pos > nBytes + 2)
-		{
-			int a = 0;
-		}
 		assert(pos <= nBytes + 2);
 	}
 
@@ -139,21 +131,22 @@ public:
 	{
 		*((T*)(&data[pos])) = t;
 		pos += sizeof(T);
-		if(pos > nBytes + 2)
-		{
-			int a = 0;
-		}
 		assert(pos <= nBytes + 2);
 	}
 
-	template<typename T> void Write(T* t, DWORD nBytes)
+	template<typename T> void Write(T* t, DWORD count)
 	{
+		const DWORD nBytes = count * sizeof(T);
 		memcpy(&data[pos], t, nBytes);
 		pos += nBytes;
-		if(pos > this->nBytes + 2)
-		{
-			int a = 0;
-		}
+		assert(pos <= this->nBytes + 2);
+	}
+
+	template<typename T> void WriteEnd(T* t)
+	{
+		const DWORD nBytes = (this->nBytes + 2) - pos;
+		memcpy(&data[pos], t, nBytes);
+		pos += nBytes;
 		assert(pos <= this->nBytes + 2);
 	}
 };
@@ -182,23 +175,26 @@ public:
 		T& t = *(T*)(&data[pos]);
 		pos += sizeof(T);
 		assert(pos <= nBytes + 2);
-		if(pos > nBytes + 2)
-		{
-			int a = 0;
-		}
 
 		return t;
 	}
 
-	template<typename T> T* Read(DWORD nBytes)
+	template<typename T> T* Read(DWORD count)
 	{
+		const DWORD nBytes = count * sizeof(T);
 		T* t = (T*)(&data[pos]);
 		pos += nBytes;
 		assert(pos <= this->nBytes + 2);
-		if(pos > this->nBytes + 2)
-		{
-			int a = 0;
-		}
+
+		return t;
+	}
+
+	template<typename T> T* ReadEnd()
+	{
+		const DWORD nBytes = (this->nBytes + 2) - pos;
+		T* t = (T*)(&data[pos]);
+		pos += nBytes;
+		assert(pos <= this->nBytes + 2);
 
 		return t;
 	}

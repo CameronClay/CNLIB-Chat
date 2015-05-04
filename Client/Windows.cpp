@@ -361,7 +361,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					break;
 				}
 				case MSG_DATA_BITMAP:
-					pWhiteboard->Frame(*(RectU*)dat, (BYTE*)&dat[sizeof(RectU)]);
+					pWhiteboard->Frame(streamReader.Read<RectU>(), streamReader.Read<BYTE>(streamReader.GetDataSize() - sizeof(RectU)));
 					break;
 			}
 			break;
@@ -391,7 +391,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					fileSend->StopSend();
 
 					TCHAR buffer[255];
-					_stprintf(buffer, _T("%s has declined your transfer request!"), dat);
+					_stprintf(buffer, _T("%s has declined your transfer request!"), (TCHAR*)dat);
 					MessageBox(hMainWind, buffer, _T("DECLINED"), MB_ICONERROR);
 					break;
 				}
@@ -399,7 +399,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				case MSG_RESPONSE_TRANSFER_CONFIRMED:
 				{
 					TCHAR buffer[255];
-					_stprintf(buffer, _T("%s has confirmed your transfer request!"), dat);
+					_stprintf(buffer, _T("%s has confirmed your transfer request!"), (TCHAR*)dat);
 					MessageBox(hMainWind, buffer, _T("Success"), MB_OK);
 					fileSend->StartSend();
 					break;
@@ -408,7 +408,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				case MSG_RESPONSE_WHITEBOARD_CONFIRMED:
 				{
 					TCHAR buffer[255];
-					_stprintf(buffer, _T("%s has joined the Whiteboard!"), dat);
+					_stprintf(buffer, _T("%s has joined the Whiteboard!"), (TCHAR*)dat);
 					MessageBox(hMainWind, buffer, _T("Success"), MB_OK);
 					break;
 				}
@@ -416,7 +416,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				case MSG_RESPONSE_WHITEBOARD_DECLINED:
 				{
 					TCHAR buffer[255];
-					_stprintf(buffer, _T("%s has declined the whiteboard!"), dat);
+					_stprintf(buffer, _T("%s has declined the whiteboard!"), (TCHAR*)dat);
 					MessageBox(hMainWind, buffer, _T("DECLINED"), MB_ICONERROR);
 					break;
 				}
@@ -461,7 +461,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				case MSG_REQUEST_TRANSFER:
 				{
 					const UINT len = streamReader.Read<UINT>();
-					fileReceive->GetUser() = streamReader.Read<TCHAR>(len * sizeof(TCHAR));
+					fileReceive->GetUser() = streamReader.Read<TCHAR>(len);
 					fileReceive->SetSize(streamReader.Read<double>());
 					if (fileReceive->Running())
 					{
@@ -509,7 +509,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 
 					Flash();
 					TCHAR buffer[255];
-					_stprintf(buffer, _T("%s has kicked you from the server!"), dat);
+					_stprintf(buffer, _T("%s has kicked you from the server!"), (TCHAR*)dat);
 					MessageBox(hMainWind, buffer, _T("Kicked"), MB_ICONERROR);
 
 					Disconnect();
@@ -600,7 +600,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 			case MSG_WHITEBOARD_KICK:
 			{
 				TCHAR buffer[255];
-				_stprintf(buffer, _T("%s has removed you from the whiteboard!"), dat);
+				_stprintf(buffer, _T("%s has removed you from the whiteboard!"), (TCHAR*)dat);
 				MessageBox(wbHandle, buffer, _T("Kicked"), MB_ICONEXCLAMATION);
 				SendMessage(wbHandle, WM_DESTROY, 0, 0);
 				break;
@@ -1330,9 +1330,9 @@ INT_PTR CALLBACK AuthenticateProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 			}
 
 			std::tstring send = user + _T(":") + pass;
-			const UINT nBytes = sizeof(TCHAR) * (send.size() + 1);
-			MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_AUTHENTICATION, nBytes);
-			streamWriter.Write(send.c_str(), nBytes);
+			const UINT sendLen = send.size() + 1;
+			MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_AUTHENTICATION, sendLen * sizeof(TCHAR));
+			streamWriter.Write(send.c_str(), sendLen);
 
 			HANDLE hnd = client->SendServData(streamWriter, streamWriter.GetSize());
 			TCPClient::WaitAndCloseHandle(hnd);
@@ -1701,9 +1701,9 @@ INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 		{
 			//const bool canInvite = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANINVITE));
 			//const bool canDraw = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
-			const DWORD nBytes = (len * sizeof(TCHAR)) + sizeof(bool);
-			MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_WHITEBOARD, nBytes);
-			streamWriter.Write(usersel.c_str(), nBytes - sizeof(bool));
+
+			MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_WHITEBOARD, (len * sizeof(TCHAR)) + sizeof(bool));
+			streamWriter.Write(usersel.c_str(), len);
 			streamWriter.Write(BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
 
 			HANDLE hnd = client->SendServData(streamWriter, streamWriter.GetSize());
