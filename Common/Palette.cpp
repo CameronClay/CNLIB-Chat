@@ -62,10 +62,10 @@ COLORREF Palette::GetBGRColor(BYTE index)
 		};
 		D3DCOLOR color;
 	};
-	
+
 	Color color1;
-	color1.color = palette[index];	
-	
+	color1.color = palette[index];
+
 	return RGB(color1.r, color1.g, color1.b);
 }
 

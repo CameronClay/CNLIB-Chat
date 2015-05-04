@@ -12,7 +12,7 @@ public:
 
 	TCPClient& operator=(TCPClient&& client);
 
-	
+
 	void Connect(const TCHAR* dest, const TCHAR* port, float timeOut);
 	void Disconnect();
 

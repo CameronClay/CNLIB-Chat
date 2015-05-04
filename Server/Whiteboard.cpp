@@ -35,7 +35,7 @@ rectList(std::move(wb.rectList))
 
 BYTE* Whiteboard::GetBitmap()
 {
-	// LeaveCriticalSection will never be executed in this case, probably could 
+	// LeaveCriticalSection will never be executed in this case, probably could
 	// use a wrapper for something like this where Enter in ctor and Leave in dtor
 	/*
 	struct CritSectionGuard
@@ -106,11 +106,11 @@ void Whiteboard::Draw()
 {
 	EnterCriticalSection(&bitmapSect);
 	for (auto it : clients)
-	{		
+	{
 		MouseClient mouse(it.second.mServ);
 		Tool myTool = it.second.tool;
 		BYTE color = it.second.clrIndex;
-		
+
 		std::deque<PointU> pointList;
 		while (mouse.Read().GetType() != MouseEvent::Type::Invalid)
 		{
@@ -137,7 +137,7 @@ void Whiteboard::DrawLine(PointU start, PointU end, BYTE clr)
 {
 	PointU dist = end - start;
 	float len = dist.Length();
-	dist = dist.Normalize();	
+	dist = dist.Normalize();
 
 	for (float i = 0.0f; i < len; i++)
 	{
@@ -266,7 +266,7 @@ void Whiteboard::SendBitmap(RectU& rect, Socket& sock, bool single)
 	msg[0] = TYPE_DATA;
 	msg[1] = MSG_DATA_BITMAP;
 
-	MakeRectPixels(rect, &msg[MSG_OFFSET]);	
+	MakeRectPixels(rect, &msg[MSG_OFFSET]);
 
 	HANDLE hnd = serv.SendClientData(msg, nBytes, sock, single);
 	TCPServ::WaitAndCloseHandle(hnd);

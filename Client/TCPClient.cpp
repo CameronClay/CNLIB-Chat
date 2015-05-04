@@ -3,7 +3,7 @@
 #include "Messages.h"
 #include "File.h"
 
-struct SendInfo 
+struct SendInfo
 {
 	SendInfo(TCPClient& client, char* data, const DWORD nBytes)
 		:

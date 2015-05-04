@@ -237,7 +237,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 			}
 
 			TCPServ::ClientData** fClient = serv.FindClient(user);
-			
+
 			//If user is already connected, reject
 			if(fClient && (*fClient)->user.compare(user) == 0)
 			{
@@ -383,7 +383,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 		}
 		case MSG_RESPONSE_WHITEBOARD_DECLINED:
 		{
-			// Possibly do nothing, still need to allow client to be able to 
+			// Possibly do nothing, still need to allow client to be able to
 			// join later
 		}
 		}
@@ -531,7 +531,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 		}
 		}
 	}//TYPE_WHITEBOARD
-	}	
+	}
 }
 
 void SaveAdminList()
@@ -785,7 +785,7 @@ INT_PTR CALLBACK ManageAdminsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 		{
 			if (SendMessage(list, LB_GETCURSEL, 0, 0) != LB_ERR)
 				EnableWindow(remove, TRUE);
-			else 
+			else
 				EnableWindow(remove, FALSE);
 			break;
 		}

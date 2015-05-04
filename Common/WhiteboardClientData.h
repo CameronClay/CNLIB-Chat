@@ -127,15 +127,13 @@ struct RectU :RECT
 		top = rect.top;
 		right = rect.right;
 		bottom = rect.bottom;
-		
+
 		ZeroMemory(&rect, sizeof(RectU));
 		return (*this);
 	}
 
 	~RectU()
 	{}
-
-	
 };
 
 

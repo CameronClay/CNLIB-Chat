@@ -1,5 +1,5 @@
-/****************************************************************************************** 
- *	Chili DirectX Framework Version 14.03.22											  *	
+/******************************************************************************************
+ *	Chili DirectX Framework Version 14.03.22											  *
  *	Mouse.h																				  *
  *	Copyright 2014 PlanetChili <http://www.planetchili.net>								  *
  *																						  *
