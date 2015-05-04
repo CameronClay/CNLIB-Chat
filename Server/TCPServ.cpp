@@ -3,8 +3,7 @@
 #include "File.h"
 #include "Messages.h"
 #include "Format.h"
-
-CRITICAL_SECTION clientSect, sendSect;
+#include "MsgStream.h"
 
 struct Data
 {
@@ -57,13 +56,14 @@ struct SAData
 
 struct SADataEx
 {
-	SADataEx(TCPServ& serv, char* data, DWORD nBytesDecomp, std::vector<Socket>& pcs)
+	SADataEx(TCPServ& serv, char* data, DWORD nBytesDecomp, Socket* pcs, USHORT nPcs)
 		:
 		serv(serv),
 		nBytesComp(0),
 		data(data),
 		nBytesDecomp(nBytesDecomp),
-		pcs(pcs)
+		pcs(pcs),
+		nPcs(nPcs)
 	{}
 	SADataEx(SADataEx&& data)
 		:
@@ -71,7 +71,8 @@ struct SADataEx
 		nBytesComp(data.nBytesComp),
 		data(data.data),
 		nBytesDecomp(data.nBytesDecomp),
-		pcs(data.pcs)
+		pcs(data.pcs),
+		nPcs(data.nPcs)
 	{
 		ZeroMemory(&data, sizeof(SADataEx));
 	}
@@ -79,7 +80,8 @@ struct SADataEx
 	TCPServ& serv;
 	DWORD nBytesComp, nBytesDecomp;
 	char* data;
-	std::vector<Socket>& pcs;
+	Socket* pcs;
+	USHORT nPcs;
 };
 
 struct SData
@@ -133,7 +135,7 @@ DWORD CALLBACK WaitForConnections( LPVOID tcpServ )
 			}
 			else
 			{
-				char msg[] = { TYPE_CHANGE, MSG_SERVERFULL };
+				char msg[] = { TYPE_CHANGE, MSG_CHANGE_SERVERFULL };
 				HANDLE hnd = serv.SendClientData(msg, MSG_OFFSET, temp, true);
 				TCPServ::WaitAndCloseHandle(hnd);
 
@@ -149,10 +151,10 @@ static DWORD CALLBACK RecvData(LPVOID info)
 {
 	Data* data = (Data*)info;
 	TCPServ& serv = data->serv;
+	TCPServ::ClientData**& clients = serv.GetClients();
+	USHORT& pos = clients[data->pos]->recvIndex;
+	Socket& pc = clients[pos]->pc;
 	void* obj = serv.GetObj();
-	auto& vect = serv.GetClients();
-	USHORT& pos = data->pos;
-	Socket pc = vect[pos].pc;
 	DWORD nBytesComp = 0, nBytesDecomp = 0;
 
 	while (true)
@@ -168,8 +170,8 @@ static DWORD CALLBACK RecvData(LPVOID info)
 					FileMisc::Decompress(deCompBuffer, nBytesDecomp, compBuffer, nBytesComp);
 					dealloc(compBuffer);
 
-					vect[pos].pingHandler.SetInactivityTimer(serv, pc, INACTIVETIME, PINGTIME);
-					(vect[pos].func)(&serv, pos, deCompBuffer, nBytesDecomp, obj);
+					clients[pos]->pingHandler.SetInactivityTimer(serv, pc, INACTIVETIME, PINGTIME);
+					(clients[pos]->func)(&serv, &clients[pos], deCompBuffer, nBytesDecomp, obj);
 					dealloc(deCompBuffer);
 				}
 				else
@@ -228,8 +230,8 @@ static DWORD CALLBACK SendDataEx(LPVOID info)
 static DWORD CALLBACK SendAllData( LPVOID info )
 {
 	SAData* data = (SAData*)info;
-	auto& clients = data->serv.GetClients();
-	std::vector<HANDLE> hnds;
+	TCPServ& serv = data->serv;
+	auto& clients = serv.GetClients();
 	void* dataDeComp = data->data;
 
 	const DWORD nBytesComp = FileMisc::GetCompressedBufferSize(data->nBytesDecomp);
@@ -237,44 +239,47 @@ static DWORD CALLBACK SendAllData( LPVOID info )
 	data->nBytesComp = FileMisc::Compress(dataComp, nBytesComp, (const BYTE*)dataDeComp, data->nBytesDecomp, data->serv.GetCompression());
 	data->data = (char*)dataComp;
 
+	HANDLE* hnds;
+	USHORT nHnds = 0;
+
 	if(data->single)
 	{
+		hnds = alloc<HANDLE>();
 		if(data->exAddr.IsConnected())
-			hnds.push_back(CreateThread(NULL, 0, SendData, construct<SData>(SData(data, data->exAddr)), CREATE_SUSPENDED, NULL));
+			hnds[nHnds++] = CreateThread(NULL, 0, SendData, construct<SData>(SData(data, data->exAddr)), CREATE_SUSPENDED, NULL);
 	}
 
 	else
 	{
+		const USHORT nClients = serv.ClientCount();
 		if(data->exAddr.IsConnected())
 		{
-			hnds.reserve(clients.size() - 1);
-
-			for(USHORT i = 0; i < clients.size(); i++)
-				if(clients[i].pc != data->exAddr)
-					hnds.push_back(CreateThread(NULL, 0, SendData, construct<SData>(SData(data, clients[i].pc)), CREATE_SUSPENDED, NULL));
+			hnds = alloc<HANDLE>(nClients - 1);
+			for(USHORT i = 0; i < nClients; i++)
+				if(clients[i]->pc != data->exAddr)
+					hnds[nHnds++] = CreateThread(NULL, 0, SendData, construct<SData>(SData(data, clients[i]->pc)), CREATE_SUSPENDED, NULL);
 		}
 		else
 		{
-			hnds.reserve(clients.size());
-
-			for(USHORT i = 0; i < clients.size(); i++)
-				hnds.push_back(CreateThread(NULL, 0, SendData, construct<SData>(SData(data, clients[i].pc)), CREATE_SUSPENDED, NULL));
+			hnds = alloc<HANDLE>(nClients);
+			for(USHORT i = 0; i < nClients; i++)
+				hnds[nHnds++] = CreateThread(NULL, 0, SendData, construct<SData>(SData(data, clients[i]->pc)), CREATE_SUSPENDED, NULL);
 		}
 	}
 
-	EnterCriticalSection(&sendSect);
+	EnterCriticalSection(serv.GetSendSect());
 
-	for (HANDLE& h : hnds)
-		ResumeThread(h);
+	for(USHORT i = 0; i < nHnds; i++)
+		ResumeThread(hnds[i]);
 
-	WaitForMultipleObjects(hnds.size(), hnds.data(), true, INFINITE);
+	WaitForMultipleObjects(nHnds, hnds, true, INFINITE);
 
-	LeaveCriticalSection(&sendSect);
+	LeaveCriticalSection(serv.GetSendSect());
 
-	for(HANDLE& h : hnds)
-		CloseHandle(h);
+	for(USHORT i = 0; i < nHnds; i++)
+		CloseHandle(hnds[i]);
 
-	hnds.clear();
+	dealloc(hnds);
 	dealloc(dataComp);
 	destruct(data);
 
@@ -284,8 +289,8 @@ static DWORD CALLBACK SendAllData( LPVOID info )
 static DWORD CALLBACK SendAllDataEx( LPVOID info )
 {
 	SADataEx* data = (SADataEx*)info;
-	auto& pcs = data->pcs;
-	std::vector<HANDLE> hnds;
+	TCPServ& serv = data->serv;
+	Socket* pcs = data->pcs;
 	void* dataDeComp = data->data;
 
 	const DWORD nBytesComp = FileMisc::GetCompressedBufferSize(data->nBytesDecomp);
@@ -293,27 +298,28 @@ static DWORD CALLBACK SendAllDataEx( LPVOID info )
 	data->nBytesComp = FileMisc::Compress(dataComp, nBytesComp, (const BYTE*)dataDeComp, data->nBytesDecomp, data->serv.GetCompression());
 	data->data = (char*)dataComp;
 
-	hnds.reserve(pcs.size());
+	HANDLE* hnds;
+	USHORT nHnds = 0;
 
-	for (auto& i : pcs)
+	for(USHORT i = 0, count = data->nPcs; i < count; i++)
 	{
-		if (i.IsConnected())
-			hnds.push_back(CreateThread(NULL, 0, SendDataEx, construct<SDataEx>(SDataEx(data, i)), CREATE_SUSPENDED, NULL));
+		if (pcs[i].IsConnected())
+			hnds[nHnds++] = CreateThread(NULL, 0, SendDataEx, construct<SDataEx>(SDataEx(data, i)), CREATE_SUSPENDED, NULL);
 	}
 
-	EnterCriticalSection(&sendSect);
+	EnterCriticalSection(serv.GetSendSect());
 
-	for (HANDLE& h : hnds)
-		ResumeThread(h);
+	for(USHORT i = 0; i < nHnds; i++)
+		ResumeThread(hnds[i]);
 
-	WaitForMultipleObjects(hnds.size(), hnds.data(), true, INFINITE);
+	WaitForMultipleObjects(nHnds, hnds, true, INFINITE);
 
-	LeaveCriticalSection(&sendSect);
+	LeaveCriticalSection(serv.GetSendSect());
 
-	for(HANDLE& h : hnds)
-		CloseHandle(h);
+	for(USHORT i = 0; i < nHnds; i++)
+		CloseHandle(hnds[i]);
 
-	hnds.clear();
+	dealloc(hnds);
 	dealloc(dataComp);
 	destruct(data);
 
@@ -326,10 +332,16 @@ HANDLE TCPServ::SendClientData(char* data, DWORD nBytes, Socket exAddr, bool sin
 	return CreateThread(NULL, 0, &SendAllData, (LPVOID)construct<SAData>(SAData(*this, data, nBytes, exAddr, single)), NULL, NULL);
 }
 
+HANDLE TCPServ::SendClientData(char* data, DWORD nBytes, Socket* pcs, USHORT nPcs)
+{
+	return CreateThread(NULL, 0, &SendAllDataEx, (LPVOID)construct<SADataEx>(SADataEx(*this, data, nBytes, pcs, nPcs)), NULL, NULL);
+}
+
 HANDLE TCPServ::SendClientData(char* data, DWORD nBytes, std::vector<Socket>& pcs)
 {
-	return CreateThread(NULL, 0, &SendAllDataEx, (LPVOID)construct<SADataEx>(SADataEx(*this, data, nBytes, pcs)), NULL, NULL);
+	return SendClientData(data, nBytes, pcs.data(), pcs.size());
 }
+
 
 void TCPServ::SendMsg(Socket pc, bool single, char type, char message)
 {
@@ -339,51 +351,61 @@ void TCPServ::SendMsg(Socket pc, bool single, char type, char message)
 	TCPServ::WaitAndCloseHandle(hnd);
 }
 
-void TCPServ::SendMsg(std::vector<Socket>& pcs, char type, char message)
+void TCPServ::SendMsg(Socket* pcs, USHORT nPcs, char type, char message)
 {
 	char msg[] = { type, message };
 
-	HANDLE hnd = SendClientData(msg, MSG_OFFSET, pcs);
+	HANDLE hnd = SendClientData(msg, MSG_OFFSET, pcs, nPcs);
 	TCPServ::WaitAndCloseHandle(hnd);
+}
+
+void TCPServ::SendMsg(std::vector<Socket>& pcs, char type, char message)
+{
+	SendMsg(pcs.data(), pcs.size(), type, message);
 }
 
 void TCPServ::SendMsg(std::tstring& user, char type, char message)
 {
-	for(USHORT i = 0; i < clients.size(); i++)
+	for(USHORT i = 0; i < nClients; i++)
 	{
-		if(clients[i].user.compare(user) == 0)
+		if(clients[i]->user.compare(user) == 0)
 		{
 			char msg[] = { type, message };
 
-			HANDLE hnd = SendClientData(msg, MSG_OFFSET, clients[i].pc, true);
+			HANDLE hnd = SendClientData(msg, MSG_OFFSET, clients[i]->pc, true);
 			TCPServ::WaitAndCloseHandle(hnd);
 		}
 	}
 }
 
+
 TCPServ::TCPServ(USHORT maxCon, sfunc func, void* obj, int compression, customFunc conFunc, customFunc disFunc)
 	:
 	host(INVALID_SOCKET),
-	openCon(NULL),
+	clients(nullptr),
+	nClients(0),
 	function(func),
 	obj(obj),
-	compression(compression),
 	conFunc(conFunc),
 	disFunc(disFunc),
+	openCon(NULL),
+	compression(compression),
 	maxCon(maxCon)
 {}
 
 TCPServ::TCPServ(TCPServ&& serv)
 	:
 	host(serv.host),
-	openCon(serv.openCon),
-	clients(serv.clients),
-	recvIndex(serv.recvIndex),
+	clients(serv.clients), 
+	nClients(serv.nClients),
 	function(serv.function),
 	obj(serv.obj),
-	compression(serv.compression),
 	conFunc(serv.conFunc),
 	disFunc(serv.disFunc),
+	clientSect(serv.clientSect),
+	sendSect(serv.sendSect),
+	openCon(serv.openCon),
+	compression(serv.compression),
 	maxCon(serv.maxCon)
 {
 	ZeroMemory(&serv, sizeof(TCPServ));
@@ -393,17 +415,20 @@ TCPServ& TCPServ::operator=(TCPServ&& serv)
 {
 	if(this != &serv)
 	{
-		Shutdown();  // gotta free resources used by this instance
+		this->~TCPServ();
+
 		host = serv.host;
-		openCon = serv.openCon;
-		clients = std::move(serv.clients);
-		recvIndex = std::move(serv.recvIndex);
+		clients = serv.clients;
+		nClients = serv.nClients;
 		function = serv.function;
 		obj = serv.obj;
-		compression = serv.compression;
 		const_cast<void( *& )(ClientData&)>(conFunc) = serv.conFunc;
 		const_cast<void( *& )(ClientData&)>(disFunc) = serv.disFunc;
-		maxCon = serv.maxCon;
+		clientSect = serv.clientSect;
+		sendSect = serv.sendSect;
+		openCon = serv.openCon;
+		const_cast<int&>(compression) = serv.compression;
+		const_cast<USHORT&>(maxCon) = serv.maxCon;
 		ZeroMemory(&serv, sizeof(TCPServ));
 	}
 	return *this;
@@ -420,6 +445,7 @@ void TCPServ::AllowConnections(const TCHAR* port)
 	InitializeCriticalSection(&sendSect);
 
 	host.Bind(port);
+	clients = alloc<ClientData*>(maxCon);
 
 	openCon = CreateThread( NULL, 0, WaitForConnections, this, NULL, NULL );
 }
@@ -428,13 +454,13 @@ void TCPServ::AddClient(Socket pc)
 {
 	EnterCriticalSection(&clientSect);
 
-	clients.push_back(ClientData(pc, INVALID_HANDLE_VALUE, function));
-	Data* data = construct<Data>(Data(*this, clients.size() - 1));
-	recvIndex.push_back(&data->pos);
-	HANDLE hnd = CreateThread(NULL, 0, RecvData, data, NULL, NULL);
-	clients.back().recvThread = hnd;
+	Data* data = construct<Data>(Data(*this, nClients));
+	clients[nClients] = construct<ClientData>({ pc, function, data->pos });
+	clients[nClients]->recvThread = CreateThread(NULL, 0, RecvData, data, NULL, NULL);
 
-	RunConFunc(clients.back());
+	RunConFunc(*clients[nClients]);
+
+	++nClients;
 
 	LeaveCriticalSection(&clientSect);
 }
@@ -443,37 +469,39 @@ void TCPServ::RemoveClient(USHORT& pos)
 {
 	EnterCriticalSection(&clientSect);
 
-	const std::tstring user = clients[pos].user;
+	const USHORT index = pos;
 
-	RunDisFunc(clients[pos]);
+	ClientData& data = *clients[index];
+	std::tstring user = std::move(data.user);
+	RunDisFunc(data);
 
-	clients[pos].pc.Disconnect();
+	data.pc.Disconnect();
+	destruct(clients[index]);
 
-	recvIndex[pos] = recvIndex.back();
-	*recvIndex[pos] = pos;
-	recvIndex.pop_back();
-
-	clients[pos] = std::move(clients.back());
-	clients.pop_back();
-
-	if (!user.empty())//if user wasnt declined authentication
+	if(index != (nClients - 1))
 	{
-		UINT nBy;
-		const TCHAR* d = _T("has disconnected!");
-		TCHAR* msg = FormatMsg(TYPE_CHANGE, MSG_DISCONNECT, (BYTE*)d, _tcslen(d) * sizeof(TCHAR), (std::tstring)user, nBy);
-		HANDLE hnd = SendClientData((char*)msg, nBy, Socket(), false);
-		WaitAndCloseHandle(hnd);
-		dealloc(msg);
+		clients[index] = clients[nClients - 1];
+		clients[index]->recvIndex = index;
 	}
 
+	--nClients;
+
 	LeaveCriticalSection(&clientSect);
+
+	if(!user.empty())//if user wasnt declined authentication
+	{
+		MsgStreamWriter streamWriter(TYPE_CHANGE, MSG_CHANGE_DISCONNECT, (user.size() + 1) * sizeof(TCHAR));
+		streamWriter.WriteEnd(user.c_str());
+		HANDLE hnd = SendClientData(streamWriter, streamWriter.GetSize(), Socket(), false);
+		WaitAndCloseHandle(hnd);
+	}
 }
 
-TCPServ::ClientData* TCPServ::FindClient(std::tstring &user)
+TCPServ::ClientData** TCPServ::FindClient(std::tstring &user)
 {	
-	for (USHORT i = 0; i < clients.size(); i++)
+	for (USHORT i = 0; i < nClients; i++)
 	{
-		if (clients[i].user == user)
+		if (clients[i]->user == user)
 		{
 			return &clients[i];
 		}
@@ -483,26 +511,30 @@ TCPServ::ClientData* TCPServ::FindClient(std::tstring &user)
 
 void TCPServ::Shutdown()
 {
-	DeleteCriticalSection(&clientSect);
-	DeleteCriticalSection(&sendSect);
-
-	for(USHORT i = 0, size = clients.size(); i < size; i++)
+	if(clients)
 	{
-		TerminateThread(clients[i].recvThread, 0);
-		CloseHandle(clients[i].recvThread);
-		clients[i].pc.Disconnect();
-	}
+		DeleteCriticalSection(&clientSect);
+		DeleteCriticalSection(&sendSect);
 
-	clients.clear();
-	recvIndex.clear();
+		for(USHORT i = 0; i < nClients; i++)
+		{
+			ClientData& data = *clients[i];
+			TerminateThread(data.recvThread, 0);
+			CloseHandle(data.recvThread);
+			data.pc.Disconnect();
+			destruct(clients[i]);
+		}
 
-	host.Disconnect();
+		dealloc(clients);
 
-	if (openCon)
-	{
-		TerminateThread(openCon, 0);
-		CloseHandle(openCon);
-		openCon = NULL;
+		host.Disconnect();
+
+		if(openCon)
+		{
+			TerminateThread(openCon, 0);
+			CloseHandle(openCon);
+			openCon = NULL;
+		}
 	}
 }
 
@@ -527,17 +559,22 @@ Socket& TCPServ::GetHost()
 
 bool TCPServ::MaxClients() const
 {
-	return clients.size() == maxCon;
+	return nClients == maxCon;
 }
 
-std::vector<TCPServ::ClientData>& TCPServ::GetClients()
+TCPServ::ClientData**& TCPServ::GetClients()
 {
 	return clients;
 }
 
+USHORT TCPServ::ClientCount() const
+{
+	return nClients;
+}
+
 void TCPServ::SetFunction(USHORT index, sfunc function)
 {
-	clients[index].func = function;
+	clients[index]->func = function;
 }
 
 void TCPServ::RunConFunc(ClientData& client)
@@ -560,7 +597,7 @@ int TCPServ::GetCompression() const
 	return compression;
 }
 
-std::vector<USHORT*>& TCPServ::GetRecvIndices()
+CRITICAL_SECTION* TCPServ::GetSendSect()
 {
-	return recvIndex;
+	return &sendSect;
 }

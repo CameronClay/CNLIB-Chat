@@ -281,19 +281,22 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 		{
 			switch(msg)
 			{
-			case MSG_SERVERFULL:
+			case MSG_CHANGE_SERVERFULL:
 			{
 				Flash();
 				MessageBox(hMainWind, _T("Server is full!"), _T("ERROR"), MB_ICONERROR);
 				Disconnect();
 				break;
 			}
-			case MSG_CONNECT:
+			case MSG_CHANGE_CONNECT:
 			{
+				TCHAR buffer[128];
+				_stprintf(buffer, _T("Server: %s has connected!"), (TCHAR*)dat);
+
 				UINT nBy = 0;
-				TCHAR* buffer = FormatText((BYTE*)dat, nBytes, nBy, opts->TimeStamps());
-				DispText((BYTE*)buffer, nBy);
-				dealloc(buffer);
+				TCHAR* text = FormatText((BYTE*)buffer, _tcslen(buffer) * sizeof(TCHAR), nBy, opts->TimeStamps());
+				DispText((BYTE*)text, nBy);
+				dealloc(text);
 				std::tstring str = (TCHAR*)dat;
 				const UINT first = str.find(_T("<"), 0) + 1, second = str.find(_T(">"), first), len = second - first;
 				assert((first != std::tstring::npos) || (second != std::tstring::npos));
@@ -305,19 +308,18 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				Flash();
 				break;
 			}
-			case MSG_CONNECTINIT:
+			case MSG_CHANGE_CONNECTINIT:
 			{
 				if(FindClient(std::tstring((TCHAR*)dat)) == -1)
 					SendMessage(listClients, LB_ADDSTRING, 0, (LPARAM)dat);
 
 				break;
 			}
-			case MSG_DISCONNECT:
+			case MSG_CHANGE_DISCONNECT:
 			{
-				std::tstring str = (TCHAR*)dat;
-				const UINT first = str.find(_T("<"), 0) + 1, second = str.find(_T(">"), first), len = second - first;
-				std::tstring name = str.substr(first, len);
+				std::tstring name = (TCHAR*)dat;
 				int item = 0;
+
 				if(fileReceive->Running())
 				{
 					if(name.compare(fileReceive->GetUser()) == 0)
@@ -337,10 +339,14 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				if((item = FindClient((std::tstring)name)) != -1)
 					SendMessage(listClients, LB_DELETESTRING, item, 0);
 
+				TCHAR buffer[128];
+				_stprintf(buffer, _T("Server: %s has disconnected!"), (TCHAR*)dat);
+
+
 				UINT nBy = 0;
-				TCHAR* buffer = FormatText((BYTE*)dat, nBytes, nBy, opts->TimeStamps());
-				DispText((BYTE*)buffer, nBy);
-				dealloc(buffer);
+				TCHAR* text = FormatText((BYTE*)buffer, _tcslen(buffer) * sizeof(TCHAR), nBy, opts->TimeStamps());
+				DispText((BYTE*)text, nBy);
+				dealloc(text);
 				Flash();
 				break;
 			}

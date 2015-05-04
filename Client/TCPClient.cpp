@@ -3,8 +3,6 @@
 #include "Messages.h"
 #include "File.h"
 
-CRITICAL_SECTION cs_Send;
-
 struct SendInfo 
 {
 	SendInfo(TCPClient& client, char* data, const DWORD nBytes)
@@ -62,7 +60,8 @@ TCPClient& TCPClient::operator=(TCPClient&& client)
 		const_cast<void(*&)()>(disconFunc) = client.disconFunc;
 		obj = client.obj;
 		recv = client.recv;
-		compression = client.compression;
+		sendSect = client.sendSect;
+		const_cast<int&>(compression) = client.compression;
 
 		ZeroMemory(&client, sizeof(TCPClient));
 	}
@@ -79,8 +78,9 @@ static DWORD CALLBACK SendData(LPVOID param)
 	SendInfo* data = (SendInfo*)param;
 	TCPClient& client = data->client;
 	Socket& pc = client.GetHost();
+	CRITICAL_SECTION* sendSect = client.GetSendSect();
 
-	EnterCriticalSection(&cs_Send);
+	EnterCriticalSection(sendSect);
 
 	if (pc.SendData(&data->nBytes, sizeof(DWORD)) > 0)
 	{
@@ -93,7 +93,7 @@ static DWORD CALLBACK SendData(LPVOID param)
 			{
 				dealloc(dataComp);
 				destruct(data);
-				LeaveCriticalSection(&cs_Send);
+				LeaveCriticalSection(sendSect);
 				return 0;
 			}
 			else dealloc(dataComp);
@@ -103,7 +103,7 @@ static DWORD CALLBACK SendData(LPVOID param)
 
 	destruct(data);
 	client.Disconnect();
-	LeaveCriticalSection(&cs_Send);
+	LeaveCriticalSection(sendSect);
 	return 0;
 }
 
@@ -149,7 +149,6 @@ static DWORD CALLBACK ReceiveData(LPVOID param)
 void TCPClient::Connect( const TCHAR* dest, const TCHAR* port, float timeOut )
 {
 	host.Connect( dest, port, timeOut );
-	InitializeCriticalSection(&cs_Send);
 }
 
 void TCPClient::Disconnect()
@@ -160,8 +159,9 @@ void TCPClient::Disconnect()
 		TerminateThread(recv, 0);
 		CloseHandle(recv);
 		recv = NULL;
+
+		DeleteCriticalSection(&sendSect);
 	}
-	DeleteCriticalSection(&cs_Send);
 }
 
 HANDLE TCPClient::SendServData(const char* data, DWORD nBytes)
@@ -172,6 +172,7 @@ HANDLE TCPClient::SendServData(const char* data, DWORD nBytes)
 void TCPClient::RecvServData()
 {
 	recv = CreateThread(NULL, 0, ReceiveData, this, NULL, NULL);
+	InitializeCriticalSection(&sendSect);
 }
 
 void TCPClient::SendMsg(char type, char message)
@@ -234,6 +235,11 @@ void TCPClient::WaitForRecvThread() const
 int TCPClient::GetCompression() const
 {
 	return compression;
+}
+
+CRITICAL_SECTION* TCPClient::GetSendSect()
+{
+	return &sendSect;
 }
 
 void(*TCPClient::GetDisfunc()) ()

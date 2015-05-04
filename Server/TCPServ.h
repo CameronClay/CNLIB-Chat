@@ -13,21 +13,23 @@ class TCPServ
 public:
 	struct ClientData
 	{
-		ClientData(Socket pc, HANDLE recvThread, sfunc func)
+		ClientData(Socket pc, sfunc func, USHORT recvIndex)
 			:
 			pc(pc),
-			recvThread(recvThread),
 			func(func),
-			pingHandler()
+			pingHandler(),
+			recvIndex(recvIndex),
+			recvThread(INVALID_HANDLE_VALUE)
 		{}
 
 		ClientData(ClientData&& clint)
 			:
 			pc(std::move(clint.pc)),
-			recvThread(clint.recvThread),
 			func(clint.func),
+			pingHandler(std::move(clint.pingHandler)),
 			user(std::move(clint.user)),
-			pingHandler(std::move(clint.pingHandler))
+			recvIndex(clint.recvIndex),
+			recvThread(clint.recvThread)
 		{
 			ZeroMemory(&clint, sizeof(ClientData));
 		}
@@ -37,10 +39,11 @@ public:
 			if( this != &data )
 			{
 				pc = std::move( data.pc );
-				recvThread = data.recvThread;
 				func = data.func;
+				pingHandler = std::move(data.pingHandler);
 				user = std::move( data.user );
-				pingHandler = std::move( data.pingHandler );
+				recvIndex = data.recvIndex;
+				recvThread = data.recvThread;
 
 				ZeroMemory( &data, sizeof( ClientData ) );
 			}
@@ -48,10 +51,11 @@ public:
 		}
 
 		Socket pc;
-		HANDLE recvThread;
 		sfunc func;
-		std::tstring user;
 		PingHandler pingHandler;
+		std::tstring user;
+		USHORT recvIndex;
+		HANDLE recvThread;
 	};
 
 	typedef void(*const customFunc)(ClientData& data);
@@ -67,16 +71,18 @@ public:
 
 	//addr parameter functions as both the excluded address, and as a single address, depending on the value of single
 	HANDLE SendClientData(char* data, DWORD nBytes, Socket addr, bool single);
+	HANDLE SendClientData(char* data, DWORD nBytes, Socket* pcs, USHORT nPcs);
 	HANDLE SendClientData(char* data, DWORD nBytes, std::vector<Socket>& pcs);
 
 	//send msg funtions used for requests, replies ect. they do not send data
 	void SendMsg(Socket pc, bool single, char type, char message);
+	void SendMsg(Socket* pcs, USHORT nPcs, char type, char message);
 	void SendMsg(std::vector<Socket>& pcs, char type, char message);
 	void SendMsg(std::tstring& user, char type, char message);
 
 	void AddClient(Socket pc);
 	void RemoveClient(USHORT& pos);
-	ClientData* FindClient(std::tstring &user);
+	ClientData** FindClient(std::tstring &user);
 	void Shutdown();
 
 	static void WaitAndCloseHandle(HANDLE& hnd);
@@ -86,9 +92,11 @@ public:
 	void RunConFunc(ClientData& client);
 	void RunDisFunc(ClientData& client);
 
-	std::vector<ClientData>& GetClients();
-	std::vector<USHORT*>& GetRecvIndices();
+	ClientData**& GetClients();
+	USHORT ClientCount() const;
 	void SetFunction(USHORT index, sfunc function);
+
+	CRITICAL_SECTION* GetSendSect();
 
 	Socket& GetHost();
 	bool MaxClients() const;
@@ -97,12 +105,13 @@ public:
 	int GetCompression() const;
 private:
 	Socket host;
-	HANDLE openCon;
-	std::vector<ClientData> clients;
-	std::vector<USHORT*> recvIndex;
+	ClientData** clients;
+	USHORT nClients;
 	sfunc function;
 	void* obj;
-	int compression;
 	customFunc conFunc, disFunc;
-	USHORT maxCon;
+	CRITICAL_SECTION clientSect, sendSect;
+	HANDLE openCon;
+	const int compression;
+	const USHORT maxCon;
 };

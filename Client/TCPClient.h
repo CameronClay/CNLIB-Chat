@@ -33,6 +33,7 @@ public:
 	Socket& GetHost();
 	void WaitForRecvThread() const;
 	int GetCompression() const;
+	CRITICAL_SECTION* GetSendSect();
 
 	void(*GetDisfunc()) ();
 	bool Connected() const;
@@ -43,5 +44,6 @@ private:
 	void(*const disconFunc)();
 	void* obj;
 	HANDLE recv;
-	int compression;
+	CRITICAL_SECTION sendSect;
+	const int compression;
 };

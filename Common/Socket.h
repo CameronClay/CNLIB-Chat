@@ -15,8 +15,8 @@
 #endif
 
 
-typedef void(*sfunc)(void* manager, USHORT& index, BYTE* data, DWORD nBytes, void* obj);
-typedef void(**const sfuncP)(void* manager, USHORT& index, BYTE* data, DWORD nBytes, void* obj);
+typedef void(*sfunc)(void* manager, void* client, BYTE* data, DWORD nBytes, void* obj);
+typedef void(**const sfuncP)(void* manager, void* client, BYTE* data, DWORD nBytes, void* obj);
 typedef void(*cfunc)(void* manager, BYTE* data, DWORD nBytes, void* obj);
 typedef void(**const cfuncP)(void* manager, BYTE* data, DWORD nBytes, void* obj);
 
