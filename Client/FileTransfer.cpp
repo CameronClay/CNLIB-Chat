@@ -365,14 +365,13 @@ void FileReceive::RecvFileNameList(MsgStreamReader& streamReader, std::tstring& 
 	}
 	it = list.begin();
 
+	CoInitialize(NULL);
+
 	dialog.Start(wnd, 100, _T("File transfer"), _T("Receiving..."), _T("Canceling"));
 }
 
 void FileReceive::RecvFile(BYTE* data, DWORD nBytes)
 {
-	if(!running)
-		CoInitialize(NULL);
-
 	if(canceled)
 	{
 		file.Close();
