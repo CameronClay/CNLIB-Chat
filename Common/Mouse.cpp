@@ -163,6 +163,6 @@ void MouseServer::Extract(BYTE *byteBuffer)
 	{
 		MouseEvent *mEvent = (MouseEvent*)&byteBuffer[offsetToBuffer];
 		mEvent[i] = buffer.front();
-		buffer.pop();		
+		buffer.pop();
 	}
 }

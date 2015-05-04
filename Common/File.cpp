@@ -325,8 +325,8 @@ void FileMisc::GetFileNameList(const TCHAR* folder, DWORD filter, std::vector<Fi
 	WIN32_FIND_DATA fileSearch;
 	TCHAR buffer[MAX_PATH] = {};
 	_stprintf_s(buffer, _T("%s\\*"), folder);
-	
-	
+
+
 	HANDLE hnd = FindFirstFile(buffer, &fileSearch);
 	if(hnd != INVALID_HANDLE_VALUE)
 	{
@@ -464,7 +464,7 @@ bool FileMisc::BrowseFolder(const TCHAR* windowName, TCHAR* buffer, HWND hwnd, U
 	bi.hwndOwner = hwnd;
 	bi.lpszTitle = windowName;
 	bi.ulFlags = flags;
-	
+
 	LPITEMIDLIST pidl = SHBrowseForFolder(&bi);
 	bool itemListValid = (pidl != nullptr);
 

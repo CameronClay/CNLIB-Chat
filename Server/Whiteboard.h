@@ -39,7 +39,7 @@ private:
 
 private:
 	WBParams params;
-	BYTE *pixels; 
+	BYTE *pixels;
 	CRITICAL_SECTION bitmapSect, mapSect;
 	TCPServ &serv;
 	Palette palette;

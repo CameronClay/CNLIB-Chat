@@ -90,7 +90,7 @@ void Whiteboard::ComposeImage(USHORT Width, USHORT Height, BYTE *pixelData)
 {
 	HRESULT hr = 0;
 	tempSurface =  alloc<D3DCOLOR>(Width * Height);
-	
+
 	for (int y = 0; y< height; y++)
 	{
 		UINT rowOffset = y * Width;
@@ -123,7 +123,7 @@ void Whiteboard::InitD3D()
 	d3dpp.BackBufferFormat = D3DFMT_UNKNOWN;
 	d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
 	d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
-	
+
 	BOOL isWindow = IsWindow(hWnd);
 	d3dpp.hDeviceWindow = hWnd;
 
@@ -144,7 +144,7 @@ void Whiteboard::InitD3D()
 	hr = pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
 	assert(SUCCEEDED(hr));
 
-	// D3DLOCKED_RECT::Pitch is in bytes, 
+	// D3DLOCKED_RECT::Pitch is in bytes,
 	// divide by 4 (>> 2) to cnvert to D3DCOLOR (sizeof(int))
 	// Put in ctor since pitch won't change, unless run on laptop and they dock
 	// while running client
@@ -171,7 +171,7 @@ Whiteboard::~Whiteboard()
 	{
 		pBackBuffer->Release();
 		pBackBuffer = nullptr;
-	}	
+	}
 	if (pDevice)
 	{
 		pDevice->Release();
@@ -182,5 +182,5 @@ Whiteboard::~Whiteboard()
 		pDirect3D->Release();
 		pDirect3D = nullptr;
 	}
-	
+
 }

@@ -314,7 +314,7 @@ void FileSend::StopSend()
 		TerminateThread(thread, 0);
 		CloseHandle(thread);
 		thread = NULL;
-	}	
+	}
 }
 
 void FileSend::WaitForThread()
@@ -450,6 +450,3 @@ void FileReceive::StopReceive()
 	bytesWritten = 0;
 	ZeroMemory(tempFilename, sizeof(TCHAR) * ARRAYSIZE(tempFilename));
 }
-
-
-

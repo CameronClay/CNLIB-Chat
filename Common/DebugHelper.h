@@ -3,7 +3,7 @@
 
 /*
 LPCTSTR LocationErrorOccured
-Could be name of Function, Member::Function or any section of code that 
+Could be name of Function, Member::Function or any section of code that
 programmer can identify to find bug
 
 Uses GetLastError()
@@ -21,7 +21,7 @@ inline BOOL CheckForError(LPCTSTR LocationErrorOccured)
 		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, err, NULL, errMsg, 128, nullptr);
 		MessageBox(NULL, errMsg, LocationErrorOccured, MB_OK);
 		PostQuitMessage(err);
-	}	
+	}
 
 	return ERROR_SUCCESS;
 }

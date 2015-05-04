@@ -5,7 +5,7 @@
 
 CRITICAL_SECTION cs_Send;
 
-struct SendInfo 
+struct SendInfo
 {
 	SendInfo(TCPClient& client, char* data, const DWORD nBytes)
 		:
