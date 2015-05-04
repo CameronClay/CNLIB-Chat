@@ -4,6 +4,9 @@
 #pragma comment( lib, "shlwapi.lib" )
 #pragma comment( lib, "zlib/lib/zdll.lib" )
 
+
+
+
 FileMisc::FileData::FileData()
 {}
 
@@ -169,7 +172,7 @@ bool File::ReadDate(SYSTEMTIME& dest)
 
 bool File::IsOpen() const
 {
-	return hnd;
+	return (hnd != nullptr);
 }
 
 DWORD64 File::GetSize() const
@@ -321,7 +324,9 @@ void FileMisc::GetFileNameList(const TCHAR* folder, DWORD filter, std::vector<Fi
 {
 	WIN32_FIND_DATA fileSearch;
 	TCHAR buffer[MAX_PATH] = {};
-	_stprintf(buffer, _T("%s\\*"), folder);
+	_stprintf_s(buffer, _T("%s\\*"), folder);
+	
+	
 	HANDLE hnd = FindFirstFile(buffer, &fileSearch);
 	if(hnd != INVALID_HANDLE_VALUE)
 	{
@@ -459,17 +464,17 @@ bool FileMisc::BrowseFolder(const TCHAR* windowName, TCHAR* buffer, HWND hwnd, U
 	bi.hwndOwner = hwnd;
 	bi.lpszTitle = windowName;
 	bi.ulFlags = flags;
-
+	
 	LPITEMIDLIST pidl = SHBrowseForFolder(&bi);
-	if(pidl == NULL)
-		return false;
+	bool itemListValid = (pidl != nullptr);
 
-	if(pidl != 0)
+	if (itemListValid)
 	{
 		SHGetPathFromIDList(pidl, buffer);
 		CoTaskMemFree(pidl);
-		return true;
 	}
+
+	return itemListValid;
 }
 
 bool FileMisc::BrowseFont(HWND hwnd, HFONT& hFont, COLORREF& color)

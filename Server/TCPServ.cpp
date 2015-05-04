@@ -469,6 +469,18 @@ void TCPServ::RemoveClient(USHORT& pos)
 	LeaveCriticalSection(&clientSect);
 }
 
+TCPServ::ClientData* TCPServ::FindClient(std::tstring &user)
+{	
+	for (USHORT i = 0; i < clients.size(); i++)
+	{
+		if (clients[i].user == user)
+		{
+			return &clients[i];
+		}
+	}	
+	return nullptr;
+}
+
 void TCPServ::Shutdown()
 {
 	DeleteCriticalSection(&clientSect);

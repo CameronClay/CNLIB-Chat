@@ -74,7 +74,7 @@ bool Whiteboard::IsCreator(std::tstring& user) const
 
 void Whiteboard::PaintBrush(std::deque<PointU> &pointList, BYTE clr)
 {
-	for (int i = 0; i < pointList.size(); i++)
+	for (auto it : pointList)
 	{
 		if (pointList.size() >= 2)
 		{

@@ -103,98 +103,73 @@ void AddToList(std::tstring& user, std::tstring& pass)
 
 void SendSingleUserData(TCPServ& serv, char* dat, DWORD nBytes, char type, char message)
 {
-	auto& clients = serv.GetClients();
 	const UINT userLen = *(UINT*)&(dat[0]);
 	//																	   - 1 for \0
 	std::tstring user = std::tstring((TCHAR*)&(dat[sizeof(UINT)]), userLen - 1);
-	for (USHORT i = 0; i < clients.size(); i++)
-	{
-		if (clients[i].user.compare(user) == 0)
-		{
-			const UINT offset = sizeof(UINT) + (userLen * sizeof(TCHAR));
-			const DWORD nBy = (nBytes - offset) + MSG_OFFSET;
-			char* msg = alloc<char>(nBy);
-			
-			msg[0] = type;
-			msg[1] = message;
-			memcpy(&msg[MSG_OFFSET], &dat[offset], nBytes - offset);
+	auto *client = serv.FindClient(user);
+	if(client == nullptr)
+		return;
 
-			HANDLE hnd = serv.SendClientData(msg, nBy, clients[i].pc, true);
-			TCPServ::WaitAndCloseHandle(hnd);
-			dealloc(msg);
+	const UINT offset = sizeof(UINT) + (userLen * sizeof(TCHAR));
+	const DWORD nBy = (nBytes - offset) + MSG_OFFSET;
+	char* msg = alloc<char>(nBy);
 
-			break;
-		}
-	}
+	msg[0] = type;
+	msg[1] = message;
+	memcpy(&msg[MSG_OFFSET], &dat[offset], nBytes - offset);
+
+	HANDLE hnd = serv.SendClientData(msg, nBy, client->pc, true);
+	TCPServ::WaitAndCloseHandle(hnd);
+	dealloc(msg);
+
 }
 
-void TransferMessageWithName(TCPServ& serv, std::tstring& srcUserName, BYTE* dat)
+void TransferMessageWithName(TCPServ& serv, std::tstring& srcUserName, MsgStreamReader& streamReader)
 {
-	auto& clients = serv.GetClients();
-	std::tstring user = std::tstring((TCHAR*)&(dat[MSG_OFFSET]));
-	for (USHORT i = 0; i < clients.size(); i++)
-	{
-		if (clients[i].user.compare(user) == 0)
-		{
-			const DWORD nBy = MSG_OFFSET + ((srcUserName.size() + 1) * sizeof(TCHAR));
-			char* msg = alloc<char>(nBy);
-			memcpy(msg, dat, MSG_OFFSET);
-			memcpy(&msg[MSG_OFFSET], srcUserName.c_str(), nBy - MSG_OFFSET);
+	std::tstring user = streamReader.ReadEnd<TCHAR>();
+	auto *client = serv.FindClient(user);
+	if(client == nullptr)
+		return;
 
-			HANDLE hnd = serv.SendClientData(msg, nBy, clients[i].pc, true);
-			TCPServ::WaitAndCloseHandle(hnd);
-			dealloc(msg);
+	const DWORD nameLen = srcUserName.size() + 1;
+	MsgStreamWriter streamWriter(streamReader.GetType(), streamReader.GetMsg(), nameLen * sizeof(TCHAR));
 
-			break;
-		}
-	}
+	streamWriter.Write(srcUserName.c_str(), nameLen);
+
+	HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), client->pc, true);
+	TCPServ::WaitAndCloseHandle(hnd);
 }
 
-void TransferMessage(TCPServ& serv, char* dat)
+void TransferMessage(TCPServ& serv, MsgStreamReader& streamReader)
 {
-	auto& clients = serv.GetClients();
-	std::tstring user = std::tstring((TCHAR*)&(dat[MSG_OFFSET]));
-	for (USHORT i = 0; i < clients.size(); i++)
-	{
-		if (clients[i].user.compare(user) == 0)
-		{
-			const DWORD nBy = MSG_OFFSET;
-			char* msg = alloc<char>(nBy);
-			memcpy(msg, dat, MSG_OFFSET);
+	std::tstring user = streamReader.ReadEnd<TCHAR>();
+	auto *client = serv.FindClient(user);
+	if(client == nullptr)
+		return;
 
-			HANDLE hnd = serv.SendClientData(msg, nBy, clients[i].pc, true);
-			TCPServ::WaitAndCloseHandle(hnd);
-			dealloc(msg);
+	MsgStreamWriter mStreamOut(streamReader.GetType(), streamReader.GetMsg(), 0);
 
-			break;
-		}
-	}
+	HANDLE hnd = serv.SendClientData(mStreamOut, mStreamOut.GetSize(), client->pc, true);
+	TCPServ::WaitAndCloseHandle(hnd);
 }
 
-void RequestTransfer(TCPServ& serv, std::tstring& srcUserName, BYTE* dat)
+void RequestTransfer(TCPServ& serv, std::tstring& srcUserName, MsgStreamReader& streamReader)
 {
-	auto& clients = serv.GetClients();
-	const UINT srcUserLen = *(UINT*)&(dat[MSG_OFFSET]);
-	std::tstring user = std::tstring((TCHAR*)&(dat[MSG_OFFSET + sizeof(UINT)]), srcUserLen - 1);
-	
-	for (USHORT i = 0; i < clients.size(); i++)
-	{
-		if (clients[i].user.compare(user) == 0)
-		{
-			const UINT nameLen = srcUserName.size() + 1;
-			const DWORD nameSize = nameLen * sizeof(TCHAR);
-			const DWORD nBy = sizeof(UINT) + nameSize + sizeof(double);
-			MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_TRANSFER, nBy);
-			streamWriter.Write(nameLen);
-			streamWriter.Write(srcUserName.c_str(), nameSize);
-			streamWriter.Write<double>(*(double*)&(dat[MSG_OFFSET + sizeof(UINT) + (srcUserLen * sizeof(TCHAR))]));
+	const UINT srcUserLen = streamReader.Read<UINT>();
+	std::tstring user = streamReader.Read<TCHAR>(srcUserLen);
+	auto *client = serv.FindClient(user);
+	if(client == nullptr)
+		return;
 
-			HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clients[i].pc, true);
-			TCPServ::WaitAndCloseHandle(hnd);
+	const UINT nameLen = srcUserName.size() + 1;
+	const DWORD nBy = sizeof(UINT) + (nameLen * sizeof(TCHAR)) + sizeof(double);
+	MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_TRANSFER, nBy);
+	streamWriter.Write(nameLen);
+	streamWriter.Write(srcUserName.c_str(), nameLen);
+	streamWriter.Write<double>(streamReader.Read<double>());
 
-			break;
-		}
-	}
+	HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), client->pc, true);
+	TCPServ::WaitAndCloseHandle(hnd);
 }
 
 void DispIPMsg(Socket& pc, const TCHAR* str)
@@ -223,6 +198,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 {
 	TCPServ& serv = *(TCPServ*)server;
 	auto& clients = serv.GetClients();
+	
 	char* dat = (char*)(&data[MSG_OFFSET]);
 	nBytes -= MSG_OFFSET;
 	MsgStreamReader streamReader((char*)data, nBytes);
@@ -238,7 +214,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		{
 			EnterCriticalSection(&authentSect);
 
-			std::tstring authent(streamReader.Read<TCHAR>(streamReader.GetDataSize()));
+			std::tstring authent(streamReader.ReadEnd<TCHAR>());
 			const UINT pos = authent.find(_T(":"));
 			assert(pos != std::tstring::npos);
 
@@ -258,13 +234,12 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 				}
 			}
 
+			TCPServ::ClientData* fClient = serv.FindClient(user);
+			
 			//If user is already connected, reject
-			for (USHORT i = 0; i < clients.size(); i++)
+			if(fClient && fClient->user.compare(user) == 0)
 			{
-				if (clients[i].user.compare(user) == 0)
-				{
-					auth = false;
-				}
+				auth = false;
 			}
 
 			if (!inList)
@@ -283,14 +258,14 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 				//Confirm authentication
 				serv.SendMsg(clients[index].pc, true, TYPE_RESPONSE, MSG_RESPONSE_AUTH_CONFIRMED);
 
-				//Transer currentlist of clients to new client
+				//Transfer currentlist of clients to new client
 				for (USHORT i = 0; i < clients.size(); i++)
 				{
 					if (i != index && !clients[i].user.empty())
 					{
-						const DWORD nBy = (clients[i].user.size() + 1) * sizeof(TCHAR);
-						MsgStreamWriter streamWriter(TYPE_CHANGE, MSG_CONNECTINIT, nBy);
-						streamWriter.Write(clients[i].user.c_str(), nBy);
+						const DWORD nameLen = clients[i].user.size() + 1;
+						MsgStreamWriter streamWriter(TYPE_CHANGE, MSG_CONNECTINIT, nameLen * sizeof(TCHAR));
+						streamWriter.Write(clients[i].user.c_str(), nameLen);
 
 						HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clients[index].pc, true);
 						TCPServ::WaitAndCloseHandle(hnd);
@@ -319,13 +294,13 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 
 		case MSG_REQUEST_TRANSFER:
 		{
-			RequestTransfer(serv, clients[index].user, data);
+			RequestTransfer(serv, clients[index].user, streamReader);
 			break;
 		}
 		case MSG_REQUEST_WHITEBOARD:
 		{
 			if(IsAdmin(clients[index].user) || wb->IsCreator(clients[index].user))
-				TransferMessageWithName(serv, clients[index].user, data);
+				TransferMessageWithName(serv, clients[index].user, streamReader);
 			else
 				serv.SendMsg(clients[index].user, TYPE_ADMIN, MSG_ADMIN_NOT);
 		}
@@ -370,7 +345,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		case MSG_FILE_SEND_CANCELED:
 		case MSG_FILE_RECEIVE_CANCELED:
 		{
-			TransferMessage(serv, (char*)data);
+			TransferMessage(serv, streamReader);
 			break;
 		}
 		}
@@ -383,7 +358,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		case MSG_RESPONSE_TRANSFER_DECLINED:
 		case MSG_RESPONSE_TRANSFER_CONFIRMED:
 		{
-			TransferMessageWithName(serv, clients[index].user, data);
+			TransferMessageWithName(serv, clients[index].user, streamReader);
 			break;
 		}
 		case MSG_RESPONSE_WHITEBOARD_CONFIRMED:
@@ -401,9 +376,9 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 			wb->SendBitmap(RectU(0, 0, wbParams.width, wbParams.height), clients[index].pc, true);
 
 			{
-				const DWORD nBy = (clients[index].user.size() + 1) * sizeof(TCHAR);
-				MsgStreamWriter streamWriter(TYPE_RESPONSE, MSG_RESPONSE_WHITEBOARD_CONFIRMED, nBy);
-				streamWriter.Write(clients[index].user.c_str(), nBy);
+				const DWORD nameLen = clients[index].user.size() + 1;
+				MsgStreamWriter streamWriter(TYPE_RESPONSE, MSG_RESPONSE_WHITEBOARD_CONFIRMED, nameLen * sizeof(TCHAR));
+				streamWriter.Write(clients[index].user.c_str(), nameLen);
 				HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), wb->GetPcs());
 				TCPServ::WaitAndCloseHandle(hnd);
 			}
@@ -434,7 +409,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 					}
 
 					//Disconnect User
-					TransferMessageWithName(serv, clients[index].user, data);
+					TransferMessageWithName(serv, clients[index].user, streamReader);
 					for (USHORT i = 0; i < clients.size(); i++)
 					{
 						if (clients[i].user.compare(user) == 0)
@@ -449,7 +424,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 				else
 				{
 					//Disconnect User
-					TransferMessageWithName(serv, clients[index].user, data);
+					TransferMessageWithName(serv, clients[index].user, streamReader);
 					for (USHORT i = 0; i < clients.size(); i++)
 					{
 						if (clients[i].user.compare(user) == 0)
@@ -514,7 +489,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		{
 			if(wb->IsCreator(clients[index].user))
 			{
-				serv.SendMsg(wb->GetPcs(), TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
+				serv.SendMsg(wb->GetPcs(), TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);				
 				destruct(wb);
 			}
 			else
@@ -536,7 +511,7 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 				}
 				// BUG: Creator leaving before clients causes clients to crash
 				// TODO: Before destroying whiteboard, remove all clients, check for wb before accessing.
-				TransferMessageWithName(serv, clients[index].user, data);
+				TransferMessageWithName(serv, clients[index].user, streamReader);
 				break;
 			}
 
@@ -545,11 +520,14 @@ void MsgHandler(void* server, USHORT& index, BYTE* data, DWORD nBytes, void* obj
 		}
 		case MSG_WHITEBOARD_LEFT:
 		{
-			wb->RemoveClient( clients[ index ].pc );
-			if(wb->IsCreator(clients[index].user))
+			if (wb)
 			{
-				serv.SendMsg(wb->GetPcs(), TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
-				destruct(wb);
+				wb->RemoveClient( clients[ index ].pc );
+				if (wb->IsCreator(clients[index].user))
+				{
+					serv.SendMsg(wb->GetPcs(), TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
+					destruct(wb);
+				}
 			}
 		break;
 		}

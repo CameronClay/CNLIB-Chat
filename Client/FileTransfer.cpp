@@ -168,8 +168,7 @@ void FileSend::SetFullPathSrc(std::tstring& fullFilepathSrc)
 void FileSend::RequestTransfer()
 {
 	const UINT nameLen = username.size() + 1;
-	const DWORD nameSize = (nameLen * sizeof(TCHAR));
-	const DWORD nBytes = sizeof(UINT) + nameSize + sizeof(double);
+	const DWORD nBytes = sizeof(UINT) + (nameLen * sizeof(TCHAR)) + sizeof(double);
 	MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_TRANSFER, nBytes);
 
 	for(auto& i : list)
@@ -178,7 +177,7 @@ void FileSend::RequestTransfer()
 	size /= (1024 * 1024);
 
 	streamWriter.Write(nameLen);
-	streamWriter.Write(username.c_str(), nameSize);
+	streamWriter.Write(username.c_str(), nameLen);
 	streamWriter.Write(size);
 
 	HANDLE hnd = client.SendServData(streamWriter, streamWriter.GetSize());
@@ -199,8 +198,8 @@ void FileSend::SendFileNameList()
 	const UINT userLen = username.size() + 1;
 	const DWORD nBytes = ((nChars + userLen) * sizeof(TCHAR)) + ((sizeof(SYSTEMTIME) + sizeof(DWORD64) + sizeof(UINT)) * list.size()) + sizeof(UINT);
 	MsgStreamWriter streamWriter(TYPE_FILE, MSG_FILE_LIST, nBytes);
-	streamWriter.Write((UINT)userLen);
-	streamWriter.Write(username.c_str(), userLen * sizeof(TCHAR));
+	streamWriter.Write(userLen);
+	streamWriter.Write(username.c_str(), userLen);
 
 	for(auto it = list.begin(), end = list.end(); it != end; it++)
 	{
@@ -274,8 +273,7 @@ HANDLE& FileSend::GetThread()
 
 DWORD CALLBACK SendAllFiles(LPVOID data)
 {
-	HRESULT res = CoInitialize(NULL);
-	assert(SUCCEEDED(res));
+	CoInitialize(NULL);
 
 	FileSend& send = *(FileSend*)data;
 	std::vector<FileMisc::FileData>::iterator& it = send.GetIterator();
@@ -298,7 +296,6 @@ DWORD CALLBACK SendAllFiles(LPVOID data)
 
 	send.StopSend();
 
-	CoUninitialize();
 	return 0;
 }
 
@@ -309,11 +306,11 @@ void FileSend::StartSend()
 
 void FileSend::StopSend()
 {
-	CoUninitialize();
-
 	Stop();
 	if(thread)
 	{
+		CoUninitialize();
+
 		TerminateThread(thread, 0);
 		CloseHandle(thread);
 		thread = NULL;
@@ -334,10 +331,7 @@ FileReceive::FileReceive(TCPClient& client, HWND wnd, AlertFunc finished, AlertF
 	FileTransfer(client, wnd, finished, canceled),
 	file(),
 	bytesWritten(0)
-{
-	HRESULT res = CoInitialize(NULL);
-	assert(SUCCEEDED(res));
-}
+{}
 
 FileReceive::FileReceive(FileReceive&& ft)
 	:
@@ -350,7 +344,6 @@ FileReceive::FileReceive(FileReceive&& ft)
 
 FileReceive::~FileReceive()
 {
-	CoUninitialize();
 	StopReceive();
 }
 
@@ -365,12 +358,14 @@ void FileReceive::RecvFileNameList(MsgStreamReader& streamReader, std::tstring& 
 		const DWORD64 size = streamReader.Read<DWORD64>();
 		const SYSTEMTIME time = streamReader.Read<SYSTEMTIME>();
 		const UINT nameLen = streamReader.Read<UINT>();
-		std::tstring temp(streamReader.Read<TCHAR>((nameLen - 1) * sizeof(TCHAR)));
+		std::tstring temp(streamReader.Read<TCHAR>(nameLen));
 		temp.insert(0, downloadPath + _T("\\"));
 		list.push_back(FileMisc::FileData(temp, time, size));
 
 	}
 	it = list.begin();
+
+	CoInitialize(NULL);
 
 	dialog.Start(wnd, 100, _T("File transfer"), _T("Receiving..."), _T("Canceling"));
 }
@@ -449,6 +444,8 @@ void FileReceive::CloseAndReplaceFile()
 
 void FileReceive::StopReceive()
 {
+	if(running)
+		CoUninitialize();
 	Stop();
 	bytesWritten = 0;
 	ZeroMemory(tempFilename, sizeof(TCHAR) * ARRAYSIZE(tempFilename));

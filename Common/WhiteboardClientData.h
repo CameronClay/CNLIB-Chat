@@ -35,6 +35,14 @@ struct PointU
 		temp.y = y * val;
 		return temp;
 	}
+	PointU operator*(const float val)
+	{
+		PointU temp;
+		temp.x = (USHORT)((float)x * val);
+		temp.y = (USHORT)((float)x * val);
+
+		return temp;
+	}
 	PointU operator+(const PointU &val)
 	{
 		PointU temp;
@@ -68,7 +76,7 @@ struct PointU
 	float Length()
 	{
 		PointU ptSqr = Sqr();
-		return sqrt(ptSqr.x + ptSqr.y);
+		return sqrtf((float)(ptSqr.x + ptSqr.y));
 	}
 	float InvLength()
 	{
@@ -77,8 +85,8 @@ struct PointU
 	PointU Normalize()
 	{
 		PointU ptNorm;
-		ptNorm.x = x * InvLength();
-		ptNorm.y = y * InvLength();
+		ptNorm.x = (USHORT)((float)x * InvLength());
+		ptNorm.y = (USHORT)((float)y * InvLength());
 
 		return ptNorm;
 	}

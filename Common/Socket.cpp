@@ -44,7 +44,6 @@ Socket& Socket::operator= (Socket& pc)
 	this->pc = pc.pc;
 	return *this;
 }
-
 Socket& Socket::operator= (Socket&& pc)
 {
 	if(this != &pc)
