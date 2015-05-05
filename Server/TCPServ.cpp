@@ -298,10 +298,11 @@ static DWORD CALLBACK SendAllDataEx( LPVOID info )
 	data->nBytesComp = FileMisc::Compress(dataComp, nBytesComp, (const BYTE*)dataDeComp, data->nBytesDecomp, data->serv.GetCompression());
 	data->data = (char*)dataComp;
 
-	HANDLE* hnds;
+	const USHORT count = data->nPcs;
+	HANDLE* hnds = alloc<HANDLE>(count);
 	USHORT nHnds = 0;
 
-	for(USHORT i = 0, count = data->nPcs; i < count; i++)
+	for(USHORT i = 0; i < count; i++)
 	{
 		if (pcs[i].IsConnected())
 			hnds[nHnds++] = CreateThread(NULL, 0, SendDataEx, construct<SDataEx>(SDataEx(data, i)), CREATE_SUSPENDED, NULL);
