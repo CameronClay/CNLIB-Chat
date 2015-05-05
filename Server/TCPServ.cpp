@@ -429,7 +429,7 @@ TCPServ& TCPServ::operator=(TCPServ&& serv)
 
 		if(clients)
 		{
-			for(USHORT i = 0; i < nClients; i++)
+			for(USHORT i = 0; i < serv.nClients; i++)
 				clients[i] = serv.clients[i];
 		}
 
