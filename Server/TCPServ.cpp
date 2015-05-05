@@ -497,13 +497,13 @@ void TCPServ::RemoveClient(USHORT& pos)
 	}
 }
 
-TCPServ::ClientData** TCPServ::FindClient(std::tstring &user)
+TCPServ::ClientData* TCPServ::FindClient(std::tstring &user)
 {
 	for (USHORT i = 0; i < nClients; i++)
 	{
 		if (clients[i]->user == user)
 		{
-			return &clients[i];
+			return clients[i];
 		}
 	}
 	return nullptr;

@@ -106,7 +106,7 @@ void SendSingleUserData(TCPServ& serv, char* dat, DWORD nBytes, char type, char 
 	const UINT userLen = *(UINT*)&(dat[0]);
 	//																	   - 1 for \0
 	std::tstring user = std::tstring((TCHAR*)&(dat[sizeof(UINT)]), userLen - 1);
-	TCPServ::ClientData** client = serv.FindClient(user);
+	TCPServ::ClientData* client = serv.FindClient(user);
 	if(client == nullptr)
 		return;
 
@@ -118,7 +118,7 @@ void SendSingleUserData(TCPServ& serv, char* dat, DWORD nBytes, char type, char 
 	msg[1] = message;
 	memcpy(&msg[MSG_OFFSET], &dat[offset], nBytes - offset);
 
-	HANDLE hnd = serv.SendClientData(msg, nBy, (*client)->pc, true);
+	HANDLE hnd = serv.SendClientData(msg, nBy, client->pc, true);
 	TCPServ::WaitAndCloseHandle(hnd);
 	dealloc(msg);
 
@@ -127,7 +127,7 @@ void SendSingleUserData(TCPServ& serv, char* dat, DWORD nBytes, char type, char 
 void TransferMessageWithName(TCPServ& serv, std::tstring& srcUserName, MsgStreamReader& streamReader)
 {
 	std::tstring user = streamReader.ReadEnd<TCHAR>();
-	TCPServ::ClientData** client = serv.FindClient(user);
+	TCPServ::ClientData* client = serv.FindClient(user);
 	if(client == nullptr)
 		return;
 
@@ -136,20 +136,20 @@ void TransferMessageWithName(TCPServ& serv, std::tstring& srcUserName, MsgStream
 
 	streamWriter.Write(srcUserName.c_str(), nameLen);
 
-	HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), (*client)->pc, true);
+	HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), client->pc, true);
 	TCPServ::WaitAndCloseHandle(hnd);
 }
 
 void TransferMessage(TCPServ& serv, MsgStreamReader& streamReader)
 {
 	std::tstring user = streamReader.ReadEnd<TCHAR>();
-	TCPServ::ClientData** client = serv.FindClient(user);
+	TCPServ::ClientData* client = serv.FindClient(user);
 	if(client == nullptr)
 		return;
 
 	MsgStreamWriter mStreamOut(streamReader.GetType(), streamReader.GetMsg(), 0);
 
-	HANDLE hnd = serv.SendClientData(mStreamOut, mStreamOut.GetSize(), (*client)->pc, true);
+	HANDLE hnd = serv.SendClientData(mStreamOut, mStreamOut.GetSize(), client->pc, true);
 	TCPServ::WaitAndCloseHandle(hnd);
 }
 
@@ -157,7 +157,7 @@ void RequestTransfer(TCPServ& serv, std::tstring& srcUserName, MsgStreamReader& 
 {
 	const UINT srcUserLen = streamReader.Read<UINT>();
 	std::tstring user = streamReader.Read<TCHAR>(srcUserLen);
-	TCPServ::ClientData** client = serv.FindClient(user);
+	TCPServ::ClientData* client = serv.FindClient(user);
 	if(client == nullptr)
 		return;
 
@@ -168,7 +168,7 @@ void RequestTransfer(TCPServ& serv, std::tstring& srcUserName, MsgStreamReader& 
 	streamWriter.Write(srcUserName.c_str(), nameLen);
 	streamWriter.Write<double>(streamReader.Read<double>());
 
-	HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), (*client)->pc, true);
+	HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), client->pc, true);
 	TCPServ::WaitAndCloseHandle(hnd);
 }
 
@@ -236,10 +236,10 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 				}
 			}
 
-			TCPServ::ClientData** fClient = serv.FindClient(user);
+			TCPServ::ClientData* fClient = serv.FindClient(user);
 
 			//If user is already connected, reject
-			if(fClient && (*fClient)->user.compare(user) == 0)
+			if(fClient && fClient->user.compare(user) == 0)
 			{
 				auth = false;
 			}
