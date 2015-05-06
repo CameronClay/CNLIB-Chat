@@ -305,7 +305,7 @@ static DWORD CALLBACK SendAllDataEx( LPVOID info )
 	for(USHORT i = 0; i < count; i++)
 	{
 		if (pcs[i].IsConnected())
-			hnds[nHnds++] = CreateThread(NULL, 0, SendDataEx, construct<SDataEx>(SDataEx(data, i)), CREATE_SUSPENDED, NULL);
+			hnds[nHnds++] = CreateThread(NULL, 0, SendDataEx, construct<SDataEx>(SDataEx(data, pcs[i])), CREATE_SUSPENDED, NULL);
 	}
 
 	EnterCriticalSection(serv.GetSendSect());
@@ -473,8 +473,9 @@ void TCPServ::RemoveClient(USHORT& pos)
 	const USHORT index = pos;
 
 	ClientData& data = *clients[index];
-	std::tstring user = std::move(data.user);
 	RunDisFunc(data);
+
+	std::tstring user = std::move(data.user);
 
 	data.pc.Disconnect();
 	destruct(clients[index]);
