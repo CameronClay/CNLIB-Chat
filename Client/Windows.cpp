@@ -29,6 +29,7 @@
 
 const float APPVERSION = .002f;
 const float CONFIGVERSION = .002f;
+const USHORT DEFAULTPORT = 565;
 
 #pragma region WindowClassIDs
 #define ID_SERV_CONNECT 0
@@ -1162,10 +1163,11 @@ INT_PTR CALLBACK ConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 		{
 			const UINT index = SendMessage(list, LB_GETCURSEL, 0, 0);
 			const UINT len = SendMessage(list, LB_GETTEXTLEN, index, 0);
-			TCHAR* buffer = alloc<TCHAR>(len + 1);
-			SendMessage(list, LB_GETTEXT, index, (LPARAM)buffer);
-			TCHAR temp[10] = {};
-			Connect(buffer, _itot(port, temp, 10), timeOut);
+			std::tstring str;
+			str.resize(len + 1);
+			SendMessage(list, LB_GETTEXT, index, (LPARAM)&str[0]);
+			const UINT pos = str.find(_T(":"));
+			Connect(str.substr(0, pos).c_str(), str.substr(pos + 1).c_str(), timeOut);
 			if (client->Connected())
 			{
 				client->RecvServData();
@@ -1181,7 +1183,6 @@ INT_PTR CALLBACK ConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 			{
 				MessageBox(hWnd, _T("Unable to connect to server"), _T("ERROR"), MB_ICONERROR);
 			}
-			dealloc(buffer);
 			break;
 		}
 		case IDCANCEL:
@@ -1203,7 +1204,7 @@ INT_PTR CALLBACK ConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 
 INT_PTR CALLBACK ManageProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	static HWND list, ipInput, add, remove;
+	static HWND list, ipInput, portInput, add, remove;
 	switch (message)
 	{
 	case WM_COMMAND:
@@ -1211,11 +1212,12 @@ INT_PTR CALLBACK ManageProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 		const short id = LOWORD(wParam);
 		switch (id)
 		{
+		case ID_MANAGE_PORT:
 		case ID_IP_ADD:
 			switch (HIWORD(wParam))
 			{
 			case EN_CHANGE:
-				if (SendMessage(list, IPM_ISBLANK, 0, 0) == 0)
+				if((SendMessage(list, IPM_ISBLANK, 0, 0) == 0) && (SendMessage(portInput, WM_GETTEXTLENGTH, 0, 0) > 0))
 					EnableWindow(add, TRUE);
 				else
 					EnableWindow(add, FALSE);
@@ -1249,7 +1251,7 @@ INT_PTR CALLBACK ManageProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 			DWORD ip = 0;
 			SendMessage(ipInput, IPM_GETADDRESS, 0, (LPARAM)&ip);
 			TCHAR buffer[INET_ADDRSTRLEN] = {};
-			_stprintf(buffer, _T("%d.%d.%d.%d"), FIRST_IPADDRESS(ip), SECOND_IPADDRESS(ip), THIRD_IPADDRESS(ip), FOURTH_IPADDRESS(ip));
+			_stprintf(buffer, _T("%d.%d.%d.%d:%d"), FIRST_IPADDRESS(ip), SECOND_IPADDRESS(ip), THIRD_IPADDRESS(ip), FOURTH_IPADDRESS(ip), GetDlgItemInt(hWnd,ID_MANAGE_PORT,NULL,FALSE));
 			SendMessage(ipInput, IPM_CLEARADDRESS, 0, 0);
 			servList.push_back(buffer);
 			SendMessage(list, LB_ADDSTRING, 0, (LPARAM)buffer);
@@ -1271,7 +1273,11 @@ INT_PTR CALLBACK ManageProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 	}
 	case WM_INITDIALOG:
 	{
-		list = GetDlgItem(hWnd, ID_ADDR_LIST_MANAGE), ipInput = GetDlgItem(hWnd, ID_IP_ADD), add = GetDlgItem(hWnd, ID_BUTTON_ADD), remove = GetDlgItem(hWnd, ID_BUTTON_REMOVE);
+		list = GetDlgItem(hWnd, ID_ADDR_LIST_MANAGE), ipInput = GetDlgItem(hWnd, ID_IP_ADD), portInput = GetDlgItem(hWnd, ID_MANAGE_PORT), add = GetDlgItem(hWnd, ID_BUTTON_ADD), remove = GetDlgItem(hWnd, ID_BUTTON_REMOVE);
+		
+		SendMessage(portInput, EM_SETLIMITTEXT, 5, 0);
+		SetDlgItemInt(hWnd, ID_MANAGE_PORT, DEFAULTPORT, FALSE);
+
 		for (auto& i : servList)
 			SendMessage(list, LB_ADDSTRING, 0, (LPARAM)i.c_str());
 
