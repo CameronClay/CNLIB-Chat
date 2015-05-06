@@ -69,12 +69,13 @@ public:
 
 	void AllowConnections(const TCHAR* port);//Starts receiving as well
 
-	//addr parameter functions as both the excluded address, and as a single address, depending on the value of single
+	// addr parameter functions as both the excluded address, and as a single address, 
+	// depending on the value of single
 	HANDLE SendClientData(char* data, DWORD nBytes, Socket addr, bool single);
 	HANDLE SendClientData(char* data, DWORD nBytes, Socket* pcs, USHORT nPcs);
 	HANDLE SendClientData(char* data, DWORD nBytes, std::vector<Socket>& pcs);
 
-	//send msg funtions used for requests, replies ect. they do not send data
+	// send msg funtions used for requests, replies ect. they do not send data
 	void SendMsg(Socket pc, bool single, char type, char message);
 	void SendMsg(Socket* pcs, USHORT nPcs, char type, char message);
 	void SendMsg(std::vector<Socket>& pcs, char type, char message);
