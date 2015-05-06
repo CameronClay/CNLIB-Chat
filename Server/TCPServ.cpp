@@ -409,12 +409,6 @@ TCPServ::TCPServ(TCPServ&& serv)
 	compression(serv.compression),
 	maxCon(serv.maxCon)
 {
-	if(clients)
-	{
-		for(USHORT i = 0; i < nClients; i++)
-			clients[i] = serv.clients[i];
-	}
-
 	ZeroMemory(&serv, sizeof(TCPServ));
 }
 
@@ -426,13 +420,6 @@ TCPServ& TCPServ::operator=(TCPServ&& serv)
 
 		host = serv.host;
 		clients = serv.clients;
-
-		if(clients)
-		{
-			for(USHORT i = 0; i < serv.nClients; i++)
-				clients[i] = serv.clients[i];
-		}
-
 		nClients = serv.nClients;
 		function = serv.function;
 		obj = serv.obj;
