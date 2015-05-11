@@ -327,7 +327,10 @@ void FileSend::StopSend()
 		Stop();
 		CoUninitialize();
 
-		PostThreadMessage(GetThreadId(thread), WM_QUIT, 0, 0);
+		if(PostThreadMessage(GetThreadId(thread), WM_QUIT, 0, 0) == 0)
+		{
+			int a = 0;
+		}
 		CloseHandle(thread);
 		thread = NULL;
 	}
