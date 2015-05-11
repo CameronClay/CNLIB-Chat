@@ -1668,7 +1668,7 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 
 		BYTE count;
 		palette.Get(count);
-		HIMAGELIST himl = ImageList_Create( 50, 16, ILC_COLOR, count, 0 );
+		HIMAGELIST himl = ImageList_Create(50, 16, ILC_COLOR32, count, 0);
 		D3DCOLOR* pBits = alloc<D3DCOLOR>( 50 * 16 );
 		for( int p = 0; p < count; p++ )
 		{
