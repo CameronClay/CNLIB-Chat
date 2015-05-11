@@ -69,6 +69,8 @@ PingHandler::PingHandler()
 	inactivityTimer(CreateWaitableTimer(NULL, FALSE, NULL)),
 	sendPingThread(NULL),
 	sendPingTimer(CreateWaitableTimer(NULL, FALSE, NULL)),
+	sendPingID(NULL),
+	inactivityID(NULL),
 	pingDataEx(nullptr)
 {}
 
@@ -79,6 +81,8 @@ PingHandler::PingHandler(PingHandler&& ping)
 	inactivityTimer(ping.inactivityTimer),
 	sendPingThread(ping.sendPingThread),
 	sendPingTimer(ping.sendPingTimer),
+	sendPingID(ping.sendPingID),
+	inactivityID(ping.inactivityID),
 	pingDataEx(ping.pingDataEx)
 {
 	ZeroMemory(&ping, sizeof(PingHandler));
@@ -94,6 +98,8 @@ PingHandler& PingHandler::operator=(PingHandler&& data)
 		inactivityTimer = data.inactivityTimer;
 		sendPingThread = data.sendPingThread;
 		sendPingTimer = data.sendPingTimer;
+		sendPingID = data.sendPingID;
+		inactivityID = data.inactivityID;
 		pingDataEx = data.pingDataEx;
 
 		ZeroMemory(&data, sizeof(PingHandler));
@@ -119,14 +125,14 @@ PingHandler::~PingHandler()
 
 	if(inactivityThread)
 	{
-		PostThreadMessage(GetThreadId(inactivityThread), WM_QUIT, 0, 0);
+		PostThreadMessage(inactivityID, WM_QUIT, 0, 0);
 		CloseHandle(inactivityThread);
 		inactivityThread = NULL;
 	}
 
 	if(sendPingThread)
 	{
-		PostThreadMessage(GetThreadId(sendPingThread), WM_QUIT, 0, 0);
+		PostThreadMessage(sendPingID, WM_QUIT, 0, 0);
 		CloseHandle(sendPingThread);
 		sendPingThread = NULL;
 	}
@@ -196,7 +202,7 @@ void PingHandler::AutoPingHandlerOn(PingDataEx& pingData)
 	LI.QuadPart = 0;
 	BOOL res = SetWaitableTimer(sendPingTimer, &LI, (LONG)(pingData.pingInterval * 1000.0f), NULL, NULL, FALSE);
 	if(!sendPingThread)
-		sendPingThread = CreateThread(NULL, 0, PingThread, (LPVOID)((PingData*)&pingData), NULL, NULL);
+		sendPingThread = CreateThread(NULL, 0, PingThread, (LPVOID)((PingData*)&pingData), NULL, &sendPingID);
 }
 
 void PingHandler::SetInactivityTimer(TCPServ& serv, Socket& socket, float inactiveInterval, float pingInterval)
@@ -208,7 +214,7 @@ void PingHandler::SetInactivityTimer(TCPServ& serv, Socket& socket, float inacti
 
 		if(sendPingThread)
 		{
-			PostThreadMessage(GetThreadId(sendPingThread), WM_QUIT, 0, 0);
+			PostThreadMessage(sendPingID, WM_QUIT, 0, 0);
 			CloseHandle(sendPingThread);
 			sendPingThread = NULL;
 		}
@@ -221,7 +227,7 @@ void PingHandler::SetInactivityTimer(TCPServ& serv, Socket& socket, float inacti
 	{
 		destruct(pingDataEx);
 		pingDataEx = construct<PingDataEx>(PingDataEx(serv, *this, socket, inactiveInterval, pingInterval));
-		inactivityThread = CreateThread(NULL, 0, Inactivity, (LPVOID)pingDataEx, NULL, NULL);
+		inactivityThread = CreateThread(NULL, 0, Inactivity, (LPVOID)pingDataEx, NULL, &inactivityID);
 	}
 }
 

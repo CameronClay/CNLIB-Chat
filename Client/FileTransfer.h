@@ -67,10 +67,10 @@ public:
 	std::tstring& GetFilePathSrc();
 	HANDLE& GetThread();
 private:
-
 	std::tstring fullFilepathSrc;
 	DWORD nBytesPerLoop;
 	HANDLE thread;
+	DWORD threadID;
 };
 
 class MsgStreamReader;

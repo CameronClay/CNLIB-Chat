@@ -40,5 +40,6 @@ public:
 
 private:
 	HANDLE recvThread, inactivityThread, inactivityTimer, sendPingThread, sendPingTimer;
+	DWORD sendPingID, inactivityID;
 	PingDataEx* pingDataEx;
 };

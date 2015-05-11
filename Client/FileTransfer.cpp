@@ -131,17 +131,19 @@ bool FileTransfer::Running() const
 FileSend::FileSend(TCPClient& client, HWND wnd, AlertFunc finished, AlertFunc canceled, std::vector<FileMisc::FileData>&& list, DWORD nBytesPerLoop)
 	:
 	FileTransfer(client, wnd, finished, canceled, std::move(list)),
+	fullFilepathSrc(),
 	nBytesPerLoop(nBytesPerLoop),
 	thread(NULL),
-	fullFilepathSrc()
+	threadID(NULL)
 {}
 
 FileSend::FileSend(TCPClient& client, HWND wnd, AlertFunc finished, AlertFunc canceled, DWORD nBytesPerLoop)
 	:
 	FileTransfer(client, wnd, finished, canceled),
+	fullFilepathSrc(),
 	nBytesPerLoop(nBytesPerLoop),
 	thread(NULL),
-	fullFilepathSrc()
+	threadID(NULL)
 {}
 
 
@@ -238,7 +240,6 @@ void FileSend::SendCurrentFile()
 	{
 		if(dialog.Canceled())
 		{
-			file.Close();
 			client.SendMsg(username, TYPE_FILE, MSG_FILE_SEND_CANCELED);
 
 			StopSend();
@@ -260,8 +261,8 @@ void FileSend::SendCurrentFile()
 		it->size -= bytesRead;
 	}
 
+	//file.close() happens in dtor
 	++it;
-	file.Close();
 }
 
 std::tstring& FileSend::GetFilePathSrc()
@@ -321,14 +322,14 @@ DWORD CALLBACK SendAllFiles(LPVOID data)
 
 void FileSend::StartSend()
 {
-	thread = CreateThread(NULL, 0, SendAllFiles, this, NULL, NULL);
+	thread = CreateThread(NULL, 0, SendAllFiles, this, NULL, &threadID);
 }
 
 void FileSend::StopSend()
 {
 	if(thread)
 	{
-		PostThreadMessage(GetThreadId(thread), WM_QUIT, 0, 0);
+		PostThreadMessage(threadID, WM_QUIT, 0, 0);
 		CloseHandle(thread);
 		thread = NULL;
 	}
