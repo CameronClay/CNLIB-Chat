@@ -32,9 +32,7 @@ Socket::Socket(SOCKET pc)
 Socket::Socket(Socket&& sock)
 	:
 	pc(sock.pc)
-{
-	ZeroMemory(&sock, sizeof(Socket));
-}
+{}
 
 Socket::~Socket(){}
 
@@ -71,6 +69,15 @@ bool Socket::operator!= (const SOCKET pc) const
 	return pc != this->pc;
 }
 
+Socket::operator SOCKET&()
+{
+	return pc;
+}
+
+Socket::operator HANDLE&()
+{
+	return (HANDLE&)pc;
+}
 
 void Socket::Bind(const TCHAR* port)
 {
@@ -111,8 +118,7 @@ void Socket::Connect(const TCHAR* dest, const TCHAR* port, float timeout)
 		pc = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
 		if(pc != INVALID_SOCKET)
 		{
-			u_long nbio = 1;
-			ioctlsocket(pc, FIONBIO, &nbio);
+			SetNonBlocking();
 			result = connect(pc, addr->ai_addr, addr->ai_addrlen);
 			if(result == SOCKET_ERROR)
 			{
@@ -128,14 +134,12 @@ void Socket::Connect(const TCHAR* dest, const TCHAR* port, float timeout)
 				}
 				else
 				{
-					nbio = 0;
-					ioctlsocket(pc, FIONBIO, &nbio);
+					SetBlocking();
 				}
 			}
 			else
 			{
-				nbio = 0;
-				ioctlsocket(pc, FIONBIO, &nbio);
+				SetBlocking();
 			}
 		}
 		FreeAddrInfo(addr);
@@ -144,9 +148,12 @@ void Socket::Connect(const TCHAR* dest, const TCHAR* port, float timeout)
 
 void Socket::Disconnect()
 {
-	shutdown(pc, SD_BOTH);
-	closesocket(pc);
-	pc = INVALID_SOCKET;
+	if(IsConnected())
+	{
+		shutdown(pc, SD_BOTH);
+		closesocket(pc);
+		pc = INVALID_SOCKET;
+	}
 }
 
 
@@ -221,5 +228,17 @@ void Socket::HostNameToIP(const TCHAR* host, TCHAR* dest, UINT buffSize)
 	Inet_ntot(((sockaddr_in*)p->ai_addr)->sin_addr, dest);
 #endif
 	FreeAddrInfo(p);
+}
+
+void Socket::SetBlocking()
+{
+	u_long nbio = 0;
+	ioctlsocket(pc, FIONBIO, &nbio);
+}
+
+void Socket::SetNonBlocking()
+{
+	u_long nbio = 1;
+	ioctlsocket(pc, FIONBIO, &nbio);
 }
 

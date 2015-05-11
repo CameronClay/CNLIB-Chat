@@ -199,7 +199,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 	TCPServ& serv = *(TCPServ*)server;
 	auto& clients = serv.GetClients();
 	const USHORT nClients = serv.ClientCount();
-	TCPServ::ClientData*& clint = *(TCPServ::ClientData**)client;
+	TCPServ::ClientData* clint = (TCPServ::ClientData*)client;
 	
 	char* dat = (char*)(&data[MSG_OFFSET]);
 	nBytes -= MSG_OFFSET;

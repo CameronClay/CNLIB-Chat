@@ -13,42 +13,9 @@ class TCPServ
 public:
 	struct ClientData
 	{
-		ClientData(Socket pc, sfunc func, USHORT recvIndex)
-			:
-			pc(pc),
-			func(func),
-			pingHandler(),
-			recvIndex(recvIndex),
-			recvThread(INVALID_HANDLE_VALUE)
-		{}
-
-		ClientData(ClientData&& clint)
-			:
-			pc(std::move(clint.pc)),
-			func(clint.func),
-			pingHandler(std::move(clint.pingHandler)),
-			user(std::move(clint.user)),
-			recvIndex(clint.recvIndex),
-			recvThread(clint.recvThread)
-		{
-			ZeroMemory(&clint, sizeof(ClientData));
-		}
-
-		ClientData& operator=(ClientData&& data)
-		{
-			if( this != &data )
-			{
-				pc = std::move( data.pc );
-				func = data.func;
-				pingHandler = std::move(data.pingHandler);
-				user = std::move( data.user );
-				recvIndex = data.recvIndex;
-				recvThread = data.recvThread;
-
-				ZeroMemory( &data, sizeof( ClientData ) );
-			}
-			return *this;
-		}
+		ClientData(Socket pc, sfunc func, USHORT recvIndex);
+		ClientData(ClientData&& clint);
+		ClientData& operator=(ClientData&& data);
 
 		Socket pc;
 		sfunc func;
@@ -67,7 +34,7 @@ public:
 
 	TCPServ& operator=(TCPServ&& serv);
 
-	void AllowConnections(const TCHAR* port);//Starts receiving as well
+	bool AllowConnections(const TCHAR* port);//Starts receiving as well
 
 	//addr parameter functions as both the excluded address, and as a single address, depending on the value of single
 	HANDLE SendClientData(char* data, DWORD nBytes, Socket addr, bool single);
@@ -103,6 +70,7 @@ public:
 	void* GetObj() const;
 	void WaitForRecvThread();
 	int GetCompression() const;
+	bool IsConnected() const;
 private:
 	Socket host;
 	ClientData** clients;

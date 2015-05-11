@@ -121,13 +121,53 @@ struct SDataEx
 };
 
 
-DWORD CALLBACK WaitForConnections( LPVOID tcpServ )
+TCPServ::ClientData::ClientData(Socket pc, sfunc func, USHORT recvIndex)
+	:
+	pc(pc),
+	func(func),
+	pingHandler(),
+	recvIndex(recvIndex),
+	recvThread(INVALID_HANDLE_VALUE)
+{}
+
+TCPServ::ClientData::ClientData(ClientData&& clint)
+	:
+	pc(std::move(clint.pc)),
+	func(clint.func),
+	pingHandler(std::move(clint.pingHandler)),
+	user(std::move(clint.user)),
+	recvIndex(clint.recvIndex),
+	recvThread(clint.recvThread)
+{
+	ZeroMemory(&clint, sizeof(ClientData));
+}
+
+TCPServ::ClientData& TCPServ::ClientData::operator=(ClientData&& data)
+{
+	if(this != &data)
+	{
+		pc = std::move(data.pc);
+		func = data.func;
+		pingHandler = std::move(data.pingHandler);
+		user = std::move(data.user);
+		recvIndex = data.recvIndex;
+		recvThread = data.recvThread;
+
+		ZeroMemory(&data, sizeof(ClientData));
+	}
+	return *this;
+}
+
+
+DWORD CALLBACK WaitForConnections(LPVOID tcpServ)
 {
 	TCPServ& serv = *(TCPServ*)tcpServ;
-	while( true )
+	Socket& host = serv.GetHost();
+
+	while( host.IsConnected() )
 	{
-		Socket temp = serv.GetHost().AcceptConnection();
-		if( temp != INVALID_SOCKET )
+		Socket temp = host.AcceptConnection();
+		if( temp.IsConnected() )
 		{
 			if(!serv.MaxClients())
 			{
@@ -153,30 +193,30 @@ static DWORD CALLBACK RecvData(LPVOID info)
 	TCPServ& serv = data->serv;
 	TCPServ::ClientData**& clients = serv.GetClients();
 	USHORT& pos = clients[data->pos]->recvIndex;
-	Socket& pc = clients[pos]->pc;
-	void* obj = serv.GetObj();
+	TCPServ::ClientData* clint = clients[pos];
+	Socket& pc = clint->pc;
 	DWORD nBytesComp = 0, nBytesDecomp = 0;
 
-	while (true)
+	while(pc.IsConnected())
 	{
-		if (pc.ReadData(&nBytesDecomp, sizeof(DWORD)) > 0)
+		if(pc.ReadData(&nBytesDecomp, sizeof(DWORD)) > 0)
 		{
-			if (pc.ReadData(&nBytesComp, sizeof(DWORD)) > 0)
+			if(pc.ReadData(&nBytesComp, sizeof(DWORD)) > 0)
 			{
 				BYTE* compBuffer = alloc<BYTE>(nBytesComp);
-				if (pc.ReadData(compBuffer, nBytesComp) > 0)
+				if(pc.ReadData(compBuffer, nBytesComp) > 0)
 				{
 					BYTE* deCompBuffer = alloc<BYTE>(nBytesDecomp);
 					FileMisc::Decompress(deCompBuffer, nBytesDecomp, compBuffer, nBytesComp);
 					dealloc(compBuffer);
 
-					clients[pos]->pingHandler.SetInactivityTimer(serv, pc, INACTIVETIME, PINGTIME);
-					(clients[pos]->func)(&serv, &clients[pos], deCompBuffer, nBytesDecomp, obj);
+					(clint->func)(&serv, clint, deCompBuffer, nBytesDecomp, serv.GetObj());
 					dealloc(deCompBuffer);
+
+					clint->pingHandler.SetInactivityTimer(serv, pc, INACTIVETIME, PINGTIME);
 				}
 				else
 				{
-					//PrintError(GetLastError());
 					dealloc(compBuffer);
 					break;
 				}
@@ -196,7 +236,6 @@ static DWORD CALLBACK SendData( LPVOID info )
 {
 	SData* data = (SData*)info;
 	SAData* saData = data->saData;
-	TCPServ& serv = saData->serv;
 	Socket pc = data->pc;
 
 	if(pc.SendData(&saData->nBytesDecomp, sizeof(DWORD)) > 0)
@@ -213,7 +252,6 @@ static DWORD CALLBACK SendDataEx(LPVOID info)
 {
 	SDataEx* data = (SDataEx*)info;
 	SADataEx* saData = data->saData;
-	TCPServ& serv = saData->serv;
 	Socket pc = data->pc;
 
 	if(pc.SendData(&saData->nBytesDecomp, sizeof(DWORD)) > 0)
@@ -440,15 +478,27 @@ TCPServ::~TCPServ()
 	Shutdown();
 }
 
-void TCPServ::AllowConnections(const TCHAR* port)
+bool TCPServ::AllowConnections(const TCHAR* port)
 {
+	if(clients)
+		return false;
+
 	InitializeCriticalSection(&clientSect);
 	InitializeCriticalSection(&sendSect);
 
 	host.Bind(port);
+
+	if(!host.IsConnected())
+		return false;
+
 	clients = alloc<ClientData*>(maxCon);
 
-	openCon = CreateThread( NULL, 0, WaitForConnections, this, NULL, NULL );
+	openCon = CreateThread(NULL, 0, WaitForConnections, this, NULL, NULL);
+
+	if(!openCon)
+		return false;
+
+	return true;
 }
 
 void TCPServ::AddClient(Socket pc)
@@ -478,6 +528,7 @@ void TCPServ::RemoveClient(USHORT& pos)
 	std::tstring user = std::move(data.user);
 
 	data.pc.Disconnect();
+	CloseHandle(data.recvThread);
 	destruct(clients[index]);
 
 	if(index != (nClients - 1))
@@ -515,36 +566,30 @@ void TCPServ::Shutdown()
 {
 	if(clients)
 	{
-		DeleteCriticalSection(&clientSect);
-		DeleteCriticalSection(&sendSect);
+		host.Disconnect();//causes opencon thread to close
+		WaitAndCloseHandle(openCon);
 
+		//close recv threads and free memory
 		for(USHORT i = 0; i < nClients; i++)
 		{
 			ClientData& data = *clients[i];
-			TerminateThread(data.recvThread, 0);
-			CloseHandle(data.recvThread);
 			data.pc.Disconnect();
+			WaitForSingleObject(data.recvThread, INFINITE); //handle closed in RemoveClient
 			destruct(clients[i]);
 		}
 
 		dealloc(clients);
 
-		host.Disconnect();
-
-		if(openCon)
-		{
-			TerminateThread(openCon, 0);
-			CloseHandle(openCon);
-			openCon = NULL;
-		}
+		DeleteCriticalSection(&clientSect);
+		DeleteCriticalSection(&sendSect);
 	}
 }
 
 void TCPServ::WaitAndCloseHandle(HANDLE& hnd)
 {
-	WaitForSingleObject(hnd, INFINITE);
+	DWORD temp = WaitForSingleObject(hnd, INFINITE);
 	CloseHandle(hnd);
-	hnd = INVALID_HANDLE_VALUE;
+	hnd = NULL; //NULL instead of INVALID_HANDLE_VALUE due to move ctor
 }
 
 void TCPServ::Ping(Socket& client)
@@ -597,6 +642,11 @@ void* TCPServ::GetObj() const
 int TCPServ::GetCompression() const
 {
 	return compression;
+}
+
+bool TCPServ::IsConnected() const
+{
+	return host.IsConnected();
 }
 
 CRITICAL_SECTION* TCPServ::GetSendSect()

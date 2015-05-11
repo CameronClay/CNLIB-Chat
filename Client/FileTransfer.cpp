@@ -183,6 +183,7 @@ void FileSend::RequestTransfer()
 	HANDLE hnd = client.SendServData(streamWriter, streamWriter.GetSize());
 	TCPClient::WaitAndCloseHandle(hnd);
 
+
 	running = true;
 }
 
@@ -212,6 +213,8 @@ void FileSend::SendFileNameList()
 
 	HANDLE hnd = client.SendServData(streamWriter, streamWriter.GetSize());
 	TCPClient::WaitAndCloseHandle(hnd);
+
+	it = list.begin();
 }
 
 void FileSend::SendCurrentFile()
@@ -238,9 +241,8 @@ void FileSend::SendCurrentFile()
 			file.Close();
 			client.SendMsg(username, TYPE_FILE, MSG_FILE_SEND_CANCELED);
 
-			RunCanceled();
-
 			StopSend();
+			return;
 		}
 		UINT pos = MSG_OFFSET;
 		msg[0] = TYPE_FILE;
@@ -258,6 +260,7 @@ void FileSend::SendCurrentFile()
 		it->size -= bytesRead;
 	}
 
+	++it;
 	file.Close();
 }
 
@@ -281,21 +284,34 @@ DWORD CALLBACK SendAllFiles(LPVOID data)
 
 	send.SendFileNameList();
 
-	it = list.begin();
-
 	const bool result = send.GetDialog().Start(send.GetWnd(), 100, _T("File transfer"), _T("Sending..."), _T("Canceling"));
 	assert(result);
 
-	while(it != list.end())
+	while(true)
 	{
-		send.SendCurrentFile();
-		++it;
+		MSG msg;
+		if(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) == 0)
+		{
+			if(it == list.end())
+				break;
+
+			send.SendCurrentFile();
+		}
+		else
+		{
+			do
+			{
+				if(msg.message == WM_QUIT)
+				{
+					send.RunCanceled();
+					return 0;
+				}
+			} while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) != 0);
+		}
 	}
 
 	send.RunFinished();
-
 	send.StopSend();
-
 	return 0;
 }
 
@@ -306,12 +322,12 @@ void FileSend::StartSend()
 
 void FileSend::StopSend()
 {
-	Stop();
 	if(thread)
 	{
+		Stop();
 		CoUninitialize();
 
-		TerminateThread(thread, 0);
+		PostThreadMessage(GetThreadId(thread), WM_QUIT, 0, 0);
 		CloseHandle(thread);
 		thread = NULL;
 	}

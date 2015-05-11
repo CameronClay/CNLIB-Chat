@@ -119,14 +119,14 @@ PingHandler::~PingHandler()
 
 	if(inactivityThread)
 	{
-		TerminateThread(inactivityThread, 0);
+		PostThreadMessage(GetThreadId(inactivityThread), WM_QUIT, 0, 0);
 		CloseHandle(inactivityThread);
 		inactivityThread = NULL;
 	}
 
 	if(sendPingThread)
 	{
-		TerminateThread(sendPingThread, 0);
+		PostThreadMessage(GetThreadId(sendPingThread), WM_QUIT, 0, 0);
 		CloseHandle(sendPingThread);
 		sendPingThread = NULL;
 	}
@@ -137,10 +137,26 @@ PingHandler::~PingHandler()
 DWORD CALLBACK Inactivity(LPVOID info)
 {
 	PingHandler::PingDataEx& data = *(PingHandler::PingDataEx*)info;
+	HANDLE timer = data.pingHandler.GetInactivityTimer();
 
-	while(WaitForSingleObject(data.pingHandler.GetInactivityTimer(), INFINITE) == WAIT_OBJECT_0)
+	while(true)
 	{
-		data.pingHandler.AutoPingHandlerOn(data);
+		const DWORD ret = MsgWaitForMultipleObjects(1, &timer, FALSE, INFINITE, QS_ALLINPUT);
+		if(ret == WAIT_OBJECT_0)
+			data.pingHandler.AutoPingHandlerOn(data);
+
+		else if(ret == WAIT_OBJECT_0 + 1)
+		{
+			MSG msg;
+			while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) != 0)
+			{
+				if(msg.message == WM_QUIT)
+					return 0;
+			}
+		}
+
+		else
+			return 0;
 	}
 
 	return 0;
@@ -149,10 +165,26 @@ DWORD CALLBACK Inactivity(LPVOID info)
 DWORD CALLBACK PingThread(LPVOID info)
 {
 	PingHandler::PingData& datRef = *(PingHandler::PingData*)info;
+	HANDLE timer = datRef.pingHandler.GetPingTimer();
 
-	while(WaitForSingleObject(datRef.pingHandler.GetPingTimer(), INFINITE) == WAIT_OBJECT_0)
+	while(true)
 	{
-		datRef.serv.Ping(datRef.socket);
+		const DWORD ret = MsgWaitForMultipleObjects(1, &timer, FALSE, INFINITE, QS_ALLINPUT);
+		if(ret == WAIT_OBJECT_0)
+			datRef.serv.Ping(datRef.socket);
+
+		else if(ret == WAIT_OBJECT_0 + 1)
+		{
+			MSG msg;
+			while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) != 0)
+			{
+				if(msg.message == WM_QUIT)
+					return 0;
+			}
+		}
+
+		else
+			return 0;
 	}
 
 	return 0;
@@ -161,7 +193,7 @@ DWORD CALLBACK PingThread(LPVOID info)
 void PingHandler::AutoPingHandlerOn(PingDataEx& pingData)
 {
 	LARGE_INTEGER LI;
-	LI.QuadPart = (LONGLONG)(pingData.pingInterval * -10000000.0f);
+	LI.QuadPart = 0;
 	BOOL res = SetWaitableTimer(sendPingTimer, &LI, (LONG)(pingData.pingInterval * 1000.0f), NULL, NULL, FALSE);
 	if(!sendPingThread)
 		sendPingThread = CreateThread(NULL, 0, PingThread, (LPVOID)((PingData*)&pingData), NULL, NULL);
@@ -176,7 +208,7 @@ void PingHandler::SetInactivityTimer(TCPServ& serv, Socket& socket, float inacti
 
 		if(sendPingThread)
 		{
-			TerminateThread(sendPingThread, 0);
+			PostThreadMessage(GetThreadId(sendPingThread), WM_QUIT, 0, 0);
 			CloseHandle(sendPingThread);
 			sendPingThread = NULL;
 		}
@@ -202,3 +234,4 @@ HANDLE PingHandler::GetPingTimer() const
 {
 	return sendPingTimer;
 }
+

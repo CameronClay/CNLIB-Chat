@@ -47,6 +47,9 @@ public:
 	bool operator== (const SOCKET pc) const;
 	bool operator!= (const SOCKET pc) const;
 
+	operator SOCKET&();
+	operator HANDLE&();
+
 	void Bind(const TCHAR* port);
 	Socket AcceptConnection();
 
@@ -58,6 +61,9 @@ public:
 
 	void ToIp(TCHAR* ipaddr) const;
 	bool IsConnected() const;
+
+	void SetBlocking();
+	void SetNonBlocking();
 
 	//dest size needs to be at least 16
 	static void GetLocalIP(TCHAR* dest);

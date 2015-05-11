@@ -113,7 +113,7 @@ static DWORD CALLBACK ReceiveData(LPVOID param)
 	DWORD nBytesComp = 0, nBytesDecomp = 0;
 	Socket& host = client.GetHost();
 
-	while (true)
+	while (host.IsConnected())
 	{
 		if (host.ReadData(&nBytesDecomp, sizeof(DWORD)) > 0)
 		{
@@ -146,20 +146,26 @@ static DWORD CALLBACK ReceiveData(LPVOID param)
 }
 
 //IP or HostName for dest
-void TCPClient::Connect( const TCHAR* dest, const TCHAR* port, float timeOut )
+bool TCPClient::Connect( const TCHAR* dest, const TCHAR* port, float timeOut )
 {
+	if(host.IsConnected())
+		return false;
+
 	host.Connect( dest, port, timeOut );
+
+	if(!host.IsConnected())
+		return false;
+
+	return true;
 }
 
 void TCPClient::Disconnect()
 {
-	host.Disconnect();
+	host.Disconnect(); //causes recvThread to close
 	if (recv)
 	{
-		TerminateThread(recv, 0);
 		CloseHandle(recv);
 		recv = NULL;
-
 		DeleteCriticalSection(&sendSect);
 	}
 }
@@ -199,7 +205,7 @@ void TCPClient::WaitAndCloseHandle(HANDLE& hnd)
 {
 	WaitForSingleObject(hnd, INFINITE);
 	CloseHandle(hnd);
-	hnd = INVALID_HANDLE_VALUE;
+	hnd = NULL; //NULL instead of INVALID_HANDLE_VALUE due to move ctor
 }
 
 void TCPClient::Ping()
@@ -247,7 +253,7 @@ void(*TCPClient::GetDisfunc()) ()
 	return disconFunc;
 }
 
-bool TCPClient::Connected() const
+bool TCPClient::IsConnected() const
 {
 	return host.IsConnected();
 }

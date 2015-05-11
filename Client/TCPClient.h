@@ -13,7 +13,7 @@ public:
 	TCPClient& operator=(TCPClient&& client);
 
 
-	void Connect(const TCHAR* dest, const TCHAR* port, float timeOut);
+	bool Connect(const TCHAR* dest, const TCHAR* port, float timeOut);
 	void Disconnect();
 
 	HANDLE SendServData(const char* data, DWORD nBytes);
@@ -36,7 +36,7 @@ public:
 	CRITICAL_SECTION* GetSendSect();
 
 	void(*GetDisfunc()) ();
-	bool Connected() const;
+	bool IsConnected() const;
 
 private:
 	Socket host;

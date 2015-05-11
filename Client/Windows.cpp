@@ -206,7 +206,7 @@ void DispText(BYTE* data, DWORD nBytes)
 void Connect(const TCHAR* dest, const TCHAR* port, float timeOut)
 {
 	client->Connect(dest, port, timeOut);
-	if (client->Connected())
+	if (client->IsConnected())
 	{
 		EnableMenuItem(file, ID_SERV_CONNECT, MF_GRAYED);
 		EnableMenuItem(file, ID_SERV_DISCONNECT, MF_ENABLED);
@@ -333,7 +333,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					if(name.compare(fileSend->GetUser()) == 0)
 					{
 						fileSend->StopSend();	
-						fileSend->RunCanceled();
+						//fileSend->RunCanceled(); not required because of msgloop in sendfiles
 					}
 				}
 
@@ -455,7 +455,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				case MSG_FILE_RECEIVE_CANCELED:
 				{
 					fileSend->StopSend();
-					fileSend->RunCanceled();
+					//fileSend->RunCanceled(); not required because of msgloop in sendfiles
 				}
 			}// MSG_FILE
 
@@ -819,7 +819,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			if (GetWindowTextLength(textInput) == 0) break;
 
-			if (!client->Connected())
+			if (!client->IsConnected())
 			{
 				MessageBox(hMainWind, _T("Must be connected to server"), _T("ERROR"), MB_ICONERROR);
 				break;
@@ -1168,7 +1168,7 @@ INT_PTR CALLBACK ConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 			SendMessage(list, LB_GETTEXT, index, (LPARAM)&str[0]);
 			const UINT pos = str.find(_T(":"));
 			Connect(str.substr(0, pos).c_str(), str.substr(pos + 1).c_str(), timeOut);
-			if (client->Connected())
+			if (client->IsConnected())
 			{
 				client->RecvServData();
 				MsgStreamWriter streamWriter(TYPE_VERSION, MSG_VERSION_CHECK, sizeof(float));

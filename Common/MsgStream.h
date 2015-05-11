@@ -127,13 +127,6 @@ public:
 		assert(pos <= nBytes + 2);
 	}
 
-	template<typename T> void Write(const T&& t)
-	{
-		*((T*)(&data[pos])) = t;
-		pos += sizeof(T);
-		assert(pos <= nBytes + 2);
-	}
-
 	template<typename T> void Write(T* t, DWORD count)
 	{
 		const DWORD nBytes = count * sizeof(T);
