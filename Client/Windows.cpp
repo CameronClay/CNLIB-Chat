@@ -395,7 +395,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 
 				case MSG_RESPONSE_TRANSFER_DECLINED:
 				{
-					fileSend->StopSend();
+					fileSend->Stop();//stop instead of stopsend because thread hasnt been created and only vars need cleared
 
 					TCHAR buffer[255];
 					_stprintf(buffer, _T("%s has declined your transfer request!"), (TCHAR*)dat);

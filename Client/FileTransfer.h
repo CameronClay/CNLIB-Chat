@@ -26,9 +26,10 @@ public:
 
 	void RunFinished();
 	void RunCanceled();
+
+	void Stop();
 protected:
 	void SetList(std::vector<FileMisc::FileData>&& list);
-	void Stop();
 
 	TCPClient& client;
 	HWND wnd;

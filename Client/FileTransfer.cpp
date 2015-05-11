@@ -303,15 +303,19 @@ DWORD CALLBACK SendAllFiles(LPVOID data)
 			{
 				if(msg.message == WM_QUIT)
 				{
+					send.Stop();
 					send.RunCanceled();
+					CoUninitialize();
 					return 0;
 				}
 			} while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) != 0);
 		}
 	}
 
+	send.Stop();
 	send.RunFinished();
 	send.StopSend();
+	CoUninitialize();
 	return 0;
 }
 
@@ -324,13 +328,7 @@ void FileSend::StopSend()
 {
 	if(thread)
 	{
-		Stop();
-		CoUninitialize();
-
-		if(PostThreadMessage(GetThreadId(thread), WM_QUIT, 0, 0) == 0)
-		{
-			int a = 0;
-		}
+		PostThreadMessage(GetThreadId(thread), WM_QUIT, 0, 0);
 		CloseHandle(thread);
 		thread = NULL;
 	}

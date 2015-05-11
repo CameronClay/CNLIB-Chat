@@ -251,7 +251,7 @@ void Whiteboard::SendBitmap()
 
 		MakeRectPixels(rectList.front(), &msg[MSG_OFFSET]);
 
-		HANDLE hnd = serv.SendClientData(msg, nBytes, sendPcs.data(), sendPcs.size());
+		HANDLE hnd = serv.SendClientData(msg, nBytes, sendPcs);
 		TCPServ::WaitAndCloseHandle(hnd);
 		dealloc(msg);
 

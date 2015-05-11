@@ -92,7 +92,7 @@ void Socket::Bind(const TCHAR* port)
 
 Socket Socket::AcceptConnection()
 {
-	if(pc != INVALID_SOCKET)
+	if(IsConnected())
 	{
 		SOCKET temp = accept(pc, NULL, NULL);
 		if(temp != INVALID_SOCKET)
@@ -100,7 +100,7 @@ Socket Socket::AcceptConnection()
 			return Socket(temp);
 		}
 	}
-	return Socket(INVALID_SOCKET);
+	return Socket();
 }
 
 
