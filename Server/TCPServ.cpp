@@ -121,11 +121,11 @@ struct SDataEx
 };
 
 
-TCPServ::ClientData::ClientData(Socket pc, sfunc func, USHORT recvIndex)
+TCPServ::ClientData::ClientData(TCPServ& serv, Socket pc, sfunc func, USHORT recvIndex)
 	:
 	pc(pc),
 	func(func),
-	pingHandler(),
+	pingHandler(serv, pc),
 	recvIndex(recvIndex),
 	recvThread(INVALID_HANDLE_VALUE)
 {}
@@ -213,7 +213,7 @@ static DWORD CALLBACK RecvData(LPVOID info)
 					(clint->func)(&serv, clint, deCompBuffer, nBytesDecomp, serv.GetObj());
 					dealloc(deCompBuffer);
 
-					clint->pingHandler.SetInactivityTimer(serv, pc, INACTIVETIME, PINGTIME);
+					clint->pingHandler.SetPingTimer(serv, pc, serv.GetPingInterval());
 				}
 				else
 				{
@@ -418,7 +418,7 @@ void TCPServ::SendMsg(std::tstring& user, char type, char message)
 }
 
 
-TCPServ::TCPServ(USHORT maxCon, sfunc func, void* obj, int compression, customFunc conFunc, customFunc disFunc)
+TCPServ::TCPServ(sfunc func, customFunc conFunc, customFunc disFunc, USHORT maxCon, int compression, float pingInterval, void* obj)
 	:
 	host(INVALID_SOCKET),
 	clients(nullptr),
@@ -429,7 +429,8 @@ TCPServ::TCPServ(USHORT maxCon, sfunc func, void* obj, int compression, customFu
 	disFunc(disFunc),
 	openCon(NULL),
 	compression(compression),
-	maxCon(maxCon)
+	maxCon(maxCon),
+	pingInterval(pingInterval)
 {}
 
 TCPServ::TCPServ(TCPServ&& serv)
@@ -445,7 +446,8 @@ TCPServ::TCPServ(TCPServ&& serv)
 	sendSect(serv.sendSect),
 	openCon(serv.openCon),
 	compression(serv.compression),
-	maxCon(serv.maxCon)
+	maxCon(serv.maxCon),
+	pingInterval(serv.pingInterval)
 {
 	ZeroMemory(&serv, sizeof(TCPServ));
 }
@@ -468,6 +470,8 @@ TCPServ& TCPServ::operator=(TCPServ&& serv)
 		openCon = serv.openCon;
 		const_cast<int&>(compression) = serv.compression;
 		const_cast<USHORT&>(maxCon) = serv.maxCon;
+		pingInterval = serv.pingInterval;
+
 		ZeroMemory(&serv, sizeof(TCPServ));
 	}
 	return *this;
@@ -480,23 +484,21 @@ TCPServ::~TCPServ()
 
 bool TCPServ::AllowConnections(const TCHAR* port)
 {
-	if(clients)
-		return false;
-
-	InitializeCriticalSection(&clientSect);
-	InitializeCriticalSection(&sendSect);
-
 	host.Bind(port);
 
 	if(!host.IsConnected())
 		return false;
 
-	clients = alloc<ClientData*>(maxCon);
+	if(!clients)
+		clients = alloc<ClientData*>(maxCon);
 
 	openCon = CreateThread(NULL, 0, WaitForConnections, this, NULL, NULL);
 
 	if(!openCon)
 		return false;
+
+	InitializeCriticalSection(&clientSect);
+	InitializeCriticalSection(&sendSect);
 
 	return true;
 }
@@ -506,7 +508,7 @@ void TCPServ::AddClient(Socket pc)
 	EnterCriticalSection(&clientSect);
 
 	Data* data = construct<Data>(Data(*this, nClients));
-	clients[nClients] = construct<ClientData>({ pc, function, data->pos });
+	clients[nClients] = construct<ClientData>({ data->serv, pc, function, data->pos });
 	clients[nClients]->recvThread = CreateThread(NULL, 0, RecvData, data, NULL, NULL);
 
 	RunConFunc(*clients[nClients]);
@@ -624,6 +626,11 @@ void TCPServ::SetFunction(USHORT index, sfunc function)
 	clients[index]->func = function;
 }
 
+void TCPServ::SetPingInterval(float interval)
+{
+	this->pingInterval = interval;
+}
+
 void TCPServ::RunConFunc(ClientData& client)
 {
 	conFunc(client);
@@ -652,4 +659,9 @@ bool TCPServ::IsConnected() const
 CRITICAL_SECTION* TCPServ::GetSendSect()
 {
 	return &sendSect;
+}
+
+float TCPServ::GetPingInterval() const
+{
+	return pingInterval;
 }

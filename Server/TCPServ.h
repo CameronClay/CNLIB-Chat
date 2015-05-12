@@ -5,15 +5,12 @@
 #include "Socket.h"
 #include "Ping.h"
 
-#define INACTIVETIME 30.0f
-#define PINGTIME 2.0f
-
 class TCPServ
 {
 public:
 	struct ClientData
 	{
-		ClientData(Socket pc, sfunc func, USHORT recvIndex);
+		ClientData(TCPServ& serv, Socket pc, sfunc func, USHORT recvIndex);
 		ClientData(ClientData&& clint);
 		ClientData& operator=(ClientData&& data);
 
@@ -28,7 +25,7 @@ public:
 	typedef void(*const customFunc)(ClientData& data);
 
 	//sfunc is a message handler, compression is 1-9
-	TCPServ(USHORT maxCon, sfunc func, void* obj, int compression, customFunc conFunc, customFunc disFunc);
+	TCPServ(sfunc func, customFunc conFunc, customFunc disFunc, USHORT maxCon = 20, int compression = 9, float pingInterval = 30.0f, void* obj = nullptr);
 	TCPServ(TCPServ&& serv);
 	~TCPServ();
 
@@ -63,6 +60,7 @@ public:
 	ClientData**& GetClients();
 	USHORT ClientCount() const;
 	void SetFunction(USHORT index, sfunc function);
+	void SetPingInterval(float interval);
 
 	CRITICAL_SECTION* GetSendSect();
 
@@ -72,6 +70,7 @@ public:
 	void WaitForRecvThread();
 	int GetCompression() const;
 	bool IsConnected() const;
+	float GetPingInterval() const;
 private:
 	Socket host;
 	ClientData** clients;
@@ -83,4 +82,5 @@ private:
 	HANDLE openCon;
 	const int compression;
 	const USHORT maxCon;
+	float pingInterval;
 };

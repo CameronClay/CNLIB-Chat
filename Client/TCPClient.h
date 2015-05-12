@@ -6,7 +6,7 @@ class TCPClient
 {
 public:
 	//cfunc is a message handler, compression 1-9
-	TCPClient(cfunc func, void(*const disconFunc)(), void* obj, int compression);
+	TCPClient(cfunc func, void(*const disconFunc)(), int compression = 9, void* obj = nullptr);
 	TCPClient(TCPClient&& client);
 	~TCPClient();
 
@@ -17,7 +17,7 @@ public:
 	void Disconnect();
 
 	HANDLE SendServData(const char* data, DWORD nBytes);
-	void RecvServData();
+	bool RecvServData();
 
 	//send msg funtions used for requests, replies ect. they do not send data
 	void SendMsg(char type, char message);

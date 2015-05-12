@@ -30,7 +30,7 @@ public:
 	Socket(SOCKET pc);
 	Socket();
 	Socket(Socket&& sock);
-	~Socket();
+	~Socket(); //does not disconnect socket
 
 	struct Hash
 	{

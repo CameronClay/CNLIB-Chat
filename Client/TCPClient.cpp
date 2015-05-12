@@ -27,7 +27,7 @@ struct SendInfo
 };
 
 
-TCPClient::TCPClient(cfunc func, void(*const disconFunc)(), void* obj, int compression)
+TCPClient::TCPClient(cfunc func, void(*const disconFunc)(), int compression, void* obj)
 	:
 	function(func),
 	disconFunc(disconFunc),
@@ -175,10 +175,15 @@ HANDLE TCPClient::SendServData(const char* data, DWORD nBytes)
 	return CreateThread(NULL, 0, SendData, (LPVOID)construct<SendInfo>(SendInfo(*this, (char*)data, nBytes)), NULL, NULL);
 }
 
-void TCPClient::RecvServData()
+bool TCPClient::RecvServData()
 {
+	if(!host.IsConnected())
+		return false;
+
 	recv = CreateThread(NULL, 0, ReceiveData, this, NULL, NULL);
 	InitializeCriticalSection(&sendSect);
+
+	return true;
 }
 
 void TCPClient::SendMsg(char type, char message)

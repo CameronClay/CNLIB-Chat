@@ -623,7 +623,7 @@ void WinMainInit()
 	MapPort(port, _T("TCP"), _T("Cam's Serv"));
 
 	TCHAR portA[5] = {};
-	serv = uqpc<TCPServ>(construct<TCPServ>(TCPServ(20, &MsgHandler, nullptr, 9, &ConnectHandler, &DisconnectHandler)));
+	serv = uqpc<TCPServ>(construct<TCPServ>({ &MsgHandler, &ConnectHandler, &DisconnectHandler }));
 
 	serv->AllowConnections(_itot(port, portA, 10));
 }

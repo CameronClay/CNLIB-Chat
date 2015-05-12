@@ -683,7 +683,7 @@ void WinMainInit()
 
 	InitializeNetworking();
 
-	client = uqpc<TCPClient>(construct<TCPClient>(TCPClient(&MsgHandler, &DisconnectHandler, NULL, 9)));
+	client = uqpc<TCPClient>(construct<TCPClient>(TCPClient(&MsgHandler, &DisconnectHandler)));
 	fileSend = uqpc<FileSend>(construct<FileSend>(FileSend(*client.get(), hMainWind, &SendFinishedHandler, &SendCanceledHandler)));
 	fileReceive = uqpc<FileReceive>(construct<FileReceive>(FileReceive(*client.get(), hMainWind, &ReceiveFinishedHandler, &ReceiveCanceledHandler)));
 	opts = uqpc<Options>(construct<Options>(Options(std::tstring(optionsFilePath), CONFIGVERSION)));
