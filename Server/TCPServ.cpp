@@ -552,7 +552,7 @@ void TCPServ::RemoveClient(USHORT& pos)
 	}
 }
 
-TCPServ::ClientData* TCPServ::FindClient(std::tstring &user)
+TCPServ::ClientData* TCPServ::FindClient(const std::tstring& user)
 {
 	for (USHORT i = 0; i < nClients; i++)
 	{
@@ -621,9 +621,9 @@ USHORT TCPServ::ClientCount() const
 	return nClients;
 }
 
-void TCPServ::SetFunction(USHORT index, sfunc function)
+void TCPServ::SetFunction(ClientData* client, sfunc function)
 {
-	clients[index]->func = function;
+	client->func = function;
 }
 
 void TCPServ::SetPingInterval(float interval)

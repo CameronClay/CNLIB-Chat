@@ -47,7 +47,7 @@ public:
 
 	void AddClient(Socket pc);
 	void RemoveClient(USHORT& pos);
-	ClientData* FindClient(std::tstring &user);
+	ClientData* FindClient(const std::tstring& user);
 	void Shutdown();
 
 	static void WaitAndCloseHandle(HANDLE& hnd);
@@ -59,7 +59,7 @@ public:
 
 	ClientData**& GetClients();
 	USHORT ClientCount() const;
-	void SetFunction(USHORT index, sfunc function);
+	void SetFunction(ClientData* client, sfunc function);
 	void SetPingInterval(float interval);
 
 	CRITICAL_SECTION* GetSendSect();
