@@ -31,18 +31,18 @@ DWORD CALLBACK PingThread(LPVOID info)
 	return 0;
 }
 
-PingHandler::PingData::PingData(TCPServ& serv, PingHandler& pingHandler, Socket& socket)
+PingHandler::PingData::PingData(TCPServ& serv, PingHandler& pingHandler, Socket socket)
 	:
-	pingHandler(pingHandler),
 	serv(serv),
+	pingHandler(pingHandler),
 	socket(socket)
 {}
 
 PingHandler::PingData::PingData(PingData&& pingData)
 	:
-	pingHandler(std::move(pingData.pingHandler)),
-	serv(std::move(pingData.serv)),
-	socket(std::move(pingData.socket))
+	serv(pingData.serv),
+	pingHandler(pingData.pingHandler),
+	socket(pingData.socket)
 {
 	ZeroMemory(&pingData, sizeof(PingData));
 }
@@ -62,7 +62,7 @@ auto PingHandler::PingData::operator=(PingData&& data) -> PingData&
 }
 
 
-PingHandler::PingHandler(TCPServ& serv, Socket& socket)
+PingHandler::PingHandler(TCPServ& serv, Socket socket)
 	:
 	pingTimer(CreateWaitableTimer(NULL, FALSE, NULL)),
 	pingThread(NULL),
@@ -114,7 +114,7 @@ PingHandler::~PingHandler()
 	destruct(pingData);
 }
 
-void PingHandler::SetPingTimer(TCPServ& serv, Socket& socket, float interval)
+void PingHandler::SetPingTimer(float interval)
 {
 	LARGE_INTEGER LI;
 	LI.QuadPart = (LONGLONG)(interval * -10000000.0f);

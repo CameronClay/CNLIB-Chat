@@ -8,22 +8,22 @@ class PingHandler
 public:
 	struct PingData
 	{
-		PingData(TCPServ& serv, PingHandler& pingHandler, Socket& socket);
+		PingData(TCPServ& serv, PingHandler& pingHandler, Socket socket);
 		PingData(PingData&& pingData);
 		PingData& operator=(PingData&& data);
 
 		TCPServ& serv;
 		PingHandler& pingHandler;
-		Socket& socket;
+		Socket socket;
 	};
 
 	PingHandler& operator=(PingHandler&& data);
 
-	PingHandler(TCPServ& serv, Socket& socket);
+	PingHandler(TCPServ& serv, Socket socket);
 	PingHandler(PingHandler&& ping);
 	~PingHandler();
 
-	void SetPingTimer(TCPServ& serv, Socket& socket, float interval);
+	void SetPingTimer(float interval);
 
 	HANDLE GetPingTimer() const;
 

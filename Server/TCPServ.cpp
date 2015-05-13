@@ -213,7 +213,7 @@ static DWORD CALLBACK RecvData(LPVOID info)
 					(clint->func)(&serv, clint, deCompBuffer, nBytesDecomp, serv.GetObj());
 					dealloc(deCompBuffer);
 
-					clint->pingHandler.SetPingTimer(serv, pc, serv.GetPingInterval());
+					clint->pingHandler.SetPingTimer(serv.GetPingInterval());
 				}
 				else
 				{
