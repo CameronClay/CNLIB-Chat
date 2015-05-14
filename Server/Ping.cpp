@@ -123,6 +123,7 @@ PingHandler::~PingHandler()
 	if(pingThread)
 	{
 		PostThreadMessage(pingID, WM_QUIT, 0, 0);
+		WaitForSingleObject(pingThread, INFINITE);
 		CloseHandle(pingThread);
 		pingThread = NULL;
 	}

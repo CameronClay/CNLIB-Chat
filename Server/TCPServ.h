@@ -52,7 +52,7 @@ public:
 
 	static void WaitAndCloseHandle(HANDLE& hnd);
 
-	void Ping(Socket& client);
+	void Ping(Socket client);
 
 	void RunConFunc(ClientData& client);
 	void RunDisFunc(ClientData& client);

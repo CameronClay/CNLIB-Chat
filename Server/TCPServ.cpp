@@ -175,10 +175,7 @@ DWORD CALLBACK WaitForConnections(LPVOID tcpServ)
 			}
 			else
 			{
-				char msg[] = { TYPE_CHANGE, MSG_CHANGE_SERVERFULL };
-				HANDLE hnd = serv.SendClientData(msg, MSG_OFFSET, temp, true);
-				TCPServ::WaitAndCloseHandle(hnd);
-
+				serv.SendMsg(temp, true, TYPE_CHANGE, MSG_CHANGE_SERVERFULL);
 				temp.Disconnect();
 			}
 		}
@@ -525,7 +522,9 @@ void TCPServ::RemoveClient(USHORT& pos)
 	const USHORT index = pos;
 
 	ClientData& data = *clients[index];
-	RunDisFunc(data);
+
+	if(host.IsConnected())
+		RunDisFunc(data);
 
 	std::tstring user = std::move(data.user);
 
@@ -543,7 +542,7 @@ void TCPServ::RemoveClient(USHORT& pos)
 
 	LeaveCriticalSection(&clientSect);
 
-	if(!user.empty())//if user wasnt declined authentication
+	if(!user.empty() && host.IsConnected())//if user wasnt declined authentication
 	{
 		MsgStreamWriter streamWriter(TYPE_CHANGE, MSG_CHANGE_DISCONNECT, (user.size() + 1) * sizeof(TCHAR));
 		streamWriter.WriteEnd(user.c_str());
@@ -571,13 +570,13 @@ void TCPServ::Shutdown()
 		host.Disconnect();//causes opencon thread to close
 		WaitAndCloseHandle(openCon);
 
+		//nClients != 0 because nClients changes after thread ends
 		//close recv threads and free memory
-		for(USHORT i = 0; i < nClients; i++)
+		while(nClients != 0)
 		{
-			ClientData& data = *clients[i];
+			ClientData& data = *clients[nClients - 1];
 			data.pc.Disconnect();
 			WaitForSingleObject(data.recvThread, INFINITE); //handle closed in RemoveClient
-			destruct(clients[i]);
 		}
 
 		dealloc(clients);
@@ -589,16 +588,14 @@ void TCPServ::Shutdown()
 
 void TCPServ::WaitAndCloseHandle(HANDLE& hnd)
 {
-	DWORD temp = WaitForSingleObject(hnd, INFINITE);
+	WaitForSingleObject(hnd, INFINITE);
 	CloseHandle(hnd);
 	hnd = NULL; //NULL instead of INVALID_HANDLE_VALUE due to move ctor
 }
 
-void TCPServ::Ping(Socket& client)
+void TCPServ::Ping(Socket client)
 {
-	char msg[] = { TYPE_PING, MSG_PING };
-	HANDLE hnd = SendClientData(msg, MSG_OFFSET, client, true);
-	WaitAndCloseHandle(hnd);
+	SendMsg(client, true, TYPE_PING, MSG_PING);
 }
 
 Socket& TCPServ::GetHost()
