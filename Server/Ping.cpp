@@ -6,7 +6,7 @@
 DWORD CALLBACK PingThread(LPVOID info)
 {
 	PingHandler::PingData& datRef = *(PingHandler::PingData*)info;
-	HANDLE timer = datRef.pingHandler.GetPingTimer();
+	HANDLE timer = datRef.pingHandler->GetPingTimer();
 
 	while(true)
 	{
@@ -31,7 +31,7 @@ DWORD CALLBACK PingThread(LPVOID info)
 	return 0;
 }
 
-PingHandler::PingData::PingData(TCPServ& serv, PingHandler& pingHandler, Socket socket)
+PingHandler::PingData::PingData(TCPServ& serv, PingHandler* pingHandler, Socket socket)
 	:
 	serv(serv),
 	pingHandler(pingHandler),
@@ -67,7 +67,7 @@ PingHandler::PingHandler(TCPServ& serv, Socket socket)
 	pingTimer(CreateWaitableTimer(NULL, FALSE, NULL)),
 	pingThread(NULL),
 	pingID(NULL),
-	pingData(construct<PingData>({ serv, *this, socket }))
+	pingData(construct<PingData>({ serv, this, socket }))
 {}
 
 PingHandler::PingHandler(PingHandler&& ping)
@@ -77,7 +77,8 @@ PingHandler::PingHandler(PingHandler&& ping)
 	pingID(ping.pingID),
 	pingData(ping.pingData)
 {
-	ZeroMemory(&ping, sizeof(PingHandler));
+	pingData->pingHandler = this;
+	ZeroMemory(&ping, sizeof(PingHandler)); //this line messes up this->pingData->pingHandler
 }
 
 PingHandler& PingHandler::operator=(PingHandler&& data)
@@ -89,8 +90,23 @@ PingHandler& PingHandler::operator=(PingHandler&& data)
 		pingThread = data.pingThread;
 		pingID = data.pingID;
 		pingData = data.pingData;
+		pingData->pingHandler = this;
 
 		ZeroMemory(&data, sizeof(PingHandler));
+	}
+	return *this;
+}
+
+PingHandler& PingHandler::operator=(const PingHandler& data)
+{
+	if(this != &data)
+	{
+		this->~PingHandler();
+		pingTimer = data.pingTimer;
+		pingThread = data.pingThread;
+		pingID = data.pingID;
+		pingData = data.pingData;
+		pingData->pingHandler = this;
 	}
 	return *this;
 }
