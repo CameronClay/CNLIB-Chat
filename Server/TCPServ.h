@@ -47,12 +47,13 @@ public:
 	void SendMsg(std::vector<Socket>& pcs, char type, char message);
 	void SendMsg(std::tstring& user, char type, char message);
 
-	void AddClient(Socket pc);
-	void RemoveClient(USHORT& pos);
 	ClientData* FindClient(const std::tstring& user);
 	void Shutdown();
 
 	//----Used in interval server code; do not use unless you know what you are doing----
+	void AddClient(Socket pc);
+	void RemoveClient(USHORT& pos);
+
 	void Ping(Socket client);
 
 	void RunConFunc(ClientData& client);
