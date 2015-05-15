@@ -65,7 +65,7 @@ public:
 	CRITICAL_SECTION* GetSendSect();
 	//-------------------------------------------------------------------------------------
 
-	ClientData**& GetClients();
+	ClientData** GetClients();
 	USHORT ClientCount() const;
 	void SetFunction(ClientData* client, sfunc function);
 	void SetPingInterval(float interval);

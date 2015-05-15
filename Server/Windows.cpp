@@ -197,7 +197,7 @@ void ConnectHandler(TCPServ::ClientData& data)
 void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 {
 	TCPServ& serv = *(TCPServ*)server;
-	auto& clients = serv.GetClients();
+	auto clients = serv.GetClients();
 	const USHORT nClients = serv.ClientCount();
 	TCPServ::ClientData* clint = (TCPServ::ClientData*)client;
 	

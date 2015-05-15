@@ -188,7 +188,7 @@ static DWORD CALLBACK RecvData(LPVOID info)
 {
 	Data* data = (Data*)info;
 	TCPServ& serv = data->serv;
-	TCPServ::ClientData**& clients = serv.GetClients();
+	TCPServ::ClientData** clients = serv.GetClients();
 	USHORT& pos = clients[data->pos]->recvIndex;
 	TCPServ::ClientData* clint = clients[pos];
 	Socket& pc = clint->pc;
@@ -266,7 +266,7 @@ static DWORD CALLBACK SendAllData( LPVOID info )
 {
 	SAData* data = (SAData*)info;
 	TCPServ& serv = data->serv;
-	auto& clients = serv.GetClients();
+	auto clients = serv.GetClients();
 	void* dataDeComp = data->data;
 
 	const DWORD nBytesComp = FileMisc::GetCompressedBufferSize(data->nBytesDecomp);
@@ -608,7 +608,7 @@ bool TCPServ::MaxClients() const
 	return nClients == maxCon;
 }
 
-TCPServ::ClientData**& TCPServ::GetClients()
+TCPServ::ClientData** TCPServ::GetClients()
 {
 	return clients;
 }
