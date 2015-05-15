@@ -31,15 +31,17 @@ public:
 
 	TCPServ& operator=(TCPServ&& serv);
 
-	bool AllowConnections(const TCHAR* port);//Starts receiving as well
+	//Allows connections to the server; should only be called once
+	bool AllowConnections(const TCHAR* port);
 
-	// addr parameter functions as both the excluded address, and as a single address, 
-	// depending on the value of single
+	//Used to send data to clients
+	//addr parameter functions as both the excluded address, and as a single address, 
+	//depending on the value of single
 	HANDLE SendClientData(char* data, DWORD nBytes, Socket addr, bool single);
 	HANDLE SendClientData(char* data, DWORD nBytes, Socket* pcs, USHORT nPcs);
 	HANDLE SendClientData(char* data, DWORD nBytes, std::vector<Socket>& pcs);
 
-	// send msg funtions used for requests, replies ect. they do not send data
+	//Send msg funtions used for requests, replies ect. they do not send data
 	void SendMsg(Socket pc, bool single, char type, char message);
 	void SendMsg(Socket* pcs, USHORT nPcs, char type, char message);
 	void SendMsg(std::vector<Socket>& pcs, char type, char message);
@@ -50,19 +52,22 @@ public:
 	ClientData* FindClient(const std::tstring& user);
 	void Shutdown();
 
-	static void WaitAndCloseHandle(HANDLE& hnd);
-
+	//----Used in interval server code; do not use unless you know what you are doing----
 	void Ping(Socket client);
 
 	void RunConFunc(ClientData& client);
 	void RunDisFunc(ClientData& client);
 
+	//Used to wait and close the handle to a thread
+	static void WaitAndCloseHandle(HANDLE& hnd);
+
+	CRITICAL_SECTION* GetSendSect();
+	//-------------------------------------------------------------------------------------
+
 	ClientData**& GetClients();
 	USHORT ClientCount() const;
 	void SetFunction(ClientData* client, sfunc function);
 	void SetPingInterval(float interval);
-
-	CRITICAL_SECTION* GetSendSect();
 
 	Socket& GetHost();
 	bool MaxClients() const;
@@ -72,15 +77,15 @@ public:
 	bool IsConnected() const;
 	float GetPingInterval() const;
 private:
-	Socket host;
-	ClientData** clients;
-	USHORT nClients;
-	sfunc function;
-	void* obj;
-	customFunc conFunc, disFunc;
-	CRITICAL_SECTION clientSect, sendSect;
-	HANDLE openCon;
-	const int compression;
-	const USHORT maxCon;
-	float pingInterval;
+	Socket host; //host/listener socket
+	ClientData** clients; //array of clients
+	USHORT nClients; //number of current connected clients
+	sfunc function; //used to intialize what clients default function/msghandler is
+	void* obj; //passed to function/msgHandler for oop programming
+	customFunc conFunc, disFunc; //function called when connect/disconnect occurs
+	CRITICAL_SECTION clientSect, sendSect; //used for synchonization
+	HANDLE openCon; //wait for connections thread
+	const int compression; //compression server sends packets at
+	const USHORT maxCon; //max clients
+	float pingInterval; //interval at which server pings inactive clients to prevent disconnect
 };

@@ -17,15 +17,20 @@ public:
 	void Disconnect();
 
 	HANDLE SendServData(const char* data, DWORD nBytes);
+
+	//Should only be called once to intialy create receving thread
 	bool RecvServData();
 
 	//send msg funtions used for requests, replies ect. they do not send data
 	void SendMsg(char type, char message);
 	void SendMsg(std::tstring& user, char type, char message);
 
+	//Used to wait and close the handle to a thread
 	static void WaitAndCloseHandle(HANDLE& hnd);
 
+	//Should be called in function/msgHandler when ping msg is received from server
 	void Ping();
+
 	void SetFunction(cfunc function);
 
 	void* GetObj() const;
@@ -39,11 +44,11 @@ public:
 	bool IsConnected() const;
 
 private:
-	Socket host;
-	cfunc function;
-	void(*const disconFunc)();
-	void* obj;
-	HANDLE recv;
-	CRITICAL_SECTION sendSect;
-	const int compression;
+	Socket host; //server/host you are connected to
+	cfunc function; //function/msgHandler
+	void(*const disconFunc)(); //function called when disconnect occurs
+	void* obj; //passed to function/msgHandler for oop programming
+	HANDLE recv; //thread to receving packets from server
+	CRITICAL_SECTION sendSect; //used for synchonization
+	const int compression; //compression client sends packets at
 };
