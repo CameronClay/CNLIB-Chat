@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Typedefs.h"
 #include <ws2tcpip.h>
 #include <Mstcpip.h>
 #include <Windows.h>

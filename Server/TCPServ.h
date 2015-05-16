@@ -1,4 +1,5 @@
 #pragma once
+#include "Typedefs.h"
 #include <stdlib.h>
 #include <vector>
 #include <forward_list>
@@ -22,7 +23,7 @@ public:
 		HANDLE recvThread;
 	};
 
-	typedef void(*const customFunc)(ClientData& data);
+	typedef void(*const customFunc)(ClientData* data);
 
 	//sfunc is a message handler, compression is 1-9
 	TCPServ(sfunc func, customFunc conFunc, customFunc disFunc, USHORT maxCon = 20, int compression = 9, float pingInterval = 30.0f, void* obj = nullptr);
@@ -45,9 +46,9 @@ public:
 	void SendMsg(Socket pc, bool single, char type, char message);
 	void SendMsg(Socket* pcs, USHORT nPcs, char type, char message);
 	void SendMsg(std::vector<Socket>& pcs, char type, char message);
-	void SendMsg(std::tstring& user, char type, char message);
+	void SendMsg(const std::tstring& user, char type, char message);
 
-	ClientData* FindClient(const std::tstring& user);
+	ClientData* FindClient(const std::tstring& user) const;
 	void Shutdown();
 
 	//----Used in interval server code; do not use unless you know what you are doing----
@@ -56,11 +57,8 @@ public:
 
 	void Ping(Socket client);
 
-	void RunConFunc(ClientData& client);
-	void RunDisFunc(ClientData& client);
-
-	//Used to wait and close the handle to a thread
-	static void WaitAndCloseHandle(HANDLE& hnd);
+	void RunConFunc(ClientData* client);
+	void RunDisFunc(ClientData* client);
 
 	CRITICAL_SECTION* GetSendSect();
 	//-------------------------------------------------------------------------------------
@@ -73,7 +71,6 @@ public:
 	Socket& GetHost();
 	bool MaxClients() const;
 	void* GetObj() const;
-	void WaitForRecvThread();
 	int GetCompression() const;
 	bool IsConnected() const;
 	float GetPingInterval() const;

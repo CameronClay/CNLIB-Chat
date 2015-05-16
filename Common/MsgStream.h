@@ -1,6 +1,5 @@
 #pragma once
 #include <assert.h>
-#include "Typedefs.h"
 #include "HeapAlloc.h"
 
 class MsgStream

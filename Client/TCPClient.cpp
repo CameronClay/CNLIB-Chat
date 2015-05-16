@@ -2,6 +2,7 @@
 #include "HeapAlloc.h"
 #include "Messages.h"
 #include "File.h"
+#include "MsgStream.h"
 
 struct SendInfo
 {
@@ -44,6 +45,7 @@ TCPClient::TCPClient(TCPClient&& client)
 	disconFunc(client.disconFunc),
 	obj(client.obj),
 	recv(client.recv),
+	sendSect(client.sendSect),
 	compression(client.compression)
 {
 	ZeroMemory(&client, sizeof(TCPClient));
@@ -191,26 +193,15 @@ void TCPClient::SendMsg(char type, char message)
 	char msg[] = { type, message };
 
 	HANDLE hnd = SendServData(msg, MSG_OFFSET);
-	TCPClient::WaitAndCloseHandle(hnd);
+	WaitAndCloseHandle(hnd);
 }
 
-void TCPClient::SendMsg(std::tstring& name, char type, char message)
+void TCPClient::SendMsg(const std::tstring& name, char type, char message)
 {
-	const DWORD nBytes = MSG_OFFSET + ((name.size() + 1) * sizeof(TCHAR));
-	char* msg = alloc<char>(nBytes);
-	msg[0] = type;
-	msg[1] = message;
-	memcpy(&msg[MSG_OFFSET], name.c_str(), nBytes - MSG_OFFSET);
-	HANDLE hnd = SendServData(msg, nBytes);
-	TCPClient::WaitAndCloseHandle(hnd);
-	dealloc(msg);
-}
-
-void TCPClient::WaitAndCloseHandle(HANDLE& hnd)
-{
-	WaitForSingleObject(hnd, INFINITE);
-	CloseHandle(hnd);
-	hnd = NULL; //NULL instead of INVALID_HANDLE_VALUE due to move ctor
+	MsgStreamWriter streamWriter(type, message, (name.size() + 1) * sizeof(TCHAR));
+	streamWriter.WriteEnd(name.c_str());
+	HANDLE hnd = SendServData(streamWriter, streamWriter.GetSize());
+	WaitAndCloseHandle(hnd);
 }
 
 void TCPClient::Ping()
@@ -236,11 +227,6 @@ Socket& TCPClient::GetHost()
 void* TCPClient::GetObj() const
 {
 	return obj;
-}
-
-void TCPClient::WaitForRecvThread() const
-{
-	WaitForSingleObject(recv, INFINITE);
 }
 
 int TCPClient::GetCompression() const

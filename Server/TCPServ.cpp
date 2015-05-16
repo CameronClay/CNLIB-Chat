@@ -2,7 +2,6 @@
 #include "HeapAlloc.h"
 #include "File.h"
 #include "Messages.h"
-#include "Format.h"
 #include "MsgStream.h"
 
 struct Data
@@ -384,7 +383,7 @@ void TCPServ::SendMsg(Socket pc, bool single, char type, char message)
 	char msg[] = { type, message };
 
 	HANDLE hnd = SendClientData(msg, MSG_OFFSET, pc, single);
-	TCPServ::WaitAndCloseHandle(hnd);
+	WaitAndCloseHandle(hnd);
 }
 
 void TCPServ::SendMsg(Socket* pcs, USHORT nPcs, char type, char message)
@@ -392,7 +391,7 @@ void TCPServ::SendMsg(Socket* pcs, USHORT nPcs, char type, char message)
 	char msg[] = { type, message };
 
 	HANDLE hnd = SendClientData(msg, MSG_OFFSET, pcs, nPcs);
-	TCPServ::WaitAndCloseHandle(hnd);
+	WaitAndCloseHandle(hnd);
 }
 
 void TCPServ::SendMsg(std::vector<Socket>& pcs, char type, char message)
@@ -400,18 +399,9 @@ void TCPServ::SendMsg(std::vector<Socket>& pcs, char type, char message)
 	SendMsg(pcs.data(), pcs.size(), type, message);
 }
 
-void TCPServ::SendMsg(std::tstring& user, char type, char message)
+void TCPServ::SendMsg(const std::tstring& user, char type, char message)
 {
-	for(USHORT i = 0; i < nClients; i++)
-	{
-		if(clients[i]->user.compare(user) == 0)
-		{
-			char msg[] = { type, message };
-
-			HANDLE hnd = SendClientData(msg, MSG_OFFSET, clients[i]->pc, true);
-			TCPServ::WaitAndCloseHandle(hnd);
-		}
-	}
+	SendMsg(FindClient(user)->pc, true, type, message);
 }
 
 
@@ -460,8 +450,8 @@ TCPServ& TCPServ::operator=(TCPServ&& serv)
 		nClients = serv.nClients;
 		function = serv.function;
 		obj = serv.obj;
-		const_cast<void( *& )(ClientData&)>(conFunc) = serv.conFunc;
-		const_cast<void( *& )(ClientData&)>(disFunc) = serv.disFunc;
+		const_cast<void( *& )(ClientData*)>(conFunc) = serv.conFunc;
+		const_cast<void( *& )(ClientData*)>(disFunc) = serv.disFunc;
 		clientSect = serv.clientSect;
 		sendSect = serv.sendSect;
 		openCon = serv.openCon;
@@ -508,7 +498,7 @@ void TCPServ::AddClient(Socket pc)
 	clients[nClients] = construct<ClientData>({ data->serv, pc, function, data->pos });
 	clients[nClients]->recvThread = CreateThread(NULL, 0, RecvData, data, NULL, NULL);
 
-	RunConFunc(*clients[nClients]);
+	RunConFunc(clients[nClients]);
 
 	++nClients;
 
@@ -524,7 +514,7 @@ void TCPServ::RemoveClient(USHORT& pos)
 	ClientData& data = *clients[index];
 
 	if(host.IsConnected())
-		RunDisFunc(data);
+		RunDisFunc(clients[index]);
 
 	std::tstring user = std::move(data.user);
 
@@ -551,14 +541,12 @@ void TCPServ::RemoveClient(USHORT& pos)
 	}
 }
 
-TCPServ::ClientData* TCPServ::FindClient(const std::tstring& user)
+TCPServ::ClientData* TCPServ::FindClient(const std::tstring& user) const
 {
 	for (USHORT i = 0; i < nClients; i++)
 	{
-		if (clients[i]->user == user)
-		{
+		if (clients[i]->user.compare(user) == 0)
 			return clients[i];
-		}
 	}
 	return nullptr;
 }
@@ -584,13 +572,6 @@ void TCPServ::Shutdown()
 		DeleteCriticalSection(&clientSect);
 		DeleteCriticalSection(&sendSect);
 	}
-}
-
-void TCPServ::WaitAndCloseHandle(HANDLE& hnd)
-{
-	WaitForSingleObject(hnd, INFINITE);
-	CloseHandle(hnd);
-	hnd = NULL; //NULL instead of INVALID_HANDLE_VALUE due to move ctor
 }
 
 void TCPServ::Ping(Socket client)
@@ -628,12 +609,12 @@ void TCPServ::SetPingInterval(float interval)
 	this->pingInterval = interval;
 }
 
-void TCPServ::RunConFunc(ClientData& client)
+void TCPServ::RunConFunc(ClientData* client)
 {
 	conFunc(client);
 }
 
-void TCPServ::RunDisFunc(ClientData& client)
+void TCPServ::RunDisFunc(ClientData* client)
 {
 	disFunc(client);
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include "Typedefs.h"
 #include "Socket.h"
 #include <tchar.h>
 
@@ -13,7 +14,7 @@ public:
 	TCPClient& operator=(TCPClient&& client);
 
 
-	bool Connect(const TCHAR* dest, const TCHAR* port, float timeOut);
+	bool Connect(const TCHAR* dest, const TCHAR* port, float timeOut = 5.0f);
 	void Disconnect();
 
 	HANDLE SendServData(const char* data, DWORD nBytes);
@@ -23,10 +24,7 @@ public:
 
 	//send msg funtions used for requests, replies ect. they do not send data
 	void SendMsg(char type, char message);
-	void SendMsg(std::tstring& user, char type, char message);
-
-	//Used to wait and close the handle to a thread
-	static void WaitAndCloseHandle(HANDLE& hnd);
+	void SendMsg(const std::tstring& user, char type, char message);
 
 	//Should be called in function/msgHandler when ping msg is received from server
 	void Ping();
@@ -36,7 +34,6 @@ public:
 	void* GetObj() const;
 	cfuncP GetFunction();
 	Socket& GetHost();
-	void WaitForRecvThread() const;
 	int GetCompression() const;
 	CRITICAL_SECTION* GetSendSect();
 

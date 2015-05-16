@@ -183,7 +183,7 @@ void FileSend::RequestTransfer()
 	streamWriter.Write(size);
 
 	HANDLE hnd = client.SendServData(streamWriter, streamWriter.GetSize());
-	TCPClient::WaitAndCloseHandle(hnd);
+	WaitAndCloseHandle(hnd);
 
 
 	running = true;
@@ -214,7 +214,7 @@ void FileSend::SendFileNameList()
 	}
 
 	HANDLE hnd = client.SendServData(streamWriter, streamWriter.GetSize());
-	TCPClient::WaitAndCloseHandle(hnd);
+	WaitAndCloseHandle(hnd);
 
 	it = list.begin();
 }
@@ -257,7 +257,7 @@ void FileSend::SendCurrentFile()
 		progress += ((double)bytesRead) / (double)(1024 * 1024);
 		dialog.SetProgress((DWORD)((progress / size) * 100));
 		HANDLE hnd = client.SendServData(msg, bytesRead + extraBytesData);
-		TCPClient::WaitAndCloseHandle(hnd);
+		WaitAndCloseHandle(hnd);
 		it->size -= bytesRead;
 	}
 

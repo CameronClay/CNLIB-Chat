@@ -157,6 +157,7 @@
     <ClCompile Include="..\Common\Palette.cpp" />
     <ClCompile Include="..\Common\Socket.cpp" />
     <ClCompile Include="..\Common\Timer.cpp" />
+    <ClCompile Include="..\Common\Typedefs.cpp" />
     <ClCompile Include="..\Common\UPNP.cpp" />
     <ClCompile Include="..\Common\WinFirewall.cpp" />
     <ClCompile Include="FileTransfer.cpp" />

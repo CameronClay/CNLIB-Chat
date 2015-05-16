@@ -119,7 +119,7 @@ void SendSingleUserData(TCPServ& serv, char* dat, DWORD nBytes, char type, char 
 	memcpy(&msg[MSG_OFFSET], &dat[offset], nBytes - offset);
 
 	HANDLE hnd = serv.SendClientData(msg, nBy, client->pc, true);
-	TCPServ::WaitAndCloseHandle(hnd);
+	WaitAndCloseHandle(hnd);
 	dealloc(msg);
 
 }
@@ -137,7 +137,7 @@ void TransferMessageWithName(TCPServ& serv, std::tstring& srcUserName, MsgStream
 	streamWriter.Write(srcUserName.c_str(), nameLen);
 
 	HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), client->pc, true);
-	TCPServ::WaitAndCloseHandle(hnd);
+	WaitAndCloseHandle(hnd);
 }
 
 void TransferMessage(TCPServ& serv, MsgStreamReader& streamReader)
@@ -150,7 +150,7 @@ void TransferMessage(TCPServ& serv, MsgStreamReader& streamReader)
 	MsgStreamWriter mStreamOut(streamReader.GetType(), streamReader.GetMsg(), 0);
 
 	HANDLE hnd = serv.SendClientData(mStreamOut, mStreamOut.GetSize(), client->pc, true);
-	TCPServ::WaitAndCloseHandle(hnd);
+	WaitAndCloseHandle(hnd);
 }
 
 void RequestTransfer(TCPServ& serv, std::tstring& srcUserName, MsgStreamReader& streamReader)
@@ -169,7 +169,7 @@ void RequestTransfer(TCPServ& serv, std::tstring& srcUserName, MsgStreamReader& 
 	streamWriter.Write<double>(streamReader.Read<double>());
 
 	HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), client->pc, true);
-	TCPServ::WaitAndCloseHandle(hnd);
+	WaitAndCloseHandle(hnd);
 }
 
 void DispIPMsg(Socket& pc, const TCHAR* str)
@@ -183,14 +183,14 @@ void DispIPMsg(Socket& pc, const TCHAR* str)
 	}
 }
 
-void DisconnectHandler(TCPServ::ClientData& data)
+void DisconnectHandler(TCPServ::ClientData* data)
 {
-	DispIPMsg(data.pc, _T(" has disconnected!"));
+	DispIPMsg(data->pc, _T(" has disconnected!"));
 }
 
-void ConnectHandler(TCPServ::ClientData& data)
+void ConnectHandler(TCPServ::ClientData* data)
 {
-	DispIPMsg(data.pc, _T(" has connected!"));
+	DispIPMsg(data->pc, _T(" has connected!"));
 }
 
 //Handles all incoming packets
@@ -269,7 +269,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 						streamWriter.WriteEnd(clients[i]->user.c_str());
 
 						HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, true);
-						TCPServ::WaitAndCloseHandle(hnd);
+						WaitAndCloseHandle(hnd);
 					}
 				}
 
@@ -277,7 +277,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 				streamWriter.WriteEnd(user.c_str());
 
 				HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, false);
-				TCPServ::WaitAndCloseHandle(hnd);
+				WaitAndCloseHandle(hnd);
 			}
 			else
 			{
@@ -315,7 +315,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 			TCHAR* msg = FormatMsg(TYPE_DATA, MSG_DATA_TEXT, (BYTE*)dat, nBytes, clint->user, nBy);
 
 			HANDLE hnd = serv.SendClientData((char*)msg, nBy, clint->pc, false);
-			TCPServ::WaitAndCloseHandle(hnd);
+			WaitAndCloseHandle(hnd);
 			dealloc(msg);
 			break;
 		}
@@ -368,7 +368,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 				MsgStreamWriter streamWriter(TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE, sizeof(WBParams));
 				streamWriter.Write<WBParams>(wbParams);
 				HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, true);
-				TCPServ::WaitAndCloseHandle(hnd);
+				WaitAndCloseHandle(hnd);
 			}
 
 			wb->SendBitmap(RectU(0, 0, wbParams.width, wbParams.height), clint->pc, true);
@@ -378,7 +378,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 				MsgStreamWriter streamWriter(TYPE_RESPONSE, MSG_RESPONSE_WHITEBOARD_CONFIRMED, nameLen * sizeof(TCHAR));
 				streamWriter.Write(clint->user.c_str(), nameLen);
 				HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), wb->GetPcs());
-				TCPServ::WaitAndCloseHandle(hnd);
+				WaitAndCloseHandle(hnd);
 			}
 		}
 		case MSG_RESPONSE_WHITEBOARD_DECLINED:
@@ -412,7 +412,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 					{
 						if (clients[i]->user.compare(user) == 0)
 						{
-							DisconnectHandler(*clients[i]);
+							DisconnectHandler(clients[i]);
 							clients[i]->pc.Disconnect();
 						}
 					}
@@ -427,7 +427,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 					{
 						if (clients[i]->user.compare(user) == 0)
 						{
-							DisconnectHandler(*clients[i]);
+							DisconnectHandler(clients[i]);
 							clients[i]->pc.Disconnect();
 						}
 					}
@@ -471,7 +471,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 				MsgStreamWriter streamWriter(TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE, sizeof(WBParams));
 				streamWriter.Write(std::move(*params));
 				HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, true);
-				TCPServ::WaitAndCloseHandle(hnd);
+				WaitAndCloseHandle(hnd);
 
 				wb = construct<Whiteboard>(Whiteboard(serv, *params, clint->user));
 

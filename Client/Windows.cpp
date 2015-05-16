@@ -839,7 +839,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			dealloc(dispMsg);
 
 			HANDLE hnd = client->SendServData(msg, nBytes);
-			TCPClient::WaitAndCloseHandle(hnd);
+			WaitAndCloseHandle(hnd);
 			dealloc(msg);
 			break;
 		}
@@ -1175,7 +1175,7 @@ INT_PTR CALLBACK ConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 				streamWriter.Write(APPVERSION);
 
 				HANDLE hnd = client->SendServData(streamWriter, streamWriter.GetSize());
-				TCPClient::WaitAndCloseHandle(hnd);
+				WaitAndCloseHandle(hnd);
 
 				EndDialog(hWnd, id);
 			}
@@ -1347,7 +1347,7 @@ INT_PTR CALLBACK AuthenticateProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 			streamWriter.Write(send.c_str(), sendLen);
 
 			HANDLE hnd = client->SendServData(streamWriter, streamWriter.GetSize());
-			TCPClient::WaitAndCloseHandle(hnd);
+			WaitAndCloseHandle(hnd);
 
 			EndDialog(hWnd, id);
 			break;
@@ -1631,7 +1631,7 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 			streamWriter.Write(WBParams(GetDlgItemInt(hWnd, WHITEBOARD_RES_X, NULL, FALSE), GetDlgItemInt(hWnd, WHITEBOARD_RES_Y, NULL, FALSE), GetDlgItemInt(hWnd, WHITEBOARD_FPS, NULL, FALSE), ComboBox_GetCurSel(Colors)));
 
 			HANDLE hnd = client->SendServData(streamWriter, streamWriter.GetSize());
-			TCPClient::WaitAndCloseHandle(hnd);
+			WaitAndCloseHandle(hnd);
 
 			EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_GRAYED);
 			EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_ENABLED);
@@ -1719,7 +1719,7 @@ INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 			streamWriter.Write(BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
 
 			HANDLE hnd = client->SendServData(streamWriter, streamWriter.GetSize());
-			TCPClient::WaitAndCloseHandle(hnd);
+			WaitAndCloseHandle(hnd);
 
 			EndDialog(hWnd, id);
 			break;

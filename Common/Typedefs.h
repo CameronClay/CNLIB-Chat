@@ -31,7 +31,9 @@ namespace std
 	MultiByteToWideChar(CP_ACP, 0, addr, strlen(addr), dest, strlen(addr))
 #else
 #define GetHostName gethostname
-#define Inet_ntot(inaddr, dest)\
-	char* name = inet_ntoa(inaddr)\
+#define Inet_ntot(inaddr, dest);\
+	char* name = inet_ntoa(inaddr);\
 	memcpy(dest, name, sizeof(char) * strlen(name))
 #endif
+
+void WaitAndCloseHandle(HANDLE& hnd);

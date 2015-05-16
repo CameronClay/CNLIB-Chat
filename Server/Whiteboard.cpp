@@ -252,7 +252,7 @@ void Whiteboard::SendBitmap()
 		MakeRectPixels(rectList.front(), &msg[MSG_OFFSET]);
 
 		HANDLE hnd = serv.SendClientData(msg, nBytes, sendPcs);
-		TCPServ::WaitAndCloseHandle(hnd);
+		WaitAndCloseHandle(hnd);
 		dealloc(msg);
 
 		rectList.pop();
@@ -269,7 +269,7 @@ void Whiteboard::SendBitmap(RectU& rect, Socket& sock, bool single)
 	MakeRectPixels(rect, &msg[MSG_OFFSET]);
 
 	HANDLE hnd = serv.SendClientData(msg, nBytes, sock, single);
-	TCPServ::WaitAndCloseHandle(hnd);
+	WaitAndCloseHandle(hnd);
 	dealloc(msg);
 }
 
