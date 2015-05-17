@@ -1,5 +1,5 @@
-#include "Options.h"
 #include "CNLIB\File.h"
+#include "Options.h"
 
 Options::Options(std::tstring& filePath, float currentVers)
 	:

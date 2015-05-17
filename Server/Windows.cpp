@@ -14,7 +14,7 @@
 #include <commctrl.h>
 
 #pragma comment(lib, "comctl32.lib")
-#pragma comment(lib, "CNLIB\\TCPCS.lib")
+#pragma comment(lib, "TCPCS.lib")
 
 
 const float APPVERSION = .002f;

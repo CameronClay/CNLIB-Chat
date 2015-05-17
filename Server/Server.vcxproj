@@ -69,23 +69,23 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>..\Common;$(IncludePath)</IncludePath>
-    <LibraryPath>..\Common;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\DLLSRC;..\Common;$(IncludePath)</IncludePath>
+    <LibraryPath>..\DLLSRC;..\Common;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugXP|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>..\Common;$(IncludePath)</IncludePath>
-    <LibraryPath>..\Common;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\DLLSRC;..\Common;$(IncludePath)</IncludePath>
+    <LibraryPath>..\DLLSRC;..\Common;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>..\Common;$(IncludePath)</IncludePath>
-    <LibraryPath>..\Common;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\DLLSRC;..\Common;$(IncludePath)</IncludePath>
+    <LibraryPath>..\DLLSRC;..\Common;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseXP|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>..\Common;$(IncludePath)</IncludePath>
-    <LibraryPath>..\Common;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\DLLSRC;..\Common;$(IncludePath)</IncludePath>
+    <LibraryPath>..\DLLSRC;..\Common;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -185,6 +185,11 @@
   <ItemGroup>
     <Text Include="..\Rules.txt" />
     <Text Include="..\ToDo.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Documents\Visual Studio 2013\Projects\TCPCS\TCPCS\TCPCS.vcxproj">
+      <Project>{445d5469-63b8-4952-a03d-45e1b5f51629}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

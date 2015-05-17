@@ -53,9 +53,6 @@
     <ClInclude Include="..\Common\Format.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\WinFirewall.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Whiteboard.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -106,8 +103,5 @@
     <ResourceCompile Include="Resource.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="ClassDiagram.cd" />
   </ItemGroup>
 </Project>

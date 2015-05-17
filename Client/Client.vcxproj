@@ -177,7 +177,6 @@
     <ClInclude Include="..\Common\Palette.h" />
     <ClInclude Include="..\Common\Timer.h" />
     <ClInclude Include="..\Common\WhiteboardClientData.h" />
-    <ClInclude Include="..\Common\WinFirewall.h" />
     <ClInclude Include="FileTransfer.h" />
     <ClInclude Include="Options.h" />
     <ClInclude Include="resource.h" />
@@ -187,7 +186,9 @@
     <ResourceCompile Include="Resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="ClassDiagram.cd" />
+    <ProjectReference Include="..\..\..\Documents\Visual Studio 2013\Projects\TCPCS\TCPCS\TCPCS.vcxproj">
+      <Project>{445d5469-63b8-4952-a03d-45e1b5f51629}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

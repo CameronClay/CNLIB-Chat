@@ -1,7 +1,7 @@
 // Client version of Windows.cpp
 #include "resource.h"
 #include "CNLIB\Typedefs.h"
-#include "CNLIB\TCPClientInterface.h"
+#include <ws2tcpip.h>
 #include "CNLIB\MsgStream.h"
 #include "CNLIB\File.h"
 #include "FileTransfer.h"
@@ -22,7 +22,8 @@
 #include <assert.h>
 
 #pragma comment(lib, "comctl32.lib")
-#pragma comment(lib, "CNLIB\\TCPCS.lib")
+#pragma comment(lib, "shlwapi.lib")
+#pragma comment(lib, "TCPCS.lib")
 
 
 const float APPVERSION = .002f;
