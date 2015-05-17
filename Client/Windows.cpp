@@ -1,9 +1,18 @@
 // Client version of Windows.cpp
-#include "TCPClient.h"
-#include "MsgStream.h"
-#include "File.h"
+#include "resource.h"
+#include "CNLIB\Typedefs.h"
+#include "CNLIB\TCPClientInterface.h"
+#include "CNLIB\MsgStream.h"
+#include "CNLIB\File.h"
 #include "FileTransfer.h"
-
+#include "Format.h"
+#include "CNLIB\HeapAlloc.h"
+#include "CNLIB\Messages.h"
+#include "Options.h"
+#include "Whiteboard.h"
+#include "Mouse.h"
+#include "DebugHelper.h"
+#include "WhiteboardClientData.h"
 #include <windows.h>
 #include <windowsx.h>
 #include <commctrl.h>
@@ -12,19 +21,8 @@
 #include <list>
 #include <assert.h>
 
-#include "resource.h"
-#include "Options.h"
-#include "Format.h"
-#include "HeapAlloc.h"
-#include "UPNP.h"
-#include "Messages.h"
-
-#include "Whiteboard.h"
-#include "Mouse.h"
-#include "DebugHelper.h"
-#include "WhiteboardClientData.h"
-
 #pragma comment(lib, "comctl32.lib")
+#pragma comment(lib, "CNLIB\\TCPCS.lib")
 
 
 const float APPVERSION = .002f;
@@ -60,9 +58,6 @@ const USHORT DEFAULTPORT = 565;
 
 #pragma endregion
 
-#define INACTIVE_TIME 15 * 1000
-#define PING_FREQ 2.0f
-
 #define WB_DEF_RES_X 800
 #define WB_DEF_RES_Y 600
 #define WB_DEF_FPS 20
@@ -92,7 +87,7 @@ USHORT screenWidth = 800, screenHeight = 600;
 USHORT left = 0, leftLen = 0;
 USHORT top = 0, topLen = 0;
 
-uqpc<TCPClient> client;
+TCPClientInterface* client;
 uqpc<Options> opts;
 uqpc<FileSend> fileSend;
 uqpc<FileReceive> fileReceive;
@@ -260,7 +255,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 	//HRESULT res = CoInitialize(NULL);
 	//assert(SUCCEEDED(res));
 
-	TCPClient& clint = *(TCPClient*)clientObj;
+	TCPClientInterface& clint = *(TCPClientInterface*)clientObj;
 	char* dat = (char*)(&data[MSG_OFFSET]);
 	nBytes -= MSG_OFFSET;
 	MsgStreamReader streamReader((char*)data, nBytes);
@@ -683,9 +678,9 @@ void WinMainInit()
 
 	InitializeNetworking();
 
-	client = uqpc<TCPClient>(construct<TCPClient>(TCPClient(&MsgHandler, &DisconnectHandler)));
-	fileSend = uqpc<FileSend>(construct<FileSend>(FileSend(*client.get(), hMainWind, &SendFinishedHandler, &SendCanceledHandler)));
-	fileReceive = uqpc<FileReceive>(construct<FileReceive>(FileReceive(*client.get(), hMainWind, &ReceiveFinishedHandler, &ReceiveCanceledHandler)));
+	client = CreateClient(&MsgHandler, &DisconnectHandler);
+	fileSend = uqpc<FileSend>(construct<FileSend>(FileSend(*client, hMainWind, &SendFinishedHandler, &SendCanceledHandler)));
+	fileReceive = uqpc<FileReceive>(construct<FileReceive>(FileReceive(*client, hMainWind, &ReceiveFinishedHandler, &ReceiveCanceledHandler)));
 	opts = uqpc<Options>(construct<Options>(Options(std::tstring(optionsFilePath), CONFIGVERSION)));
 
 	opts->Load(windowName);
@@ -1093,6 +1088,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_DESTROY:
 		CoUninitialize();
+		DestroyClient(client);
 		CleanupNetworking();
 		PostQuitMessage(0);
 		break;

@@ -1,5 +1,5 @@
 #include "Mouse.h"
-#include "HeapAlloc.h"
+#include "CNLIB\HeapAlloc.h"
 
 MouseClient::MouseClient( MouseServer& server )
 : server( server )

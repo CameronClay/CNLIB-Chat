@@ -1,6 +1,6 @@
 #pragma once
-#include "Messages.h"
-#include "HeapAlloc.h"
+#include "CNLIB\Messages.h"
+#include "CNLIB\HeapAlloc.h"
 #include <Windows.h>
 #include <stdlib.h>
 #include <stdio.h>

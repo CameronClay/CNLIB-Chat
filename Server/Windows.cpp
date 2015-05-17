@@ -1,12 +1,12 @@
 #include "resource.h"
-#include "TCPServ.h"
-#include "MsgStream.h"
-#include "File.h"
-#include "WinFirewall.h"
-#include "UPNP.h"
+#include "CNLIB\Typedefs.h"
+#include "CNLIB\TCPServInterface.h"
+#include "CNLIB\MsgStream.h"
+#include "CNLIB\File.h"
+#include "CNLIB\UPNP.h"
 #include "Format.h"
-#include "HeapAlloc.h"
-#include "Messages.h"
+#include "CNLIB\HeapAlloc.h"
+#include "CNLIB\Messages.h"
 #include "Whiteboard.h"
 #include <assert.h>
 #include <windows.h>
@@ -14,6 +14,7 @@
 #include <commctrl.h>
 
 #pragma comment(lib, "comctl32.lib")
+#pragma comment(lib, "CNLIB\\TCPCS.lib")
 
 
 const float APPVERSION = .002f;
@@ -58,7 +59,7 @@ INT_PTR CALLBACK ManageAdminsProc(HWND, UINT, WPARAM, LPARAM);
 
 USHORT screenWidth = 800, screenHeight = 600;
 
-uqpc<TCPServ> serv;
+TCPServInterface* serv;
 Whiteboard* wb;
 
 std::vector<Authent> userList;
@@ -101,12 +102,12 @@ void AddToList(std::tstring& user, std::tstring& pass)
 	LeaveCriticalSection(&fileSect);
 }
 
-void SendSingleUserData(TCPServ& serv, char* dat, DWORD nBytes, char type, char message)
+void SendSingleUserData(TCPServInterface& serv, char* dat, DWORD nBytes, char type, char message)
 {
 	const UINT userLen = *(UINT*)&(dat[0]);
 	//																	   - 1 for \0
 	std::tstring user = std::tstring((TCHAR*)&(dat[sizeof(UINT)]), userLen - 1);
-	TCPServ::ClientData* client = serv.FindClient(user);
+	ClientData* client = serv.FindClient(user);
 	if(client == nullptr)
 		return;
 
@@ -124,10 +125,10 @@ void SendSingleUserData(TCPServ& serv, char* dat, DWORD nBytes, char type, char 
 
 }
 
-void TransferMessageWithName(TCPServ& serv, std::tstring& srcUserName, MsgStreamReader& streamReader)
+void TransferMessageWithName(TCPServInterface& serv, std::tstring& srcUserName, MsgStreamReader& streamReader)
 {
 	std::tstring user = streamReader.ReadEnd<TCHAR>();
-	TCPServ::ClientData* client = serv.FindClient(user);
+	ClientData* client = serv.FindClient(user);
 	if(client == nullptr)
 		return;
 
@@ -140,10 +141,10 @@ void TransferMessageWithName(TCPServ& serv, std::tstring& srcUserName, MsgStream
 	WaitAndCloseHandle(hnd);
 }
 
-void TransferMessage(TCPServ& serv, MsgStreamReader& streamReader)
+void TransferMessage(TCPServInterface& serv, MsgStreamReader& streamReader)
 {
 	std::tstring user = streamReader.ReadEnd<TCHAR>();
-	TCPServ::ClientData* client = serv.FindClient(user);
+	ClientData* client = serv.FindClient(user);
 	if(client == nullptr)
 		return;
 
@@ -153,11 +154,11 @@ void TransferMessage(TCPServ& serv, MsgStreamReader& streamReader)
 	WaitAndCloseHandle(hnd);
 }
 
-void RequestTransfer(TCPServ& serv, std::tstring& srcUserName, MsgStreamReader& streamReader)
+void RequestTransfer(TCPServInterface& serv, std::tstring& srcUserName, MsgStreamReader& streamReader)
 {
 	const UINT srcUserLen = streamReader.Read<UINT>();
 	std::tstring user = streamReader.Read<TCHAR>(srcUserLen);
-	TCPServ::ClientData* client = serv.FindClient(user);
+	ClientData* client = serv.FindClient(user);
 	if(client == nullptr)
 		return;
 
@@ -183,12 +184,12 @@ void DispIPMsg(Socket& pc, const TCHAR* str)
 	}
 }
 
-void DisconnectHandler(TCPServ::ClientData* data)
+void DisconnectHandler(ClientData* data)
 {
 	DispIPMsg(data->pc, _T(" has disconnected!"));
 }
 
-void ConnectHandler(TCPServ::ClientData* data)
+void ConnectHandler(ClientData* data)
 {
 	DispIPMsg(data->pc, _T(" has connected!"));
 }
@@ -196,10 +197,10 @@ void ConnectHandler(TCPServ::ClientData* data)
 //Handles all incoming packets
 void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 {
-	TCPServ& serv = *(TCPServ*)server;
+	TCPServInterface& serv = *(TCPServInterface*)server;
 	auto clients = serv.GetClients();
 	const USHORT nClients = serv.ClientCount();
-	TCPServ::ClientData* clint = (TCPServ::ClientData*)client;
+	ClientData* clint = (ClientData*)client;
 	
 	char* dat = (char*)(&data[MSG_OFFSET]);
 	nBytes -= MSG_OFFSET;
@@ -236,7 +237,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 				}
 			}
 
-			TCPServ::ClientData* fClient = serv.FindClient(user);
+			ClientData* fClient = serv.FindClient(user);
 
 			//If user is already connected, reject
 			if(fClient && fClient->user.compare(user) == 0)
@@ -623,7 +624,7 @@ void WinMainInit()
 	MapPort(port, _T("TCP"), _T("Cam's Serv"));
 
 	TCHAR portA[5] = {};
-	serv = uqpc<TCPServ>(construct<TCPServ>({ &MsgHandler, &ConnectHandler, &DisconnectHandler }));
+	serv = CreateServer(&MsgHandler, &ConnectHandler, &DisconnectHandler);
 
 	serv->AllowConnections(_itot(port, portA, 10));
 }
@@ -749,6 +750,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		DeleteCriticalSection(&fileSect);
 		DeleteCriticalSection(&authentSect);
+		DestroyServer(serv);
 		CleanupNetworking();
 		PostQuitMessage(0);
 		break;

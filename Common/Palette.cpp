@@ -1,6 +1,6 @@
 #include "Palette.h"
 #include "ColorDef.h"
-#include "HeapAlloc.h"
+#include "CNLIB\HeapAlloc.h"
 
 Palette::Palette()
 {

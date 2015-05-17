@@ -1,10 +1,10 @@
 #include "FileTransfer.h"
 #include <assert.h>
-#include "HeapAlloc.h"
-#include "Messages.h"
-#include "MsgStream.h"
+#include "CNLIB\HeapAlloc.h"
+#include "CNLIB\Messages.h"
+#include "CNLIB\MsgStream.h"
 
-FileTransfer::FileTransfer(TCPClient& client, HWND wnd, AlertFunc finished, AlertFunc canceled, std::vector<FileMisc::FileData>&& list)
+FileTransfer::FileTransfer(TCPClientInterface& client, HWND wnd, AlertFunc finished, AlertFunc canceled, std::vector<FileMisc::FileData>&& list)
 	:
 	client(client),
 	wnd(wnd),
@@ -20,7 +20,7 @@ FileTransfer::FileTransfer(TCPClient& client, HWND wnd, AlertFunc finished, Aler
 	canceledFunc(canceled)
 {}
 
-FileTransfer::FileTransfer(TCPClient& client, HWND wnd, AlertFunc finished, AlertFunc canceled)
+FileTransfer::FileTransfer(TCPClientInterface& client, HWND wnd, AlertFunc finished, AlertFunc canceled)
 	:
 	client(client),
 	wnd(wnd),
@@ -128,7 +128,7 @@ bool FileTransfer::Running() const
 
 
 
-FileSend::FileSend(TCPClient& client, HWND wnd, AlertFunc finished, AlertFunc canceled, std::vector<FileMisc::FileData>&& list, DWORD nBytesPerLoop)
+FileSend::FileSend(TCPClientInterface& client, HWND wnd, AlertFunc finished, AlertFunc canceled, std::vector<FileMisc::FileData>&& list, DWORD nBytesPerLoop)
 	:
 	FileTransfer(client, wnd, finished, canceled, std::move(list)),
 	fullFilepathSrc(),
@@ -137,7 +137,7 @@ FileSend::FileSend(TCPClient& client, HWND wnd, AlertFunc finished, AlertFunc ca
 	threadID(NULL)
 {}
 
-FileSend::FileSend(TCPClient& client, HWND wnd, AlertFunc finished, AlertFunc canceled, DWORD nBytesPerLoop)
+FileSend::FileSend(TCPClientInterface& client, HWND wnd, AlertFunc finished, AlertFunc canceled, DWORD nBytesPerLoop)
 	:
 	FileTransfer(client, wnd, finished, canceled),
 	fullFilepathSrc(),
@@ -344,7 +344,7 @@ void FileSend::WaitForThread()
 
 
 
-FileReceive::FileReceive(TCPClient& client, HWND wnd, AlertFunc finished, AlertFunc canceled)
+FileReceive::FileReceive(TCPClientInterface& client, HWND wnd, AlertFunc finished, AlertFunc canceled)
 	:
 	FileTransfer(client, wnd, finished, canceled),
 	file(),

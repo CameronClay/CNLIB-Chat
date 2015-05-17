@@ -1,5 +1,5 @@
 #pragma once
-#include "TCPServ.h"
+#include "CNLIB\TCPServInterface.h"
 #include <unordered_map>
 #include "ColorDef.h"
 #include "WhiteboardClientData.h"
@@ -9,7 +9,7 @@
 class Whiteboard
 {
 public:
-	Whiteboard(TCPServ &serv, WBParams params, std::tstring creator);
+	Whiteboard(TCPServInterface &serv, WBParams params, std::tstring creator);
 	Whiteboard(Whiteboard &&wb);
 
 	~Whiteboard();
@@ -41,7 +41,7 @@ private:
 	WBParams params;
 	BYTE *pixels;
 	CRITICAL_SECTION bitmapSect, mapSect;
-	TCPServ &serv;
+	TCPServInterface &serv;
 	Palette palette;
 	std::tstring creator;
 

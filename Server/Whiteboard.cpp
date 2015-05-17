@@ -1,8 +1,8 @@
 #include "Whiteboard.h"
-#include "HeapAlloc.h"
-#include "Messages.h"
+#include "CNLIB\HeapAlloc.h"
+#include "CNLIB\Messages.h"
 
-Whiteboard::Whiteboard(TCPServ &serv, WBParams params, std::tstring creator)
+Whiteboard::Whiteboard(TCPServInterface &serv, WBParams params, std::tstring creator)
 	:
 params(std::move(params)),
 serv(serv),

@@ -152,44 +152,42 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\Common\File.cpp" />
     <ClCompile Include="..\Common\Mouse.cpp" />
     <ClCompile Include="..\Common\Palette.cpp" />
-    <ClCompile Include="..\Common\Socket.cpp" />
     <ClCompile Include="..\Common\Timer.cpp" />
-    <ClCompile Include="..\Common\Typedefs.cpp" />
-    <ClCompile Include="..\Common\UPNP.cpp" />
     <ClCompile Include="..\Common\WinFirewall.cpp" />
     <ClCompile Include="FileTransfer.cpp" />
     <ClCompile Include="Options.cpp" />
-    <ClCompile Include="TCPClient.cpp" />
     <ClCompile Include="Whiteboard.cpp" />
     <ClCompile Include="Windows.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Common\CNLIB\File.h" />
+    <ClInclude Include="..\Common\CNLIB\HeapAlloc.h" />
+    <ClInclude Include="..\Common\CNLIB\Messages.h" />
+    <ClInclude Include="..\Common\CNLIB\MsgStream.h" />
+    <ClInclude Include="..\Common\CNLIB\Ping.h" />
+    <ClInclude Include="..\Common\CNLIB\Socket.h" />
+    <ClInclude Include="..\Common\CNLIB\TCPClientInterface.h" />
+    <ClInclude Include="..\Common\CNLIB\Typedefs.h" />
     <ClInclude Include="..\Common\ColorDef.h" />
     <ClInclude Include="..\Common\DebugHelper.h" />
-    <ClInclude Include="..\Common\File.h" />
     <ClInclude Include="..\Common\Format.h" />
-    <ClInclude Include="..\Common\HeapAlloc.h" />
-    <ClInclude Include="..\Common\Messages.h" />
     <ClInclude Include="..\Common\Mouse.h" />
-    <ClInclude Include="..\Common\MsgStream.h" />
     <ClInclude Include="..\Common\Palette.h" />
-    <ClInclude Include="..\Common\Socket.h" />
     <ClInclude Include="..\Common\Timer.h" />
-    <ClInclude Include="..\Common\Typedefs.h" />
-    <ClInclude Include="..\Common\UPNP.h" />
     <ClInclude Include="..\Common\WhiteboardClientData.h" />
     <ClInclude Include="..\Common\WinFirewall.h" />
     <ClInclude Include="FileTransfer.h" />
     <ClInclude Include="Options.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="TCPClient.h" />
     <ClInclude Include="Whiteboard.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

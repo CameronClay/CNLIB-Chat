@@ -1,6 +1,6 @@
 #include "Whiteboard.h"
 #include <assert.h>
-#include "HeapAlloc.h"
+#include "CNLIB\HeapAlloc.h"
 
 Whiteboard::Whiteboard(Palette& palette, HWND WinHandle, USHORT Width, USHORT Height, USHORT FPS, BYTE palIndex)
 	:

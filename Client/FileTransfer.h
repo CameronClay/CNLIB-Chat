@@ -1,14 +1,14 @@
 #pragma once
-#include "TCPClient.h"
-#include "File.h"
+#include "CNLIB\TCPClientInterface.h"
+#include "CNLIB\File.h"
 
 typedef void(*AlertFunc)(std::tstring& name);
 
 class FileTransfer
 {
 public:
-	FileTransfer(TCPClient& client, HWND wnd, AlertFunc finished, AlertFunc canceled, std::vector<FileMisc::FileData>&& list);
-	FileTransfer(TCPClient& client, HWND wnd, AlertFunc finished, AlertFunc canceled);
+	FileTransfer(TCPClientInterface& client, HWND wnd, AlertFunc finished, AlertFunc canceled, std::vector<FileMisc::FileData>&& list);
+	FileTransfer(TCPClientInterface& client, HWND wnd, AlertFunc finished, AlertFunc canceled);
 	FileTransfer(FileTransfer&& ft);
 
 	~FileTransfer();
@@ -31,7 +31,7 @@ public:
 protected:
 	void SetList(std::vector<FileMisc::FileData>&& list);
 
-	TCPClient& client;
+	TCPClientInterface& client;
 	HWND wnd;
 
 	std::vector<FileMisc::FileData> list;
@@ -49,8 +49,8 @@ protected:
 class FileSend : public FileTransfer
 {
 public:
-	FileSend(TCPClient& client, HWND wnd, AlertFunc finished, AlertFunc canceled, std::vector<FileMisc::FileData>&& list, DWORD nBytesPerLoop = 100000);
-	FileSend(TCPClient& client, HWND wnd, AlertFunc finished, AlertFunc canceled, DWORD nBytesPerLoop = 100000);
+	FileSend(TCPClientInterface& client, HWND wnd, AlertFunc finished, AlertFunc canceled, std::vector<FileMisc::FileData>&& list, DWORD nBytesPerLoop = 100000);
+	FileSend(TCPClientInterface& client, HWND wnd, AlertFunc finished, AlertFunc canceled, DWORD nBytesPerLoop = 100000);
 	FileSend(FileSend&& ft);
 	~FileSend();
 
@@ -78,7 +78,7 @@ class MsgStreamReader;
 class FileReceive : public FileTransfer
 {
 public:
-	FileReceive(TCPClient& client, HWND wnd, AlertFunc finished, AlertFunc canceled);
+	FileReceive(TCPClientInterface& client, HWND wnd, AlertFunc finished, AlertFunc canceled);
 	FileReceive(FileReceive&& ft);
 	~FileReceive();
 
