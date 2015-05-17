@@ -59,8 +59,8 @@ INT_PTR CALLBACK ManageAdminsProc(HWND, UINT, WPARAM, LPARAM);
 
 USHORT screenWidth = 800, screenHeight = 600;
 
-TCPServInterface* serv;
-Whiteboard* wb;
+TCPServInterface* serv = nullptr;
+Whiteboard* wb = nullptr;
 
 std::vector<Authent> userList;
 std::vector<std::tstring> adminList;
@@ -545,45 +545,6 @@ void SaveAdminList()
 	file.Close();
 }
 
-//void main()
-//{
-//	InitializeNetworking();
-//
-//	FileMisc::GetFolderPath(FOLDERID_RoamingAppData, folderPath);
-//	FileMisc::SetCurDirectory(folderPath);
-//	FileMisc::CreateFolder(folderName, FILE_ATTRIBUTE_HIDDEN);
-//	_stprintf(folderPath, _T("%s\\%s"), folderPath, folderName);
-//	FileMisc::SetCurDirectory(folderPath);
-//	_stprintf(authenListFilePath, _T("%s\\%s"), folderPath, servListFileName);
-//	File file(authenListFilePath, FILE_GENERIC_READ);
-//
-//	std::tstring user, pass;
-//	while (file.ReadString(user))
-//	{
-//		if (file.ReadString(pass))
-//		{
-//			userList.push_back(Authent(user, pass));
-//		}
-//		else break;
-//	}
-//	file.Close();
-//
-//	InitializeCriticalSection(&fileSect);
-//	InitializeCriticalSection(&authentSect);
-//	MapPort(port, _T("TCP"), _T("Test"));
-//
-//	TCHAR portA[5] = {};
-//	TCPServ serv(_itot(port, portA, 10), 20, &MsgHandler, nullptr, 9);
-//	serv.AllowConnections();
-//
-//	serv.WaitForRecvThread();
-//
-//
-//	DeleteCriticalSection(&fileSect);
-//	DeleteCriticalSection(&authentSect);
-//	CleanupNetworking();
-//}
-
 void WinMainInit()
 {
 	FileMisc::GetFolderPath(CSIDL_APPDATA, folderPath);
@@ -625,7 +586,7 @@ void WinMainInit()
 
 	serv = CreateServer(&MsgHandler, &ConnectHandler, &DisconnectHandler);
 
-	TCHAR portA[5] = {};
+	TCHAR portA[6] = {};
 	serv->AllowConnections(_itot(port, portA, 10));
 }
 

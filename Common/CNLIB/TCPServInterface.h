@@ -24,6 +24,7 @@ public:
 	};
 
 	//Allows connections to the server; should only be called once
+	//This MUST be called before you can senddata
 	virtual bool AllowConnections(const TCHAR* port) = 0;
 
 	//Used to send data to clients

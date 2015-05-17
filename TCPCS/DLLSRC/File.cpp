@@ -4,6 +4,7 @@
 #include <Shlwapi.h>
 #include <Shlobj.h>
 #include <sstream>
+#include "HeapAlloc.h"
 
 #include "zlib/include/zlib.h"
 
@@ -141,10 +142,10 @@ bool File::ReadString(std::tstring& dest)
 	UINT strLen = std::stoul(len);
 	if(strLen)
 	{
-		TCHAR *str = new TCHAR[strLen + 1];
+		TCHAR *str = alloc<TCHAR>(strLen + 1);
 		Read(str, sizeof(TCHAR) * strLen);
 		str[strLen] = '\0', dest = str;
-		delete[] str;
+		dealloc(str);
 	}
 	return strLen != 0;
 }
@@ -215,7 +216,6 @@ void FileMisc::CreateFolder(const TCHAR* fileName, DWORD fileAttributes)
 	{
 		if(GetLastError() == ERROR_PATH_NOT_FOUND)
 		{
-			//TCHAR *buff = new TCHAR[strlen(fileName)];
 			TCHAR *buff = _tcsdup(fileName);
 			PathRemoveFileSpec(buff);
 			CreateFolder(buff);

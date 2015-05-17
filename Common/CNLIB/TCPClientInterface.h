@@ -9,6 +9,7 @@ public:
 	virtual void Disconnect() = 0;
 
 	//Should only be called once to intialy create receving thread
+	//This MUST be called before you can senddata
 	virtual bool RecvServData() = 0;
 
 	virtual HANDLE SendServData(const char* data, DWORD nBytes) = 0;
