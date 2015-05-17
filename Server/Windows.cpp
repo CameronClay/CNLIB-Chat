@@ -586,8 +586,6 @@ void SaveAdminList()
 
 void WinMainInit()
 {
-	InitializeNetworking();
-
 	FileMisc::GetFolderPath(CSIDL_APPDATA, folderPath);
 	FileMisc::SetCurDirectory(folderPath);
 	FileMisc::CreateFolder(folderName, FILE_ATTRIBUTE_HIDDEN);
@@ -621,11 +619,13 @@ void WinMainInit()
 	InitializeCriticalSection(&fileSect);
 	InitializeCriticalSection(&authentSect);
 
+	InitializeNetworking();
+
 	MapPort(port, _T("TCP"), _T("Cam's Serv"));
 
-	TCHAR portA[5] = {};
 	serv = CreateServer(&MsgHandler, &ConnectHandler, &DisconnectHandler);
 
+	TCHAR portA[5] = {};
 	serv->AllowConnections(_itot(port, portA, 10));
 }
 

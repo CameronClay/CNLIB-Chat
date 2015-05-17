@@ -14,8 +14,10 @@ typedef void(**const sfuncP)(void* manager, void* client, BYTE* data, DWORD nByt
 typedef void(*cfunc)(void* manager, BYTE* data, DWORD nBytes, void* obj);
 typedef void(**const cfuncP)(void* manager, BYTE* data, DWORD nBytes, void* obj);
 
-CAMSNETLIB void InitializeNetworking();
-CAMSNETLIB void CleanupNetworking();
+//See WSAStartup for error codes, if it does not return 0
+CAMSNETLIB int InitializeNetworking();
+//See WSACleanup for error codes, if it does not return 0
+CAMSNETLIB int CleanupNetworking();
 
 class CAMSNETLIB Socket
 {

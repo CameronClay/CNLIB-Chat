@@ -186,8 +186,8 @@
     <ResourceCompile Include="Resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Documents\Visual Studio 2013\Projects\TCPCS\TCPCS\TCPCS.vcxproj">
-      <Project>{445d5469-63b8-4952-a03d-45e1b5f51629}</Project>
+    <ProjectReference Include="..\TCPCS\TCPCS.vcxproj">
+      <Project>{4666801e-8832-4cca-af24-4f5301ae0e7a}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

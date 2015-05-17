@@ -7,15 +7,15 @@
 #include "HeapAlloc.h"
 #include "File.h"
 
-void InitializeNetworking()
+int InitializeNetworking()
 {
 	WSADATA wsad{};
-	WSAStartup(MAKEWORD(2, 2), &wsad);
+	return WSAStartup(MAKEWORD(2, 2), &wsad);
 }
 
-void CleanupNetworking()
+int CleanupNetworking()
 {
-	WSACleanup();
+	return WSACleanup();
 }
 
 Socket::Socket(const TCHAR* port)
