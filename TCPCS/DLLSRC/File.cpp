@@ -99,13 +99,13 @@ DWORD File::Read(void* dest, DWORD nBytes)
 	return nBytesRead;
 }
 
-void File::WriteString(std::tstring& str)
+void File::WriteString(const std::tstring& str)
 {
 	std::tstring t(To_String(str.length()) + _T(":") + str);
 	Write(t.c_str(), sizeof(TCHAR) * t.length());
 }
 
-void File::WriteDate(SYSTEMTIME& st)
+void File::WriteDate(const SYSTEMTIME& st)
 {
 	WCHAR dstr[25], tstr[25];
 

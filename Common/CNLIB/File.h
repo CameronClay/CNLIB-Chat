@@ -24,8 +24,8 @@ public:
 	DWORD Write(const void* data, DWORD nBytes);
 	DWORD Read(void* dest, DWORD nBytes);
 
-	void WriteString(std::tstring& str);
-	void WriteDate(SYSTEMTIME& st);
+	void WriteString(const std::tstring& str);
+	void WriteDate(const SYSTEMTIME& st);
 
 	bool ReadString(std::tstring& dest);
 	bool ReadDate(SYSTEMTIME& dest);
