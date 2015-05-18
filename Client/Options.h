@@ -9,8 +9,8 @@ public:
 	Options(Options&& opts);
 	~Options();
 
-	void Load(const TCHAR* windowName);
-	void Save(const TCHAR* windowName);
+	void Load(const LIB_TCHAR* windowName);
+	void Save(const LIB_TCHAR* windowName);
 
 	void SetGeneral(bool timeStamps, bool startUp, bool flashTaskbar, UINT flashCount);
 	void SetDownloadPath(std::tstring& path);

@@ -11,6 +11,8 @@
 #define CAMSNETLIB __declspec(dllimport)
 #endif
 
+typedef WCHAR LIB_TCHAR;
+
 namespace std
 {
 #ifdef UNICODE

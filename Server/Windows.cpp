@@ -39,11 +39,11 @@ const USHORT port = 565;
 
 const UINT maxUserLen = 10;
 
-const TCHAR folderName[] = _T("Cam's-Server");
-const TCHAR servListFileName[] = _T("ServAuthentic.dat");
-const TCHAR adminListFileName[] = _T("AdminList.dat");
+const LIB_TCHAR folderName[] = _T("Cam's-Server");
+const LIB_TCHAR servListFileName[] = _T("ServAuthentic.dat");
+const LIB_TCHAR adminListFileName[] = _T("AdminList.dat");
 
-TCHAR folderPath[MAX_PATH + 30];
+LIB_TCHAR folderPath[MAX_PATH + 30];
 
 CRITICAL_SECTION fileSect, authentSect;
 
@@ -51,8 +51,8 @@ HINSTANCE hInst;
 HWND hMainWind, textDisp;
 HMENU main, file;
 
-static TCHAR szWindowClass[] = _T("Server");
-static TCHAR szTitle[] = _T("Cameron's Server");
+static LIB_TCHAR szWindowClass[] = _T("Server");
+static LIB_TCHAR szTitle[] = _T("Cameron's Server");
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK ManageAdminsProc(HWND, UINT, WPARAM, LPARAM);
@@ -80,10 +80,10 @@ bool IsAdmin(std::tstring& user)
 void DispText(BYTE* data, DWORD nBytes)
 {
 	const UINT len = SendMessage(textDisp, WM_GETTEXTLENGTH, 0, 0) + 1;
-	TCHAR* buffer = (TCHAR*)alloc<char>(((len + 2) * sizeof(TCHAR)) + nBytes);
+	LIB_TCHAR* buffer = (LIB_TCHAR*)alloc<char>(((len + 2) * sizeof(LIB_TCHAR)) + nBytes);
 	SendMessage(textDisp, WM_GETTEXT, len, (LPARAM)buffer);
 	if (len != 1) _tcscat(buffer, _T("\r\n"));
-	_tcscat(buffer, (TCHAR*)data);
+	_tcscat(buffer, (LIB_TCHAR*)data);
 	SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)buffer);
 	dealloc(buffer);
 	SendMessage(textDisp, EM_LINESCROLL, 0, MAXLONG);
@@ -106,12 +106,12 @@ void SendSingleUserData(TCPServInterface& serv, char* dat, DWORD nBytes, char ty
 {
 	const UINT userLen = *(UINT*)&(dat[0]);
 	//																	   - 1 for \0
-	std::tstring user = std::tstring((TCHAR*)&(dat[sizeof(UINT)]), userLen - 1);
+	std::tstring user = std::tstring((LIB_TCHAR*)&(dat[sizeof(UINT)]), userLen - 1);
 	ClientData* client = serv.FindClient(user);
 	if(client == nullptr)
 		return;
 
-	const UINT offset = sizeof(UINT) + (userLen * sizeof(TCHAR));
+	const UINT offset = sizeof(UINT) + (userLen * sizeof(LIB_TCHAR));
 	const DWORD nBy = (nBytes - offset) + MSG_OFFSET;
 	char* msg = alloc<char>(nBy);
 
@@ -127,13 +127,13 @@ void SendSingleUserData(TCPServInterface& serv, char* dat, DWORD nBytes, char ty
 
 void TransferMessageWithName(TCPServInterface& serv, std::tstring& srcUserName, MsgStreamReader& streamReader)
 {
-	std::tstring user = streamReader.ReadEnd<TCHAR>();
+	std::tstring user = streamReader.ReadEnd<LIB_TCHAR>();
 	ClientData* client = serv.FindClient(user);
 	if(client == nullptr)
 		return;
 
 	const DWORD nameLen = srcUserName.size() + 1;
-	MsgStreamWriter streamWriter(streamReader.GetType(), streamReader.GetMsg(), nameLen * sizeof(TCHAR));
+	MsgStreamWriter streamWriter(streamReader.GetType(), streamReader.GetMsg(), nameLen * sizeof(LIB_TCHAR));
 
 	streamWriter.Write(srcUserName.c_str(), nameLen);
 
@@ -143,7 +143,7 @@ void TransferMessageWithName(TCPServInterface& serv, std::tstring& srcUserName, 
 
 void TransferMessage(TCPServInterface& serv, MsgStreamReader& streamReader)
 {
-	std::tstring user = streamReader.ReadEnd<TCHAR>();
+	std::tstring user = streamReader.ReadEnd<LIB_TCHAR>();
 	ClientData* client = serv.FindClient(user);
 	if(client == nullptr)
 		return;
@@ -157,13 +157,13 @@ void TransferMessage(TCPServInterface& serv, MsgStreamReader& streamReader)
 void RequestTransfer(TCPServInterface& serv, std::tstring& srcUserName, MsgStreamReader& streamReader)
 {
 	const UINT srcUserLen = streamReader.Read<UINT>();
-	std::tstring user = streamReader.Read<TCHAR>(srcUserLen);
+	std::tstring user = streamReader.Read<LIB_TCHAR>(srcUserLen);
 	ClientData* client = serv.FindClient(user);
 	if(client == nullptr)
 		return;
 
 	const UINT nameLen = srcUserName.size() + 1;
-	const DWORD nBy = sizeof(UINT) + (nameLen * sizeof(TCHAR)) + sizeof(double);
+	const DWORD nBy = sizeof(UINT) + (nameLen * sizeof(LIB_TCHAR)) + sizeof(double);
 	MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_TRANSFER, nBy);
 	streamWriter.Write(nameLen);
 	streamWriter.Write(srcUserName.c_str(), nameLen);
@@ -173,14 +173,14 @@ void RequestTransfer(TCPServInterface& serv, std::tstring& srcUserName, MsgStrea
 	WaitAndCloseHandle(hnd);
 }
 
-void DispIPMsg(Socket& pc, const TCHAR* str)
+void DispIPMsg(Socket& pc, const LIB_TCHAR* str)
 {
 	if (pc.IsConnected())
 	{
-		TCHAR buffer[128] = {};
+		LIB_TCHAR buffer[128] = {};
 		pc.ToIp(buffer);
 		_tcscat(buffer, str);
-		DispText((BYTE*)buffer, _tcslen(buffer) * sizeof(TCHAR));
+		DispText((BYTE*)buffer, _tcslen(buffer) * sizeof(LIB_TCHAR));
 	}
 }
 
@@ -217,11 +217,11 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 		{
 			EnterCriticalSection(&authentSect);
 
-			std::tstring authent(streamReader.ReadEnd<TCHAR>());
+			std::tstring authent(streamReader.ReadEnd<LIB_TCHAR>());
 			const UINT pos = authent.find(_T(":"));
 			assert(pos != std::tstring::npos);
 
-			std::tstring user = authent.substr(0, pos), pass = authent.substr(pos + 1, (nBytes / sizeof(TCHAR) - pos));
+			std::tstring user = authent.substr(0, pos), pass = authent.substr(pos + 1, (nBytes / sizeof(LIB_TCHAR) - pos));
 			bool inList = false, auth = false;
 
 			//Compare credentials with those stored on the server
@@ -266,7 +266,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 				{
 					if(clients[i] != clint && !clients[i]->user.empty())
 					{
-						MsgStreamWriter streamWriter(TYPE_CHANGE, MSG_CHANGE_CONNECTINIT, (clients[i]->user.size() + 1) * sizeof(TCHAR));
+						MsgStreamWriter streamWriter(TYPE_CHANGE, MSG_CHANGE_CONNECTINIT, (clients[i]->user.size() + 1) * sizeof(LIB_TCHAR));
 						streamWriter.WriteEnd(clients[i]->user.c_str());
 
 						HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, true);
@@ -274,7 +274,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 					}
 				}
 
-				MsgStreamWriter streamWriter(TYPE_CHANGE, MSG_CHANGE_CONNECT, (user.size() + 1) * sizeof(TCHAR));
+				MsgStreamWriter streamWriter(TYPE_CHANGE, MSG_CHANGE_CONNECT, (user.size() + 1) * sizeof(LIB_TCHAR));
 				streamWriter.WriteEnd(user.c_str());
 
 				HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, false);
@@ -313,7 +313,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 		case MSG_DATA_TEXT:
 		{
 			UINT nBy;
-			TCHAR* msg = FormatMsg(TYPE_DATA, MSG_DATA_TEXT, (BYTE*)dat, nBytes, clint->user, nBy);
+			LIB_TCHAR* msg = FormatMsg(TYPE_DATA, MSG_DATA_TEXT, (BYTE*)dat, nBytes, clint->user, nBy);
 
 			HANDLE hnd = serv.SendClientData((char*)msg, nBy, clint->pc, false);
 			WaitAndCloseHandle(hnd);
@@ -376,7 +376,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 
 			{
 				const DWORD nameLen = clint->user.size() + 1;
-				MsgStreamWriter streamWriter(TYPE_RESPONSE, MSG_RESPONSE_WHITEBOARD_CONFIRMED, nameLen * sizeof(TCHAR));
+				MsgStreamWriter streamWriter(TYPE_RESPONSE, MSG_RESPONSE_WHITEBOARD_CONFIRMED, nameLen * sizeof(LIB_TCHAR));
 				streamWriter.Write(clint->user.c_str(), nameLen);
 				HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), wb->GetPcs());
 				WaitAndCloseHandle(hnd);
@@ -396,7 +396,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 		{
 		case MSG_ADMIN_KICK:
 		{
-			std::tstring user((TCHAR*)dat);
+			std::tstring user((LIB_TCHAR*)dat);
 			if (IsAdmin(clint->user))
 			{
 				if (IsAdmin(user))//if the user to be kicked is not an admin
@@ -500,7 +500,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 		}
 		case MSG_WHITEBOARD_KICK:
 		{
-			std::tstring user((TCHAR*)dat);
+			std::tstring user((LIB_TCHAR*)dat);
 			if(IsAdmin(clint->user) || wb->IsCreator(clint->user))
 			{
 				if(wb->IsCreator(user))//if the user to be kicked is the creator
@@ -586,7 +586,7 @@ void WinMainInit()
 
 	serv = CreateServer(&MsgHandler, &ConnectHandler, &DisconnectHandler);
 
-	TCHAR portA[6] = {};
+	LIB_TCHAR portA[6] = {};
 	serv->AllowConnections(_itot(port, portA, 10));
 }
 
@@ -619,7 +619,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	wcex.lpszClassName = _T("Server");
 	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_APPLICATION));
 
-	TCHAR title[30];
+	LIB_TCHAR title[30];
 	_stprintf(title, _T("%s %.3f"), szTitle, APPVERSION);
 
 	if (!RegisterClassEx(&wcex))
@@ -756,7 +756,7 @@ INT_PTR CALLBACK ManageAdminsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 		{
 			const UINT index = SendMessage(list, LB_GETCURSEL, 0, 0);
 			const UINT len = SendMessage(list, LB_GETTEXTLEN, index, 0);
-			TCHAR* buffer = alloc<TCHAR>(len + 1);
+			LIB_TCHAR* buffer = alloc<LIB_TCHAR>(len + 1);
 			SendMessage(list, LB_GETTEXT, index, (LPARAM)buffer);
 			SendMessage(list, LB_DELETESTRING, index, 0);
 			for (USHORT i = 0; i < adminList.size(); i++)
@@ -776,7 +776,7 @@ INT_PTR CALLBACK ManageAdminsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 		case ID_ADMIN_ADD:
 		{
 			const UINT len = SendMessage(userInput, WM_GETTEXTLENGTH, 0, 0) + 1;
-			TCHAR* name = alloc<TCHAR>(len);
+			LIB_TCHAR* name = alloc<LIB_TCHAR>(len);
 			SendMessage(userInput, WM_GETTEXT, len, (LPARAM)name);
 			SendMessage(userInput, WM_SETTEXT, 0, (LPARAM)_T(""));
 

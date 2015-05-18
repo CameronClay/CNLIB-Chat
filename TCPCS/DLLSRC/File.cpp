@@ -38,7 +38,7 @@ bool FileMisc::FileData::operator()(FileData& fd)
 	return false;
 }
 
-File::File(const TCHAR* fileName, DWORD desiredAccess, DWORD fileAttributes, DWORD creationFlag)
+File::File(const LIB_TCHAR* fileName, DWORD desiredAccess, DWORD fileAttributes, DWORD creationFlag)
 {
 	bool b = Open(fileName, desiredAccess, fileAttributes, creationFlag);
 	assert(b);
@@ -61,7 +61,7 @@ File::~File()
 	Close();
 }
 
-bool File::Open(const TCHAR* fileName, DWORD desiredAccess, DWORD fileAttributes, DWORD creationFlag)
+bool File::Open(const LIB_TCHAR* fileName, DWORD desiredAccess, DWORD fileAttributes, DWORD creationFlag)
 {
 	return (hnd = CreateFile(fileName, desiredAccess, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, creationFlag, fileAttributes, NULL)) != NULL;
 }
@@ -102,12 +102,12 @@ DWORD File::Read(void* dest, DWORD nBytes)
 void File::WriteString(const std::tstring& str)
 {
 	std::tstring t(To_String(str.length()) + _T(":") + str);
-	Write(t.c_str(), sizeof(TCHAR) * t.length());
+	Write(t.c_str(), sizeof(LIB_TCHAR) * t.length());
 }
 
 void File::WriteDate(const SYSTEMTIME& st)
 {
-	TCHAR dstr[25], tstr[25];
+	LIB_TCHAR dstr[25], tstr[25];
 
 #if NTDDI_VERSION >= NTDDI_VISTA
 	GetDateFormatEx(LOCALE_NAME_SYSTEM_DEFAULT, LOCALE_USE_CP_ACP, &st, NULL, dstr, 25, NULL);
@@ -118,7 +118,7 @@ void File::WriteDate(const SYSTEMTIME& st)
 #endif
 
 	std::tstring str = dstr + std::tstring(_T(" ")) + tstr;
-	Write(str.c_str(), sizeof(TCHAR) * str.length());
+	Write(str.c_str(), sizeof(LIB_TCHAR) * str.length());
 }
 
 bool File::ReadString(std::tstring& dest)
@@ -127,15 +127,15 @@ bool File::ReadString(std::tstring& dest)
 	std::tstring len = _T("0");
 	do
 	{
-		Read(&len[i], sizeof(TCHAR));
+		Read(&len[i], sizeof(LIB_TCHAR));
 		len.append(_T(":"));//so out of bounds doesnt happen
 	} while(len[i++] != ':');
 
 	UINT strLen = std::stoul(len);
 	if(strLen)
 	{
-		TCHAR *str = alloc<TCHAR>(strLen + 1);
-		Read(str, sizeof(TCHAR) * strLen);
+		LIB_TCHAR *str = alloc<LIB_TCHAR>(strLen + 1);
+		Read(str, sizeof(LIB_TCHAR) * strLen);
 		str[strLen] = '\0', dest = str;
 		dealloc(str);
 	}
@@ -145,11 +145,11 @@ bool File::ReadString(std::tstring& dest)
 bool File::ReadDate(SYSTEMTIME& dest)
 {
 	bool b;
-	TCHAR c;
+	LIB_TCHAR c;
 	std::stringstream buf;
 	do
 	{
-		b = Read(&c, sizeof(TCHAR)) != 0;
+		b = Read(&c, sizeof(LIB_TCHAR)) != 0;
 		buf << (c == '/' || c == ':' ? ' ' : c);
 	} while(c != '\n');
 	buf << '\0';
@@ -197,18 +197,18 @@ void File::ChangeDate(const SYSTEMTIME& t)
 	SetFileTime(hnd, nullptr, nullptr, &ft);
 }
 
-void FileMisc::SetAttrib(const TCHAR* fileName, DWORD attrib)
+void FileMisc::SetAttrib(const LIB_TCHAR* fileName, DWORD attrib)
 {
 	SetFileAttributes(fileName, attrib);
 }
 
-void FileMisc::CreateFolder(const TCHAR* fileName, DWORD fileAttributes)
+void FileMisc::CreateFolder(const LIB_TCHAR* fileName, DWORD fileAttributes)
 {
 	if(!CreateDirectory(fileName, NULL))
 	{
 		if(GetLastError() == ERROR_PATH_NOT_FOUND)
 		{
-			TCHAR *buff = _tcsdup(fileName);
+			LIB_TCHAR *buff = _tcsdup(fileName);
 			PathRemoveFileSpec(buff);
 			CreateFolder(buff);
 			CreateDirectory(fileName, NULL);
@@ -218,14 +218,14 @@ void FileMisc::CreateFolder(const TCHAR* fileName, DWORD fileAttributes)
 	SetFileAttributes(fileName, fileAttributes);
 }
 
-void FileMisc::CreateShortcut(const TCHAR* target, const TCHAR* linkName)
+void FileMisc::CreateShortcut(const LIB_TCHAR* target, const LIB_TCHAR* linkName)
 {
 	IShellLink *sl; IPersistFile *pf;
 	//CLSID_FolderShortcut
 	HRESULT hr = CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_IShellLink, (void**)&sl);
 	if(SUCCEEDED(hr))
 	{
-		TCHAR buff[MAX_PATH];
+		LIB_TCHAR buff[MAX_PATH];
 		if(PathIsRelative(target))
 		{
 			GetFullFilePathName(target, buff);
@@ -250,42 +250,42 @@ void FileMisc::CreateShortcut(const TCHAR* target, const TCHAR* linkName)
 	}
 }
 
-void FileMisc::MoveOrRename(const TCHAR* oldFileName, const TCHAR* newFileName)
+void FileMisc::MoveOrRename(const LIB_TCHAR* oldFileName, const LIB_TCHAR* newFileName)
 {
 	MoveFile(oldFileName, newFileName);
 }
 
-void FileMisc::Remove(const TCHAR* fileName)
+void FileMisc::Remove(const LIB_TCHAR* fileName)
 {
 	DeleteFile(fileName);
 }
 
-void FileMisc::RemoveFolder(const TCHAR* fileName)
+void FileMisc::RemoveFolder(const LIB_TCHAR* fileName)
 {
 	RemoveDirectory(fileName);
 }
 
-bool FileMisc::Exists(const TCHAR* fileName)
+bool FileMisc::Exists(const LIB_TCHAR* fileName)
 {
 	return PathFileExists(fileName) != FALSE;
 }
 
-void FileMisc::SetCurDirectory(const TCHAR* folderName)
+void FileMisc::SetCurDirectory(const LIB_TCHAR* folderName)
 {
 	SetCurrentDirectory(folderName);
 }
 
-void FileMisc::GetCurDirectory(TCHAR* buffer)
+void FileMisc::GetCurDirectory(LIB_TCHAR* buffer)
 {
 	GetCurrentDirectory(MAX_PATH, buffer);
 }
 
-HRESULT FileMisc::GetFolderPath(int folder, TCHAR* buffer)
+HRESULT FileMisc::GetFolderPath(int folder, LIB_TCHAR* buffer)
 {
 	return SHGetFolderPath(NULL, folder, NULL, SHGFP_TYPE_CURRENT, buffer);
 }
 
-void FileMisc::GetFullFilePathName(const TCHAR* fileName, TCHAR* buffer)
+void FileMisc::GetFullFilePathName(const LIB_TCHAR* fileName, LIB_TCHAR* buffer)
 {
 	GetFullPathName(fileName, MAX_PATH, buffer, NULL);
 }
@@ -318,10 +318,10 @@ DWORD FileMisc::Decompress(BYTE* dest, DWORD destLen, const BYTE* src, DWORD src
 }
 
 
-void FileMisc::GetFileNameList(const TCHAR* folder, DWORD filter, std::vector<FileMisc::FileData>& list)
+void FileMisc::GetFileNameList(const LIB_TCHAR* folder, DWORD filter, std::vector<FileMisc::FileData>& list)
 {
 	WIN32_FIND_DATA fileSearch;
-	TCHAR buffer[MAX_PATH] = {};
+	LIB_TCHAR buffer[MAX_PATH] = {};
 	_stprintf_s(buffer, _T("%s\\*"), folder);
 
 
@@ -392,26 +392,26 @@ bool FileMisc::CompareTime(SYSTEMTIME& t1, SYSTEMTIME& t2)
 }
 
 
-//HKEY File::CreateRegistryKey(HKEY hnd, const TCHAR* path, DWORD accessRights)
+//HKEY File::CreateRegistryKey(HKEY hnd, const LIB_TCHAR* path, DWORD accessRights)
 //{
 //	HKEY key;
 //	RegCreateKeyEx(hnd, path, 0, NULL, 0, accessRights, NULL, &key, NULL);
 //	return key;
 //}
 //
-//bool File::SetRegistryKeyValue(HKEY hnd, const TCHAR* subKey, const TCHAR* valueName, DWORD type, const BYTE* data, DWORD nBytes)
+//bool File::SetRegistryKeyValue(HKEY hnd, const LIB_TCHAR* subKey, const LIB_TCHAR* valueName, DWORD type, const BYTE* data, DWORD nBytes)
 //{
 //	return RegSetKeyValue(hnd, subKey, valueName, type, data, nBytes) == ERROR_SUCCESS ? true : false;
 //}
 //
-//HKEY File::OpenRegistryKey(HKEY hnd, const TCHAR* subKey, DWORD accessRights)
+//HKEY File::OpenRegistryKey(HKEY hnd, const LIB_TCHAR* subKey, DWORD accessRights)
 //{
 //	HKEY key;
 //	RegOpenKeyEx(hnd, subKey, 0, accessRights, &key);
 //	return key;
 //}
 //
-//bool File::KeyExists(HKEY hnd, const TCHAR* subKey)
+//bool File::KeyExists(HKEY hnd, const LIB_TCHAR* subKey)
 //{
 //	HKEY key = File::OpenRegistryKey(HKEY_CURRENT_USER, subKey);
 //	if (key == ERROR_SUCCESS)
@@ -422,7 +422,7 @@ bool FileMisc::CompareTime(SYSTEMTIME& t1, SYSTEMTIME& t2)
 //	return false;
 //}
 //
-//bool File::SaveKey(HKEY hnd, const TCHAR* name)
+//bool File::SaveKey(HKEY hnd, const LIB_TCHAR* name)
 //{
 //	bool b = (RegSaveKey(hnd, name, NULL) == ERROR_SUCCESS ? true : false);
 //	return b;
@@ -433,13 +433,13 @@ bool FileMisc::CompareTime(SYSTEMTIME& t1, SYSTEMTIME& t2)
 //	RegCloseKey(hnd);
 //}
 //
-//bool File::DeleteRegistryKeyValue(HKEY hnd, const TCHAR* subKey, const TCHAR* valueName)
+//bool File::DeleteRegistryKeyValue(HKEY hnd, const LIB_TCHAR* subKey, const LIB_TCHAR* valueName)
 //{
 //	return RegDeleteKeyValue(hnd, subKey, valueName) == ERROR_SUCCESS ? true : false;
 //}
 
 
-bool FileMisc::BrowseFiles(const TCHAR* windowName, TCHAR* filePathDest, HWND hwnd, DWORD flags)
+bool FileMisc::BrowseFiles(const LIB_TCHAR* windowName, LIB_TCHAR* filePathDest, HWND hwnd, DWORD flags)
 {
 	OPENFILENAME file;
 
@@ -456,7 +456,7 @@ bool FileMisc::BrowseFiles(const TCHAR* windowName, TCHAR* filePathDest, HWND hw
 	return GetOpenFileName(&file) != 0;
 }
 
-bool FileMisc::BrowseFolder(const TCHAR* windowName, TCHAR* buffer, HWND hwnd, UINT flags)
+bool FileMisc::BrowseFolder(const LIB_TCHAR* windowName, LIB_TCHAR* buffer, HWND hwnd, UINT flags)
 {
 	BROWSEINFO bi = { 0 };
 	bi.hwndOwner = hwnd;
@@ -512,7 +512,7 @@ ProgDlg::~ProgDlg()
 	CoUninitialize();
 }
 
-bool ProgDlg::Start(HWND hwnd, const DWORD maxVal, const TCHAR* title, const TCHAR* line0, const TCHAR* cancelMsg)
+bool ProgDlg::Start(HWND hwnd, const DWORD maxVal, const LIB_TCHAR* title, const LIB_TCHAR* line0, const LIB_TCHAR* cancelMsg)
 {
 	if(!SUCCEEDED(CoCreateInstance(CLSID_ProgressDialog, NULL, CLSCTX_INPROC_SERVER, IID_IProgressDialog, (void**)&pd)) || pd == nullptr)
 		return false;
@@ -553,7 +553,7 @@ void ProgDlg::Stop()
 	}
 }
 
-void ProgDlg::SetLine1(const TCHAR* line1)
+void ProgDlg::SetLine1(const LIB_TCHAR* line1)
 {
 #ifdef UNICODE
 	//          2 due to PROGDLG_AUTOTIME

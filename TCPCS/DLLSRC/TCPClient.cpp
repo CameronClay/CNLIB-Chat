@@ -165,7 +165,7 @@ static DWORD CALLBACK ReceiveData(LPVOID param)
 }
 
 //IP or HostName for dest
-bool TCPClient::Connect( const TCHAR* dest, const TCHAR* port, float timeOut )
+bool TCPClient::Connect( const LIB_TCHAR* dest, const LIB_TCHAR* port, float timeOut )
 {
 	if(host.IsConnected())
 		return false;
@@ -218,7 +218,7 @@ void TCPClient::SendMsg(char type, char message)
 
 void TCPClient::SendMsg(const std::tstring& name, char type, char message)
 {
-	MsgStreamWriter streamWriter(type, message, (name.size() + 1) * sizeof(TCHAR));
+	MsgStreamWriter streamWriter(type, message, (name.size() + 1) * sizeof(LIB_TCHAR));
 	streamWriter.WriteEnd(name.c_str());
 	HANDLE hnd = SendServData(streamWriter, streamWriter.GetSize());
 	WaitAndCloseHandle(hnd);

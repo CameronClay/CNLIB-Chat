@@ -480,8 +480,11 @@ TCPServ::~TCPServ()
 	Shutdown();
 }
 
-bool TCPServ::AllowConnections(const TCHAR* port)
+bool TCPServ::AllowConnections(const LIB_TCHAR* port)
 {
+	if(host.IsConnected())
+		return false;
+
 	host.Bind(port);
 
 	if(!host.IsConnected())
@@ -545,7 +548,7 @@ void TCPServ::RemoveClient(USHORT& pos)
 
 	if(!user.empty() && host.IsConnected())//if user wasnt declined authentication
 	{
-		MsgStreamWriter streamWriter(TYPE_CHANGE, MSG_CHANGE_DISCONNECT, (user.size() + 1) * sizeof(TCHAR));
+		MsgStreamWriter streamWriter(TYPE_CHANGE, MSG_CHANGE_DISCONNECT, (user.size() + 1) * sizeof(LIB_TCHAR));
 		streamWriter.WriteEnd(user.c_str());
 		HANDLE hnd = SendClientData(streamWriter, streamWriter.GetSize(), Socket(), false);
 		WaitAndCloseHandle(hnd);

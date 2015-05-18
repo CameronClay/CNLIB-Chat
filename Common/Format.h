@@ -23,73 +23,73 @@ namespace std
 #endif
 
 
-static TCHAR* GetTime()
+static LIB_TCHAR* GetTime()
 {
 	const UINT buffSize = GetTimeFormat(LOCALE_USER_DEFAULT, LOCALE_USE_CP_ACP, NULL, NULL, NULL, 0);
-	TCHAR* buffer = alloc<TCHAR>(buffSize);
+	LIB_TCHAR* buffer = alloc<LIB_TCHAR>(buffSize);
 	GetTimeFormat(LOCALE_USER_DEFAULT, LOCALE_USE_CP_ACP, NULL, NULL, buffer, buffSize);
 	return buffer;
 }
 
-static TCHAR* FormatText(BYTE* dat, DWORD datBytes, std::tstring& name, UINT& nBytes, bool timeStamps)
+static LIB_TCHAR* FormatText(BYTE* dat, DWORD datBytes, std::tstring& name, UINT& nBytes, bool timeStamps)
 {
 	if(timeStamps)
 	{
-		TCHAR* time = GetTime();
+		LIB_TCHAR* time = GetTime();
 		// 7 for [] <> :, 1 for null
-		nBytes = ((_tcslen(time) + name.size() + 7 + 1) * sizeof(TCHAR)) + datBytes;
+		nBytes = ((_tcslen(time) + name.size() + 7 + 1) * sizeof(LIB_TCHAR)) + datBytes;
 		char* msg = alloc<char>(nBytes);
-		_stprintf((TCHAR*)msg, _T("[%s] <%s>: %s"), time, name.c_str(), dat);
+		_stprintf((LIB_TCHAR*)msg, _T("[%s] <%s>: %s"), time, name.c_str(), dat);
 		dealloc(time);
-		return (TCHAR*)msg;
+		return (LIB_TCHAR*)msg;
 	}
 	else
 	{
 		// 4 for <> :, 1 for null
-		nBytes = ((name.size() + 4 + 1) * sizeof(TCHAR)) + datBytes;
+		nBytes = ((name.size() + 4 + 1) * sizeof(LIB_TCHAR)) + datBytes;
 		char* msg = alloc<char>(nBytes);
-		_stprintf((TCHAR*)msg, _T("<%s>: %s"), name.c_str(), dat);
-		return (TCHAR*)msg;
+		_stprintf((LIB_TCHAR*)msg, _T("<%s>: %s"), name.c_str(), dat);
+		return (LIB_TCHAR*)msg;
 	}
 }
 
-static TCHAR* FormatText(BYTE* dat, DWORD datBytes, UINT& nBytes, bool timeStamps)
+static LIB_TCHAR* FormatText(BYTE* dat, DWORD datBytes, UINT& nBytes, bool timeStamps)
 {
 	if(timeStamps)
 	{
-		TCHAR* time = GetTime();
+		LIB_TCHAR* time = GetTime();
 		// 3 for <> :, 1 for null
-		nBytes = ((_tcslen(time) + 3 + 1) * sizeof(TCHAR)) + datBytes;
+		nBytes = ((_tcslen(time) + 3 + 1) * sizeof(LIB_TCHAR)) + datBytes;
 		char* msg = alloc<char>(nBytes);
-		_stprintf((TCHAR*)msg, _T("[%s] %s"), time, dat);
+		_stprintf((LIB_TCHAR*)msg, _T("[%s] %s"), time, dat);
 		dealloc(time);
-		return (TCHAR*)msg;
+		return (LIB_TCHAR*)msg;
 	}
 	else
 	{
 		nBytes = datBytes;
 		char* msg = alloc<char>(nBytes);
 		memcpy(msg, dat, nBytes);
-		return (TCHAR*)msg;
+		return (LIB_TCHAR*)msg;
 	}
 }
 
 
-static TCHAR* FormatMsg(char type, char message, BYTE* dat, DWORD datBytes, std::tstring& name, UINT& nBytes)
+static LIB_TCHAR* FormatMsg(char type, char message, BYTE* dat, DWORD datBytes, std::tstring& name, UINT& nBytes)
 {
 	// 4 for <> :, 1 for null, 2 for msg
-	nBytes = ((name.size() + 4 + 1) * sizeof(TCHAR)) + datBytes + 2;
+	nBytes = ((name.size() + 4 + 1) * sizeof(LIB_TCHAR)) + datBytes + 2;
 	char* msg = alloc<char>(nBytes);
 	msg[0] = type;
 	msg[1] = message;
-	_stprintf((TCHAR*)&msg[MSG_OFFSET], _T("<%s>: %s"), name.c_str(), dat);
-	return (TCHAR*)msg;
+	_stprintf((LIB_TCHAR*)&msg[MSG_OFFSET], _T("<%s>: %s"), name.c_str(), dat);
+	return (LIB_TCHAR*)msg;
 }
 
 static void PrintError(DWORD dwErr)
 {
-	TCHAR *szErr;
-	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, dwErr, 0, (TCHAR*)&szErr, 256, NULL);
+	LIB_TCHAR *szErr;
+	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, dwErr, 0, (LIB_TCHAR*)&szErr, 256, NULL);
 	_tprintf(_T("%s"), szErr);
 	LocalFree(szErr);
 }

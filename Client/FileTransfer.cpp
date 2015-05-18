@@ -170,7 +170,7 @@ void FileSend::SetFullPathSrc(std::tstring& fullFilepathSrc)
 void FileSend::RequestTransfer()
 {
 	const UINT nameLen = username.size() + 1;
-	const DWORD nBytes = sizeof(UINT) + (nameLen * sizeof(TCHAR)) + sizeof(double);
+	const DWORD nBytes = sizeof(UINT) + (nameLen * sizeof(LIB_TCHAR)) + sizeof(double);
 	MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_TRANSFER, nBytes);
 
 	for(auto& i : list)
@@ -199,7 +199,7 @@ void FileSend::SendFileNameList()
 		nChars += i.fileName.size() + 1;
 
 	const UINT userLen = username.size() + 1;
-	const DWORD nBytes = ((nChars + userLen) * sizeof(TCHAR)) + ((sizeof(SYSTEMTIME) + sizeof(DWORD64) + sizeof(UINT)) * list.size()) + sizeof(UINT);
+	const DWORD nBytes = ((nChars + userLen) * sizeof(LIB_TCHAR)) + ((sizeof(SYSTEMTIME) + sizeof(DWORD64) + sizeof(UINT)) * list.size()) + sizeof(UINT);
 	MsgStreamWriter streamWriter(TYPE_FILE, MSG_FILE_LIST, nBytes);
 	streamWriter.Write(userLen);
 	streamWriter.Write(username.c_str(), userLen);
@@ -229,7 +229,7 @@ void FileSend::SendCurrentFile()
 
 	File file((fullFilepathSrc + it->fileName).c_str(), FILE_GENERIC_READ);
 	const UINT userLen = username.size() + 1;
-	const DWORD extraBytesData = sizeof(UINT) + (userLen * sizeof(TCHAR)) + MSG_OFFSET;
+	const DWORD extraBytesData = sizeof(UINT) + (userLen * sizeof(LIB_TCHAR)) + MSG_OFFSET;
 
 	dialog.SetLine1(it->fileName.c_str());
 
@@ -250,8 +250,8 @@ void FileSend::SendCurrentFile()
 		msg[1] = MSG_FILE_DATA;
 		*(UINT*)&(msg[pos]) = userLen;
 		pos += sizeof(UINT);
-		memcpy(&msg[pos], username.c_str(), userLen * sizeof(TCHAR));
-		pos += userLen * sizeof(TCHAR);
+		memcpy(&msg[pos], username.c_str(), userLen * sizeof(LIB_TCHAR));
+		pos += userLen * sizeof(LIB_TCHAR);
 
 		DWORD bytesRead = file.Read(&msg[pos], nBytesPerLoop);
 		progress += ((double)bytesRead) / (double)(1024 * 1024);
@@ -376,7 +376,7 @@ void FileReceive::RecvFileNameList(MsgStreamReader& streamReader, std::tstring& 
 		const DWORD64 size = streamReader.Read<DWORD64>();
 		const SYSTEMTIME time = streamReader.Read<SYSTEMTIME>();
 		const UINT nameLen = streamReader.Read<UINT>();
-		std::tstring temp(streamReader.Read<TCHAR>(nameLen));
+		std::tstring temp(streamReader.Read<LIB_TCHAR>(nameLen));
 		temp.insert(0, downloadPath + _T("\\"));
 		list.push_back(FileMisc::FileData(temp, time, size));
 
@@ -408,7 +408,7 @@ void FileReceive::RecvFile(BYTE* data, DWORD nBytes)
 
 	if(!file.IsOpen())//file is closed
 	{
-		TCHAR *path = alloc<TCHAR>(it->fileName.size() + 1);
+		LIB_TCHAR *path = alloc<LIB_TCHAR>(it->fileName.size() + 1);
 		_tcscpy(path, it->fileName.c_str());
 		PathRemoveFileSpec(path);
 		if(_tcslen(path) && !FileMisc::Exists(path))
@@ -466,5 +466,5 @@ void FileReceive::StopReceive()
 		CoUninitialize();
 	Stop();
 	bytesWritten = 0;
-	ZeroMemory(tempFilename, sizeof(TCHAR) * ARRAYSIZE(tempFilename));
+	ZeroMemory(tempFilename, sizeof(LIB_TCHAR) * ARRAYSIZE(tempFilename));
 }

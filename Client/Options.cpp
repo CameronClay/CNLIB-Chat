@@ -25,7 +25,7 @@ Options::~Options()
 
 }
 
-void Options::Load(const TCHAR* windowName)
+void Options::Load(const LIB_TCHAR* windowName)
 {
 	File file(filePath.c_str(), FILE_GENERIC_READ, FILE_ATTRIBUTE_HIDDEN);
 
@@ -54,7 +54,7 @@ void Options::Load(const TCHAR* windowName)
 
 }
 
-void Options::Save(const TCHAR* windowName)
+void Options::Save(const LIB_TCHAR* windowName)
 {
 	File file(filePath.c_str(), FILE_GENERIC_WRITE, FILE_ATTRIBUTE_HIDDEN, CREATE_ALWAYS);
 
@@ -74,15 +74,15 @@ void Options::Save(const TCHAR* windowName)
 
 	if(startUp)
 	{
-		TCHAR path[MAX_PATH];
+		LIB_TCHAR path[MAX_PATH];
 		GetModuleFileName(NULL, path, MAX_PATH);
 
 #if NTDDI_VERSION >= NTDDI_VISTA
-		RegSetKeyValue(HKEY_CURRENT_USER, _T("Software\\Microsoft\\Windows\\CurrentVersion\\Run"), windowName, REG_SZ, path, (lstrlen(path) + 1) * sizeof(TCHAR));
+		RegSetKeyValue(HKEY_CURRENT_USER, _T("Software\\Microsoft\\Windows\\CurrentVersion\\Run"), windowName, REG_SZ, path, (lstrlen(path) + 1) * sizeof(LIB_TCHAR));
 #else
 		HKEY key;
 		RegCreateKeyEx(HKEY_CURRENT_USER, _T("Software\\Microsoft\\Windows\\CurrentVersion\\Run"), NULL, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &key, NULL);
-		RegSetValueEx(key, windowName, NULL, REG_SZ, (const BYTE*)path, (lstrlen(path) + 1) * sizeof(TCHAR));
+		RegSetValueEx(key, windowName, NULL, REG_SZ, (const BYTE*)path, (lstrlen(path) + 1) * sizeof(LIB_TCHAR));
 		RegCloseKey(key);
 #endif
 	}
@@ -122,7 +122,7 @@ void Options::Reset(float currentVers)
 	flashCount = 3;
 	version = currentVers;
 
-	TCHAR buffer[MAX_PATH] = {};
+	LIB_TCHAR buffer[MAX_PATH] = {};
 	FileMisc::GetFolderPath(CSIDL_MYDOCUMENTS , buffer);
 	downloadPath = std::tstring(buffer);
 

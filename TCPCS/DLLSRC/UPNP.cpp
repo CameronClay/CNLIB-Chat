@@ -34,7 +34,7 @@ bool UPNP::Initialize()
 	return upnpS && collectionS;
 }
 
-bool UPNP::PortMapExists(USHORT port, const TCHAR* protocal) const
+bool UPNP::PortMapExists(USHORT port, const LIB_TCHAR* protocal) const
 {
 	IStaticPortMapping* spm = nullptr;
 	bool result = false;
@@ -46,12 +46,12 @@ bool UPNP::PortMapExists(USHORT port, const TCHAR* protocal) const
 	return result;
 }
 
-bool UPNP::RemovePortMap(USHORT port, const TCHAR* protocal)
+bool UPNP::RemovePortMap(USHORT port, const LIB_TCHAR* protocal)
 {
 	return SUCCEEDED(spmc->Remove(port, bstr_t(protocal)));
 }
 
-bool UPNP::AddPortMap(USHORT port, const TCHAR* protocal, const TCHAR* ip, const TCHAR* description, bool state)
+bool UPNP::AddPortMap(USHORT port, const LIB_TCHAR* protocal, const LIB_TCHAR* ip, const LIB_TCHAR* description, bool state)
 {
 	IStaticPortMapping* spm = nullptr;
 	VARIANT_BOOL b = (state ? VARIANT_TRUE : VARIANT_FALSE);
@@ -72,13 +72,13 @@ long UPNP::GetPortMapCount()
 	return n;
 }
 
-bool MapPort(USHORT port, const TCHAR* protocal, const TCHAR* name)
+bool MapPort(USHORT port, const LIB_TCHAR* protocal, const LIB_TCHAR* name)
 {
 	UPNP upnp;
 	bool result = false;
 	if (upnp.Initialize())
 	{
-		TCHAR IP[16] = {};
+		LIB_TCHAR IP[16] = {};
 		Socket::GetLocalIP(IP);
 		if (upnp.PortMapExists(port, protocal))
 			result = upnp.RemovePortMap(port, protocal);

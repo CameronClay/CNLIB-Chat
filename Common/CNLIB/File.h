@@ -9,12 +9,12 @@
 class CAMSNETLIB File
 {
 public:
-	File(const TCHAR* fileName, DWORD desiredAccess, DWORD fileAttributes = FILE_ATTRIBUTE_NORMAL, DWORD creationFlag = OPEN_ALWAYS);
+	File(const LIB_TCHAR* fileName, DWORD desiredAccess, DWORD fileAttributes = FILE_ATTRIBUTE_NORMAL, DWORD creationFlag = OPEN_ALWAYS);
 	File();
 	File(File&& file);
 	~File();
 
-	bool Open(const TCHAR* fileName, DWORD desiredAccess, DWORD fileAttributes = FILE_ATTRIBUTE_NORMAL, DWORD creationFlag = OPEN_ALWAYS);
+	bool Open(const LIB_TCHAR* fileName, DWORD desiredAccess, DWORD fileAttributes = FILE_ATTRIBUTE_NORMAL, DWORD creationFlag = OPEN_ALWAYS);
 	void Close();
 
 	// begining or end, location FILE_BEGIN or FILE_END
@@ -56,26 +56,26 @@ namespace FileMisc
 		DWORD64 size;
 	};
 
-	CAMSNETLIB void Remove(const TCHAR* fileName);
-	CAMSNETLIB bool Exists(const TCHAR* fileName);
+	CAMSNETLIB void Remove(const LIB_TCHAR* fileName);
+	CAMSNETLIB bool Exists(const LIB_TCHAR* fileName);
 
 	// FILE_ATTRIBUTE_HIDDEN, FILE_ATTRIBUTE_TEMPORARY, blank = NORMAL
-	CAMSNETLIB void CreateFolder(const TCHAR* fileName, DWORD fileAttributes = FILE_ATTRIBUTE_NORMAL);
-	CAMSNETLIB void CreateShortcut(const TCHAR*, const TCHAR*);
-	CAMSNETLIB void MoveOrRename(const TCHAR* oldFileName, const TCHAR* newFileName);
-	CAMSNETLIB void GetFullFilePathName(const TCHAR* fileName, TCHAR* buffer);
+	CAMSNETLIB void CreateFolder(const LIB_TCHAR* fileName, DWORD fileAttributes = FILE_ATTRIBUTE_NORMAL);
+	CAMSNETLIB void CreateShortcut(const LIB_TCHAR*, const LIB_TCHAR*);
+	CAMSNETLIB void MoveOrRename(const LIB_TCHAR* oldFileName, const LIB_TCHAR* newFileName);
+	CAMSNETLIB void GetFullFilePathName(const LIB_TCHAR* fileName, LIB_TCHAR* buffer);
 
 	// folder = "" or full directory path, filter = NULL for no filter
-	CAMSNETLIB void GetFileNameList(const TCHAR* folder, DWORD filter, std::vector<FileMisc::FileData>& list);
+	CAMSNETLIB void GetFileNameList(const LIB_TCHAR* folder, DWORD filter, std::vector<FileMisc::FileData>& list);
 
 	// returns true when t1 > t2, false when t2 <= t1
 	CAMSNETLIB bool CompareTime(SYSTEMTIME& t1, SYSTEMTIME& t2);
 
 	// CSIDL_DESKTOP for desktop, CSIDL_MYDOCUMENTS for documents etc.
-	CAMSNETLIB HRESULT GetFolderPath(int folder, TCHAR* buffer);
-	CAMSNETLIB void RemoveFolder(const TCHAR* fileName);
-	CAMSNETLIB void SetCurDirectory(const TCHAR* folderName);
-	CAMSNETLIB void GetCurDirectory(TCHAR* buffer);
+	CAMSNETLIB HRESULT GetFolderPath(int folder, LIB_TCHAR* buffer);
+	CAMSNETLIB void RemoveFolder(const LIB_TCHAR* fileName);
+	CAMSNETLIB void SetCurDirectory(const LIB_TCHAR* folderName);
+	CAMSNETLIB void GetCurDirectory(LIB_TCHAR* buffer);
 
 	/*-----------CompressionFunctions------------*/
 	CAMSNETLIB DWORD GetCompressedBufferSize(DWORD srcLen);
@@ -84,11 +84,11 @@ namespace FileMisc
 	CAMSNETLIB DWORD Decompress(BYTE* dest, DWORD destLen, const BYTE* src, DWORD srcLen);
 
 	// Access = FILE_GENERIC_READ, FILE_GENERIC_WRITE, FILE_GENERIC_EXECUTE, attributes = FILE_ATTRIBUTE_HIDDEN, FILE_ATTRIBUTE_TEMPORARY, blank = NORMAL
-	CAMSNETLIB void SetAttrib(const TCHAR* fileName, DWORD attrib);
+	CAMSNETLIB void SetAttrib(const LIB_TCHAR* fileName, DWORD attrib);
 
 	/*-----------DialogFunctions------------*/
-	CAMSNETLIB bool BrowseFiles(const TCHAR* windowName, TCHAR* filePathDest, HWND hwnd, DWORD flags = OFN_CREATEPROMPT | OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST);
-	CAMSNETLIB bool BrowseFolder(const TCHAR* windowName, TCHAR* buffer, HWND hwnd, UINT flags = BIF_RETURNONLYFSDIRS | BIF_USENEWUI);
+	CAMSNETLIB bool BrowseFiles(const LIB_TCHAR* windowName, LIB_TCHAR* filePathDest, HWND hwnd, DWORD flags = OFN_CREATEPROMPT | OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST);
+	CAMSNETLIB bool BrowseFolder(const LIB_TCHAR* windowName, LIB_TCHAR* buffer, HWND hwnd, UINT flags = BIF_RETURNONLYFSDIRS | BIF_USENEWUI);
 	CAMSNETLIB bool BrowseFont(HWND hwnd, HFONT& hFont, COLORREF& color);
 }
 
@@ -99,10 +99,10 @@ public:
 	ProgDlg(ProgDlg&& progdlg);
 	~ProgDlg();
 
-	bool Start(HWND hwnd, const DWORD maxVal, const TCHAR* title, const TCHAR* line0, const TCHAR* cancelMsg);
+	bool Start(HWND hwnd, const DWORD maxVal, const LIB_TCHAR* title, const LIB_TCHAR* line0, const LIB_TCHAR* cancelMsg);
 	void Stop();
 
-	void SetLine1(const TCHAR* line1);
+	void SetLine1(const LIB_TCHAR* line1);
 	void SetProgress(DWORD progress);
 
 	bool Canceled();

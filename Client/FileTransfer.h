@@ -91,5 +91,5 @@ private:
 
 	File file;
 	DWORD64 bytesWritten;
-	TCHAR tempFilename[MAX_PATH + 75] = {};
+	LIB_TCHAR tempFilename[MAX_PATH + 75] = {};
 };

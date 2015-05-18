@@ -18,7 +18,7 @@ int CleanupNetworking()
 	return WSACleanup();
 }
 
-Socket::Socket(const TCHAR* port)
+Socket::Socket(const LIB_TCHAR* port)
 {
 	Bind(port);
 }
@@ -84,7 +84,7 @@ Socket::operator HANDLE&()
 	return (HANDLE&)pc;
 }
 
-void Socket::Bind(const TCHAR* port)
+void Socket::Bind(const LIB_TCHAR* port)
 {
 	ADDRINFOT info = { AI_PASSIVE, AF_INET, SOCK_STREAM, IPPROTO_TCP };
 	ADDRINFOT* addr = 0;
@@ -110,7 +110,7 @@ Socket Socket::AcceptConnection()
 
 
 //IP or HostName for dest
-void Socket::Connect(const TCHAR* dest, const TCHAR* port, float timeout)
+void Socket::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, float timeout)
 {
 	SOCKET sock = INVALID_SOCKET;
 	int result = false;
@@ -187,7 +187,7 @@ long Socket::SendData(const void* data, DWORD nBytes)
 }
 
 
-void Socket::ToIp(TCHAR* ipaddr) const
+void Socket::ToIp(LIB_TCHAR* ipaddr) const
 {
 	sockaddr_in saddr = {};
 	int len = sizeof(saddr);
@@ -205,9 +205,9 @@ bool Socket::IsConnected() const
 }
 
 
-void Socket::GetLocalIP(TCHAR* dest)
+void Socket::GetLocalIP(LIB_TCHAR* dest)
 {
-	TCHAR buffer[255] = {};
+	LIB_TCHAR buffer[255] = {};
 	ADDRINFOT info = { 0, AF_INET }, *pa = nullptr;
 	GetHostName(buffer, 255);
 	GetAddrInfo(buffer, NULL, &info, &pa);
@@ -222,7 +222,7 @@ void Socket::GetLocalIP(TCHAR* dest)
 	FreeAddrInfo(pa);
 }
 
-void Socket::HostNameToIP(const TCHAR* host, TCHAR* dest, UINT buffSize)
+void Socket::HostNameToIP(const LIB_TCHAR* host, LIB_TCHAR* dest, UINT buffSize)
 {
 	ADDRINFOT info = { 0, AF_INET }, *p = nullptr;
 	GetAddrInfo(host, NULL, &info, &p);

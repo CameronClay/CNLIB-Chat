@@ -37,7 +37,7 @@ bool WinFirewall::Initialize()
 	return result;
 }
 
-bool WinFirewall::AddException(const TCHAR* exceptionName, const TCHAR* description, const TCHAR* appName, const TCHAR* serviceName, NET_FW_IP_PROTOCOL protocal, const TCHAR* port, NET_FW_ACTION action, bool enabled)
+bool WinFirewall::AddException(const LIB_TCHAR* exceptionName, const LIB_TCHAR* description, const LIB_TCHAR* appName, const LIB_TCHAR* serviceName, NET_FW_IP_PROTOCOL protocal, const LIB_TCHAR* port, NET_FW_ACTION action, bool enabled)
 {
 	INetFwRule *nfr = nullptr;
 	bool result = false;
@@ -61,7 +61,7 @@ bool WinFirewall::AddException(const TCHAR* exceptionName, const TCHAR* descript
 	return result;
 }
 
-bool WinFirewall::ItemExists(const TCHAR* name)
+bool WinFirewall::ItemExists(const LIB_TCHAR* name)
 {
 	INetFwRule *nfr = nullptr;
 	bool result = false;
@@ -73,7 +73,7 @@ bool WinFirewall::ItemExists(const TCHAR* name)
 	return result;
 }
 
-bool WinFirewall::RemoveItem(const TCHAR* name)
+bool WinFirewall::RemoveItem(const LIB_TCHAR* name)
 {
 	return SUCCEEDED(nfrs->Remove(bstr_t(name)));
 }

@@ -14,15 +14,13 @@ typedef void(**const sfuncP)(void* manager, void* client, BYTE* data, DWORD nByt
 typedef void(*cfunc)(void* manager, BYTE* data, DWORD nBytes, void* obj);
 typedef void(**const cfuncP)(void* manager, BYTE* data, DWORD nBytes, void* obj);
 
-//See WSAStartup for error codes, if it does not return 0
 CAMSNETLIB int InitializeNetworking();
-//See WSACleanup for error codes, if it does not return 0
 CAMSNETLIB int CleanupNetworking();
 
 class CAMSNETLIB Socket
 {
 public:
-	Socket(const TCHAR* port);
+	Socket(const LIB_TCHAR* port);
 	Socket(SOCKET pc);
 	Socket();
 	Socket(Socket&& sock);
@@ -46,24 +44,24 @@ public:
 	operator SOCKET&();
 	operator HANDLE&();
 
-	void Bind(const TCHAR* port);
+	void Bind(const LIB_TCHAR* port);
 	Socket AcceptConnection();
 
-	void Connect(const TCHAR* dest, const TCHAR* port, float timeout);
+	void Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, float timeout);
 	void Disconnect();
 
 	long ReadData(void* dest, DWORD nBytes);
 	long SendData(const void* data, DWORD nBytes);
 
-	void ToIp(TCHAR* ipaddr) const;
+	void ToIp(LIB_TCHAR* ipaddr) const;
 	bool IsConnected() const;
 
 	void SetBlocking();
 	void SetNonBlocking();
 
 	//dest size needs to be at least 16
-	static void GetLocalIP(TCHAR* dest);
-	static void HostNameToIP(const TCHAR* host, TCHAR* dest, UINT buffSize);
+	static void GetLocalIP(LIB_TCHAR* dest);
+	static void HostNameToIP(const LIB_TCHAR* host, LIB_TCHAR* dest, UINT buffSize);
 
 private:
 	SOCKET pc;

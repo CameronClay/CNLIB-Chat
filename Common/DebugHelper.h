@@ -17,7 +17,7 @@ inline BOOL CheckForError(LPCTSTR LocationErrorOccured)
 
 	if (err > 0)
 	{
-		TCHAR errMsg[128] = {};
+		LIB_TCHAR errMsg[128] = {};
 		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, err, NULL, errMsg, 128, nullptr);
 		MessageBox(NULL, errMsg, LocationErrorOccured, MB_OK);
 		PostQuitMessage(err);

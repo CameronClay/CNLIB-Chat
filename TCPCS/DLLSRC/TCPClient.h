@@ -14,7 +14,7 @@ public:
 	TCPClient& operator=(TCPClient&& client);
 
 
-	bool Connect(const TCHAR* dest, const TCHAR* port, float timeOut = 5.0f);
+	bool Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, float timeOut = 5.0f);
 	void Disconnect();
 	void Shutdown();
 

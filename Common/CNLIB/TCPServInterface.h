@@ -23,18 +23,13 @@ public:
 		HANDLE recvThread;
 	};
 
-	//Allows connections to the server; should only be called once
-	//This MUST be called before you can senddata
-	virtual bool AllowConnections(const TCHAR* port) = 0;
+	virtual bool AllowConnections(const LIB_TCHAR* port) = 0;
 
-	//Used to send data to clients
-	//addr parameter functions as both the excluded address, and as a single address, 
-	//depending on the value of single
+
 	virtual HANDLE SendClientData(char* data, DWORD nBytes, Socket addr, bool single) = 0;
 	virtual HANDLE SendClientData(char* data, DWORD nBytes, Socket* pcs, USHORT nPcs) = 0;
 	virtual HANDLE SendClientData(char* data, DWORD nBytes, std::vector<Socket>& pcs) = 0;
 
-	//Send msg funtions used for requests, replies ect. they do not send data
 	virtual void SendMsg(Socket pc, bool single, char type, char message) = 0;
 	virtual void SendMsg(Socket* pcs, USHORT nPcs, char type, char message) = 0;
 	virtual void SendMsg(std::vector<Socket>& pcs, char type, char message) = 0;
@@ -42,7 +37,6 @@ public:
 
 	virtual ClientData* FindClient(const std::tstring& user) const = 0;
 
-	//Blocking
 	virtual void Shutdown() = 0;
 
 	virtual ClientData** GetClients() const = 0;
@@ -54,7 +48,6 @@ public:
 
 	virtual Socket& GetHost() = 0;
 
-	//Returns obj you passed to ctor
 	virtual void* GetObj() const = 0;
 };
 
