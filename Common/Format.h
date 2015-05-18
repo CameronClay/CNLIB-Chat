@@ -25,15 +25,9 @@ namespace std
 
 static TCHAR* GetTime()
 {
-#if NTDDI_VERSION >= NTDDI_VISTA
-	const UINT buffSize = GetTimeFormatEx(LOCALE_NAME_USER_DEFAULT, LOCALE_USE_CP_ACP, NULL, NULL, NULL, 0);
-	TCHAR* buffer = alloc<TCHAR>(buffSize);
-	GetTimeFormatEx(LOCALE_NAME_USER_DEFAULT, LOCALE_USE_CP_ACP, NULL, NULL, buffer, buffSize);
-#else
 	const UINT buffSize = GetTimeFormat(LOCALE_USER_DEFAULT, LOCALE_USE_CP_ACP, NULL, NULL, NULL, 0);
 	TCHAR* buffer = alloc<TCHAR>(buffSize);
 	GetTimeFormat(LOCALE_USER_DEFAULT, LOCALE_USE_CP_ACP, NULL, NULL, buffer, buffSize);
-#endif
 	return buffer;
 }
 

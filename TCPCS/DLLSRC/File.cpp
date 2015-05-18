@@ -107,7 +107,7 @@ void File::WriteString(const std::tstring& str)
 
 void File::WriteDate(const SYSTEMTIME& st)
 {
-	WCHAR dstr[25], tstr[25];
+	TCHAR dstr[25], tstr[25];
 
 #if NTDDI_VERSION >= NTDDI_VISTA
 	GetDateFormatEx(LOCALE_NAME_SYSTEM_DEFAULT, LOCALE_USE_CP_ACP, &st, NULL, dstr, 25, NULL);
@@ -117,15 +117,7 @@ void File::WriteDate(const SYSTEMTIME& st)
 	GetTimeFormat(LOCALE_USER_DEFAULT, LOCALE_USE_CP_ACP | TIME_FORCE24HOURFORMAT, &st, NULL, tstr, 25);
 #endif
 
-	std::tstring str;
-#ifdef UNICODE
-	str = dstr + std::tstring(_T(" ")) + tstr;
-#else
-	TCHAR date[25], time[25];
-	WideCharToMultiByte(CP_ACP, 0, dstr, -1, date, 25, NULL, NULL);
-	WideCharToMultiByte(CP_ACP, 0, tstr, -1, time, 25, NULL, NULL);
-	str = date + std::tstring(_T(" ")) + time;
-#endif
+	std::tstring str = dstr + std::tstring(_T(" ")) + tstr;
 	Write(str.c_str(), sizeof(TCHAR) * str.length());
 }
 
@@ -136,7 +128,7 @@ bool File::ReadString(std::tstring& dest)
 	do
 	{
 		Read(&len[i], sizeof(TCHAR));
-		len.append(_T(":"));
+		len.append(_T(":"));//so out of bounds doesnt happen
 	} while(len[i++] != ':');
 
 	UINT strLen = std::stoul(len);

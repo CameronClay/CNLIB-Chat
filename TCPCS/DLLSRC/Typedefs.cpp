@@ -2,7 +2,10 @@
 
 void WaitAndCloseHandle(HANDLE& hnd)
 {
-	WaitForSingleObject(hnd, INFINITE);
-	CloseHandle(hnd);
-	hnd = NULL;
+	if(hnd)
+	{
+		WaitForSingleObject(hnd, INFINITE);
+		CloseHandle(hnd);
+		hnd = NULL;
+	}
 }

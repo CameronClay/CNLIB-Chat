@@ -41,6 +41,8 @@ public:
 	virtual void SendMsg(const std::tstring& user, char type, char message) = 0;
 
 	virtual ClientData* FindClient(const std::tstring& user) const = 0;
+
+	//Blocking
 	virtual void Shutdown() = 0;
 
 	virtual ClientData** GetClients() const = 0;

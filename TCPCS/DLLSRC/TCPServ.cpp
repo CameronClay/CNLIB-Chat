@@ -429,9 +429,7 @@ TCPServ::TCPServ(sfunc func, customFunc conFunc, customFunc disFunc, USHORT maxC
 	compression(compression),
 	maxCon(maxCon),
 	pingInterval(pingInterval)
-{
-	int a = 0;
-}
+{}
 
 TCPServ::TCPServ(TCPServ&& serv)
 	:

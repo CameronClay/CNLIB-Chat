@@ -16,6 +16,7 @@ public:
 
 	bool Connect(const TCHAR* dest, const TCHAR* port, float timeOut = 5.0f);
 	void Disconnect();
+	void Shutdown();
 
 	HANDLE SendServData(const char* data, DWORD nBytes);
 
@@ -30,6 +31,7 @@ public:
 	void Ping();
 
 	void SetFunction(cfunc function);
+	void CloseRecvHandle();
 
 	void* GetObj() const;
 	cfuncP GetFunction();

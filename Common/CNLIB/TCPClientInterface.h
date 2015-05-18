@@ -6,6 +6,11 @@ class CAMSNETLIB TCPClientInterface
 {
 public:
 	virtual bool Connect(const TCHAR* dest, const TCHAR* port, float timeOut = 5.0f) = 0;
+
+	//Blocking
+	virtual void Shutdown() = 0;
+
+	//Non blocking
 	virtual void Disconnect() = 0;
 
 	//Should only be called once to intialy create receving thread

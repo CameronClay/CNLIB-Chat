@@ -162,7 +162,7 @@ HWND CreateWBWindow(HWND owner, USHORT width, USHORT height)
 		wbHandle = CreateWindowEx(
 			NULL,
 			wbClassName,
-			L"Whiteboard Client View",
+			_T("Whiteboard Client View"),
 			style,
 			0, 0,
 			width, height,
@@ -171,7 +171,7 @@ HWND CreateWBWindow(HWND owner, USHORT width, USHORT height)
 
 		if(!wbHandle)
 		{
-			CheckForError(L"Whiteboard Window Creation");
+			CheckForError(_T("Whiteboard Window Creation"));
 		}
 	}
 
@@ -211,16 +211,13 @@ void Connect(const TCHAR* dest, const TCHAR* port, float timeOut)
 
 void ClearAll()
 {
-	SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)_T(""));
+	//SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)_T(""));
 	SendMessage(textInput, WM_SETTEXT, 0, (LPARAM)_T(""));
 	SendMessage(listClients, LB_RESETCONTENT, 0, (LPARAM)_T(""));
 }
 
 void Disconnect()
 {
-	ClearAll();
-	EnableMenuItem(file, ID_SERV_CONNECT, MF_ENABLED);
-	EnableMenuItem(file, ID_SERV_DISCONNECT, MF_GRAYED);
 	client->Disconnect();
 }
 
@@ -616,7 +613,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 	/*CoUninitialize();*/
 }
 
-void DisconnectHandler() // for auto disconnection
+void DisconnectHandler() // for disconnection
 {
 	ClearAll();
 	EnableMenuItem(file, ID_SERV_CONNECT, MF_ENABLED);

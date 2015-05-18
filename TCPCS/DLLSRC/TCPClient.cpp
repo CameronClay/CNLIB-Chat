@@ -84,7 +84,7 @@ TCPClient& TCPClient::operator=(TCPClient&& client)
 
 TCPClient::~TCPClient()
 {
-	Disconnect();
+	Shutdown();
 }
 
 static DWORD CALLBACK SendData(LPVOID param)
@@ -155,7 +155,11 @@ static DWORD CALLBACK ReceiveData(LPVOID param)
 	}
 
 	client.GetDisfunc()();
+
+	//Cleanup
 	client.Disconnect();
+	DeleteCriticalSection(client.GetSendSect());
+	client.CloseRecvHandle();
 
 	return 0;
 }
@@ -177,11 +181,14 @@ bool TCPClient::Connect( const TCHAR* dest, const TCHAR* port, float timeOut )
 void TCPClient::Disconnect()
 {
 	host.Disconnect(); //causes recvThread to close
-	if (recv)
+}
+
+void TCPClient::Shutdown()
+{
+	if(recv)
 	{
-		CloseHandle(recv);
-		recv = NULL;
-		DeleteCriticalSection(&sendSect);
+		Disconnect();
+		WaitForSingleObject(recv, INFINITE);//Handle closed in thread
 	}
 }
 
@@ -225,6 +232,15 @@ void TCPClient::Ping()
 void TCPClient::SetFunction(cfunc function)
 {
 	this->function = function;
+}
+
+void TCPClient::CloseRecvHandle()
+{
+	if(recv)
+	{
+		CloseHandle(recv);
+		recv = NULL;
+	}
 }
 
 cfuncP TCPClient::GetFunction()
