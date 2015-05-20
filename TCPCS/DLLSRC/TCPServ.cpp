@@ -35,7 +35,7 @@ struct Data
 
 struct SAData
 {
-	SAData(TCPServ& serv, char* data, DWORD nBytesDecomp, Socket exAddr, const bool single)
+	SAData(TCPServ& serv, const char* data, DWORD nBytesDecomp, Socket exAddr, const bool single)
 		:
 		serv(serv),
 		nBytesComp(0),
@@ -58,14 +58,14 @@ struct SAData
 
 	TCPServ& serv;
 	DWORD nBytesComp, nBytesDecomp;
-	char* data;
+	const char* data;
 	Socket exAddr;
 	bool single;
 };
 
 struct SADataEx
 {
-	SADataEx(TCPServ& serv, char* data, DWORD nBytesDecomp, Socket* pcs, USHORT nPcs)
+	SADataEx(TCPServ& serv, const char* data, DWORD nBytesDecomp, Socket* pcs, USHORT nPcs)
 		:
 		serv(serv),
 		nBytesComp(0),
@@ -88,7 +88,7 @@ struct SADataEx
 
 	TCPServ& serv;
 	DWORD nBytesComp, nBytesDecomp;
-	char* data;
+	const char* data;
 	Socket* pcs;
 	USHORT nPcs;
 };
@@ -277,7 +277,7 @@ static DWORD CALLBACK SendAllData( LPVOID info )
 	SAData* data = (SAData*)info;
 	TCPServ& serv = data->serv;
 	auto clients = serv.GetClients();
-	void* dataDeComp = data->data;
+	const char* dataDeComp = data->data;
 
 	const DWORD nBytesComp = FileMisc::GetCompressedBufferSize(data->nBytesDecomp);
 	BYTE* dataComp = alloc<BYTE>(nBytesComp);
@@ -336,7 +336,7 @@ static DWORD CALLBACK SendAllDataEx( LPVOID info )
 	SADataEx* data = (SADataEx*)info;
 	TCPServ& serv = data->serv;
 	Socket* pcs = data->pcs;
-	void* dataDeComp = data->data;
+	const char* dataDeComp = data->data;
 
 	const DWORD nBytesComp = FileMisc::GetCompressedBufferSize(data->nBytesDecomp);
 	BYTE* dataComp = alloc<BYTE>(nBytesComp);
@@ -373,17 +373,17 @@ static DWORD CALLBACK SendAllDataEx( LPVOID info )
 }
 
 
-HANDLE TCPServ::SendClientData(char* data, DWORD nBytes, Socket exAddr, bool single)
+HANDLE TCPServ::SendClientData(const char* data, DWORD nBytes, Socket exAddr, bool single)
 {
 	return CreateThread(NULL, 0, &SendAllData, (LPVOID)construct<SAData>(SAData(*this, data, nBytes, exAddr, single)), NULL, NULL);
 }
 
-HANDLE TCPServ::SendClientData(char* data, DWORD nBytes, Socket* pcs, USHORT nPcs)
+HANDLE TCPServ::SendClientData(const char* data, DWORD nBytes, Socket* pcs, USHORT nPcs)
 {
 	return CreateThread(NULL, 0, &SendAllDataEx, (LPVOID)construct<SADataEx>(SADataEx(*this, data, nBytes, pcs, nPcs)), NULL, NULL);
 }
 
-HANDLE TCPServ::SendClientData(char* data, DWORD nBytes, std::vector<Socket>& pcs)
+HANDLE TCPServ::SendClientData(const char* data, DWORD nBytes, std::vector<Socket>& pcs)
 {
 	return SendClientData(data, nBytes, pcs.data(), pcs.size());
 }

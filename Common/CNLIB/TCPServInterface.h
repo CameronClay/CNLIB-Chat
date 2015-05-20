@@ -26,9 +26,9 @@ public:
 	virtual bool AllowConnections(const LIB_TCHAR* port) = 0;
 
 
-	virtual HANDLE SendClientData(char* data, DWORD nBytes, Socket addr, bool single) = 0;
-	virtual HANDLE SendClientData(char* data, DWORD nBytes, Socket* pcs, USHORT nPcs) = 0;
-	virtual HANDLE SendClientData(char* data, DWORD nBytes, std::vector<Socket>& pcs) = 0;
+	virtual HANDLE SendClientData(const char* data, DWORD nBytes, Socket addr, bool single) = 0;
+	virtual HANDLE SendClientData(const char* data, DWORD nBytes, Socket* pcs, USHORT nPcs) = 0;
+	virtual HANDLE SendClientData(const char* data, DWORD nBytes, std::vector<Socket>& pcs) = 0;
 
 	virtual void SendMsg(Socket pc, bool single, char type, char message) = 0;
 	virtual void SendMsg(Socket* pcs, USHORT nPcs, char type, char message) = 0;
