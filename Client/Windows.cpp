@@ -1673,6 +1673,7 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		const UINT iLen = 50, iHeight = 16, nPixels = iLen * iHeight;
 		HIMAGELIST himl = ImageList_Create(iLen, iHeight, ILC_COLOR32, count, 0);
 		D3DCOLOR* pBits = alloc<D3DCOLOR>( nPixels );
+
 		for(BYTE p = 0; p < count; p++)
 		{
 			for(UINT i = 0; i < nPixels; i++)
@@ -1687,11 +1688,12 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 			cbei.iImage = cbei.iSelectedImage = p;
 			SendMessage( Colors, CBEM_INSERTITEM, 0, (LPARAM)&cbei );
 		}
+
 		dealloc( pBits );
+
 		SendDlgItemMessage( hWnd, WHITEBOARD_COLORSEL, CBEM_SETIMAGELIST, 0, (LPARAM)himl );
 		ComboBox_SetCurSel( Colors, 0 );
 		SendDlgItemMessage(hWnd, -1, CB_SETMINVISIBLE, 10, 0);
-		destruct( pWhiteboard );
 
 		SetFocus(X);
 		return 0;
