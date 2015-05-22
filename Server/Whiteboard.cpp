@@ -67,7 +67,7 @@ CRITICAL_SECTION& Whiteboard::GetBitmapSection()
 	return bitmapSect;
 }
 
-bool Whiteboard::IsCreator(std::tstring& user) const
+bool Whiteboard::IsCreator(const std::tstring& user) const
 {
 	return creator.compare(user) == 0;
 }
@@ -172,9 +172,8 @@ void Whiteboard::Frame()
 	}
 }
 
-UINT Whiteboard::GetBufferLen() const
+UINT Whiteboard::GetBufferLen(const RectU& rec) const
 {
-	const RectU& rec = rectList.front();
 	return sizeof(RectU) + ((rec.right - rec.left) * (rec.bottom - rec.top));
 }
 
@@ -182,12 +181,13 @@ void Whiteboard::MakeRectPixels(const RectU& rect, char* ptr)
 {
 	const USHORT offset = sizeof(RectU);
 	memcpy(ptr, &rect, offset);
+	ptr += offset;
 
-	for(USHORT height = rect.bottom - rect.top, y = 0; y < height; y++)
+	for(USHORT height = rect.bottom - rect.top, y = rect.top; y < height; y++)
 	{
-		for(USHORT width = rect.right - rect.left, x = 0; x < width; x++)
+		for(USHORT width = rect.right - rect.left, x = rect.left; x < width; x++)
 		{
-			ptr[offset + (y * width) + x] = pixels[((y + rect.top) * width) + (rect.left + x)];
+			ptr[(y * width) + x] = pixels[((y + rect.top) * width) + (rect.left + x)];
 		}
 	}
 }
@@ -244,7 +244,7 @@ void Whiteboard::SendBitmap()
 {
 	if(!rectList.empty())
 	{
-		const DWORD nBytes = GetBufferLen() + MSG_OFFSET;
+		const DWORD nBytes = GetBufferLen(rectList.front()) + MSG_OFFSET;
 		char* msg = alloc<char>(nBytes);
 		msg[0] = TYPE_DATA;
 		msg[1] = MSG_DATA_BITMAP;
@@ -261,7 +261,7 @@ void Whiteboard::SendBitmap()
 
 void Whiteboard::SendBitmap(const RectU& rect, Socket& sock, bool single)
 {
-	const DWORD nBytes = ((rect.right - rect.left) * (rect.bottom - rect.top)) + MSG_OFFSET;
+	const DWORD nBytes = GetBufferLen(rect) + MSG_OFFSET;
 	char* msg = alloc<char>(nBytes);
 	msg[0] = TYPE_DATA;
 	msg[1] = MSG_DATA_BITMAP;

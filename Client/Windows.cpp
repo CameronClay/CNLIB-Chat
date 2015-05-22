@@ -1603,7 +1603,14 @@ INT_PTR CALLBACK RequestWBProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 	case WM_INITDIALOG:
 	{
 		SendMessage(GetDlgItem(hWnd, ID_REQUEST_TEXT), WM_SETTEXT, 0, lParam);
-		return 1;
+
+		if(pWhiteboard)
+		{
+			client->SendMsg(TYPE_RESPONSE, MSG_RESPONSE_WHITEBOARD_DECLINED);
+			EndDialog(hWnd, 0);
+		}
+
+		return 0;
 	}
 	}
 	return 0;

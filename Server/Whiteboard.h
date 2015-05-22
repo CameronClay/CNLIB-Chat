@@ -24,7 +24,7 @@ public:
 	CRITICAL_SECTION& GetMapSect();
 	std::unordered_map<Socket, WBClientData, Socket::Hash>& GetMap();
 	std::vector<Socket>& GetPcs();
-	bool IsCreator(std::tstring& user) const;
+	bool IsCreator(const std::tstring& user) const;
 	void AddClient(Socket pc);
 	void RemoveClient(Socket pc);
 	const WBParams& GetParams() const;
@@ -34,7 +34,7 @@ private:
 	void PaintBrush(std::deque<PointU> &pointList, BYTE clr);
 	void DrawLine(PointU start, PointU end, BYTE clr);
 	void MakeRect(const PointU &p0, const PointU &p1);
-	UINT GetBufferLen() const;
+	UINT GetBufferLen(const RectU& rec) const;
 	void MakeRectPixels(const RectU& rect, char* ptr);
 
 private:

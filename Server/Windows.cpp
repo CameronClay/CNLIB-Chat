@@ -371,8 +371,8 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 				HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, true);
 				WaitAndCloseHandle(hnd);
 			}
-
-			wb->SendBitmap(RectU(0, 0, wbParams.width, wbParams.height), clint->pc, true);
+			RectU rect(0, 0, wbParams.width, wbParams.height);
+			wb->SendBitmap(rect, clint->pc, true);
 
 			{
 				const DWORD nameLen = clint->user.size() + 1;
