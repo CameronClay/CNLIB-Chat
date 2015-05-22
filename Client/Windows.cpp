@@ -135,7 +135,7 @@ std::tstring user;
 #pragma endregion
 
 
-HWND CreateWBWindow(HWND owner, USHORT width, USHORT height)
+HWND CreateWBWindow(USHORT width, USHORT height)
 {
 	if(!wbAtom)
 	{
@@ -166,7 +166,7 @@ HWND CreateWBWindow(HWND owner, USHORT width, USHORT height)
 			style,
 			0, 0,
 			width, height,
-			owner, NULL,
+			NULL, NULL,
 			hInst, nullptr);
 
 		if(!wbHandle)
@@ -481,7 +481,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					LIB_TCHAR buffer[255];
 					_stprintf(buffer, _T("%s wants to display a whiteboard"), (LIB_TCHAR*)dat, _tcslen((LIB_TCHAR*)dat));
 
-					SendMessage(hMainWind, WM_CREATEWIN, ID_WB, (LPARAM)buffer);
+					DialogBoxParam(hInst, MAKEINTRESOURCE(REQUEST), hMainWind, RequestWBProc, (LPARAM)buffer);
 					break;
 				}
 			}// MSG_REQUEST
@@ -1020,7 +1020,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_WB:
 		{
 			WBParams *wbp = (WBParams*)lParam;
-			CreateWBWindow( hWnd, wbp->width, wbp->height );
+			CreateWBWindow( wbp->width, wbp->height );
 		}	break;
 		}
 	}	break;
@@ -1733,6 +1733,7 @@ INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 		len = SendMessage(listClients, LB_GETTEXTLEN, i, 0) + 1;
 		usersel.resize(len);
 		SendMessage(listClients, LB_GETTEXT, i, (LPARAM)&usersel[0]);
+		usersel.pop_back();
 
 		if(usersel.compare(user) == 0)
 		{

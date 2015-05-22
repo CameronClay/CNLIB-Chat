@@ -13,7 +13,10 @@ tempSurface(nullptr)
 {
 	InitD3D();
 	bgColor = palette.GetRGBColor(palIndex);
+
+	BeginFrame();
 	pDevice->Clear(0, NULL, D3DCLEAR_TARGET, bgColor, 0.0f, 0);
+	EndFrame();
 }
 
 Whiteboard::Whiteboard(Whiteboard&& wb)
@@ -35,7 +38,7 @@ Whiteboard::Whiteboard(Whiteboard&& wb)
 	ZeroMemory(&wb, sizeof(Whiteboard));
 }
 
-void Whiteboard::Frame(RectU &rect, BYTE *pixelData)
+void Whiteboard::Frame(const RectU &rect, const BYTE *pixelData)
 {
 	BeginFrame();
 	Render(rect, pixelData);
@@ -53,7 +56,7 @@ void Whiteboard::BeginFrame()
 	ClearTempSurface();
 }
 
-void Whiteboard::Render(RECT &rect, BYTE *pixelData)
+void Whiteboard::Render(const RECT &rect, const BYTE *pixelData)
 {
 	USHORT width = rect.right - rect.left;
 	USHORT height = rect.bottom - rect.top;
@@ -86,12 +89,12 @@ void Whiteboard::EndFrame()
 	assert(SUCCEEDED(hr));
 }
 
-void Whiteboard::ComposeImage(USHORT Width, USHORT Height, BYTE *pixelData)
+void Whiteboard::ComposeImage(USHORT Width, USHORT Height, const BYTE *pixelData)
 {
 	HRESULT hr = 0;
 	tempSurface =  alloc<D3DCOLOR>(Width * Height);
 
-	for (int y = 0; y< height; y++)
+	for (int y = 0; y < height; y++)
 	{
 		UINT rowOffset = y * Width;
 		for (int x = 0; x < Width; x++)

@@ -384,8 +384,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 		}
 		case MSG_RESPONSE_WHITEBOARD_DECLINED:
 		{
-			// Possibly do nothing, still need to allow client to be able to
-			// join later
+			
 		}
 		}
 		break;

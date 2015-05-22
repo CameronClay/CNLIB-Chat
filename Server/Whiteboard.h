@@ -16,7 +16,7 @@ public:
 
 	void Draw();
 	void SendBitmap();
-	void SendBitmap(RectU& rect, Socket& sock, bool single);
+	void SendBitmap(const RectU& rect, Socket& sock, bool single);
 	void Frame();
 
 	BYTE* GetBitmap();
@@ -33,9 +33,9 @@ public:
 private:
 	void PaintBrush(std::deque<PointU> &pointList, BYTE clr);
 	void DrawLine(PointU start, PointU end, BYTE clr);
-	void MakeRect(PointU &p0, PointU &p1);
+	void MakeRect(const PointU &p0, const PointU &p1);
 	UINT GetBufferLen() const;
-	void MakeRectPixels(RectU& rect, char* ptr);
+	void MakeRectPixels(const RectU& rect, char* ptr);
 
 private:
 	WBParams params;

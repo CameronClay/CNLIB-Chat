@@ -14,13 +14,13 @@ public:
 	Whiteboard(Whiteboard&& wb);
 	~Whiteboard();
 
-	void Frame(RectU &rect, BYTE *pixelData);
+	void Frame(const RectU &rect, const BYTE *pixelData);
 private:
 	void InitD3D();
 	void BeginFrame();
 	void ClearTempSurface();
-	void Render(RECT &rect, BYTE *pixelData);
-	void ComposeImage(USHORT Width, USHORT Height, BYTE *pixelData);
+	void Render(const RECT &rect, const BYTE *pixelData);
+	void ComposeImage(USHORT Width, USHORT Height, const BYTE *pixelData);
 	void EndFrame();
 
 	const Palette& GetPalette(BYTE& count);

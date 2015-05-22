@@ -148,7 +148,7 @@ void Whiteboard::DrawLine(PointU start, PointU end, BYTE clr)
 	}
 }
 
-void Whiteboard::MakeRect(PointU &p0, PointU &p1)
+void Whiteboard::MakeRect(const PointU &p0, const PointU &p1)
 {
 	RectU rect;
 
@@ -178,7 +178,7 @@ UINT Whiteboard::GetBufferLen() const
 	return sizeof(RectU) + ((rec.right - rec.left) * (rec.bottom - rec.top));
 }
 
-void Whiteboard::MakeRectPixels(RectU& rect, char* ptr)
+void Whiteboard::MakeRectPixels(const RectU& rect, char* ptr)
 {
 	const USHORT offset = sizeof(RectU);
 	memcpy(ptr, &rect, offset);
@@ -221,7 +221,7 @@ void Whiteboard::RemoveClient(Socket pc)
 {
 	EnterCriticalSection(&mapSect);
 
-	clients.emplace(pc, WBClientData());
+	clients.erase(pc);
 	for(USHORT i = 0; i < sendPcs.size(); i++)
 	{
 		if(sendPcs[i] == pc)
@@ -259,9 +259,9 @@ void Whiteboard::SendBitmap()
 	}
 }
 
-void Whiteboard::SendBitmap(RectU& rect, Socket& sock, bool single)
+void Whiteboard::SendBitmap(const RectU& rect, Socket& sock, bool single)
 {
-	const DWORD nBytes = GetBufferLen() + MSG_OFFSET;
+	const DWORD nBytes = ((rect.right - rect.left) * (rect.bottom - rect.top)) + MSG_OFFSET;
 	char* msg = alloc<char>(nBytes);
 	msg[0] = TYPE_DATA;
 	msg[1] = MSG_DATA_BITMAP;
