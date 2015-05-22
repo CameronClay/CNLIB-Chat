@@ -35,36 +35,17 @@ rectList(std::move(wb.rectList))
 
 BYTE* Whiteboard::GetBitmap()
 {
-	// LeaveCriticalSection will never be executed in this case, probably could
-	// use a wrapper for something like this where Enter in ctor and Leave in dtor
-	/*
-	struct CritSectionGuard
-	{
-		CritSectionGuard( CRITICAL_SECTION *pCritSect ) :
-		pCriticalSection(pCritSect)
-		{
-			EnterCriticalSection(pCritSect);
-		}
-		~CritSectionGuard()
-		{
-			LeaveCriticalSection(pCritSect);
-		}
-
-		CRITICAL_SECTION *pCriticalSection;
-	*/
-	EnterCriticalSection(&bitmapSect);
 	return pixels;
-	LeaveCriticalSection(&bitmapSect);
 }
 
-CRITICAL_SECTION& Whiteboard::GetMapSect()
+CRITICAL_SECTION* Whiteboard::GetMapSect()
 {
-	return mapSect;
+	return &mapSect;
 }
 
-CRITICAL_SECTION& Whiteboard::GetBitmapSection()
+CRITICAL_SECTION* Whiteboard::GetBitmapSection()
 {
-	return bitmapSect;
+	return &bitmapSect;
 }
 
 bool Whiteboard::IsCreator(const std::tstring& user) const
@@ -74,7 +55,7 @@ bool Whiteboard::IsCreator(const std::tstring& user) const
 
 void Whiteboard::PaintBrush(std::deque<PointU> &pointList, BYTE clr)
 {
-	for (auto it : pointList)
+	while(!pointList.empty())
 	{
 		if (pointList.size() >= 2)
 		{
@@ -105,31 +86,37 @@ void Whiteboard::PaintBrush(std::deque<PointU> &pointList, BYTE clr)
 void Whiteboard::Draw()
 {
 	EnterCriticalSection(&bitmapSect);
+	EnterCriticalSection(&mapSect);
+
 	for (auto it : clients)
 	{
 		MouseClient mouse(it.second.mServ);
 		Tool myTool = it.second.tool;
 		BYTE color = it.second.clrIndex;
 
-		std::deque<PointU> pointList;
-		while (mouse.Read().GetType() != MouseEvent::Type::Invalid)
+		if(!mouse.MouseEmpty())
 		{
-			PointU pt;
-			pt.x = mouse.GetX();
-			pt.y = mouse.GetY();
-			pointList.push_back(pt);
-		}
+			std::deque<PointU> pointList;
+			while(mouse.Read().GetType() != MouseEvent::Type::Invalid)
+			{
+				PointU pt;
+				pt.x = mouse.GetX();
+				pt.y = mouse.GetY();
+				pointList.push_back(pt);
+			}
 
-		switch (myTool)
-		{
-		case Tool::PaintBrush:
-			PaintBrush(pointList, color);
-			break;
-		}
+			switch(myTool)
+			{
+			case Tool::PaintBrush:
+				PaintBrush(pointList, color);
+				break;
+			}
 
-		pointList.clear();
+			pointList.clear();
+		}
 	}
 
+	LeaveCriticalSection(&mapSect);
 	LeaveCriticalSection(&bitmapSect);
 }
 
@@ -167,6 +154,7 @@ void Whiteboard::Frame()
 {
 	if(timer.GetTimeMilli() >= interval)
 	{
+		Draw();
 		SendBitmap();
 		timer.Reset();
 	}
@@ -278,10 +266,12 @@ Whiteboard::~Whiteboard()
 	//need a way to check if has been inited for mctor
 	if(pixels)
 	{
+		dealloc(pixels);
+
 		DeleteCriticalSection(&bitmapSect);
 		DeleteCriticalSection(&mapSect);
+
 		clients.clear();
 		sendPcs.clear();
-		dealloc(pixels);
 	}
 }

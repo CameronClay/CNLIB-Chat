@@ -20,8 +20,8 @@ public:
 	void Frame();
 
 	BYTE* GetBitmap();
-	CRITICAL_SECTION& GetBitmapSection();
-	CRITICAL_SECTION& GetMapSect();
+	CRITICAL_SECTION* GetBitmapSection();
+	CRITICAL_SECTION* GetMapSect();
 	std::unordered_map<Socket, WBClientData, Socket::Hash>& GetMap();
 	std::vector<Socket>& GetPcs();
 	bool IsCreator(const std::tstring& user) const;

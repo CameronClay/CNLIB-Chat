@@ -45,7 +45,7 @@ const LIB_TCHAR adminListFileName[] = _T("AdminList.dat");
 
 LIB_TCHAR folderPath[MAX_PATH + 30];
 
-CRITICAL_SECTION fileSect, authentSect;
+CRITICAL_SECTION fileSect, authentSect, wbSect;
 
 HINSTANCE hInst;
 HWND hMainWind, textDisp;
@@ -322,6 +322,9 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 		}
 		case MSG_DATA_MOUSE:
 		{
+			auto& map = wb->GetMap();
+			WBClientData& wbClientData = map[clint->pc];
+			wbClientData.mServ.Insert((BYTE*)dat, nBytes);
 			break;
 		}
 		break;
@@ -487,8 +490,15 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 		{
 			if(wb->IsCreator(clint->user))
 			{
-				serv.SendMsg(wb->GetPcs(), TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
+				if(!wb->GetPcs().empty())
+				{
+					EnterCriticalSection(wb->GetMapSect());
+					serv.SendMsg(wb->GetPcs(), TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
+					LeaveCriticalSection(wb->GetMapSect());
+				}
+				EnterCriticalSection(&wbSect);
 				destruct(wb);
+				LeaveCriticalSection(&wbSect);
 			}
 			else
 			{
@@ -520,11 +530,19 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 		{
 			if (wb)
 			{
-				wb->RemoveClient( clint->pc );
+				wb->RemoveClient(clint->pc);
 				if (wb->IsCreator(clint->user))
 				{
-					serv.SendMsg(wb->GetPcs(), TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
+					if(!wb->GetPcs().empty())
+					{
+						EnterCriticalSection(wb->GetMapSect());
+						serv.SendMsg(wb->GetPcs(), TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
+						LeaveCriticalSection(wb->GetMapSect());
+					}
+
+					EnterCriticalSection(&wbSect);
 					destruct(wb);
+					LeaveCriticalSection(&wbSect);
 				}
 			}
 		break;
@@ -578,6 +596,7 @@ void WinMainInit()
 
 	InitializeCriticalSection(&fileSect);
 	InitializeCriticalSection(&authentSect);
+	InitializeCriticalSection(&wbSect);
 
 	InitializeNetworking();
 
@@ -650,11 +669,21 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	ShowWindow(hMainWind, SW_SHOWDEFAULT);
 	UpdateWindow(hMainWind);
 
-	MSG msg;
-	while (GetMessage(&msg, NULL, 0, 0))
+	MSG msg = {};
+	while(msg.message != WM_QUIT)
 	{
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
+		if(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+		else if(wb)
+		{
+			EnterCriticalSection(&wbSect);
+			if(wb)
+				wb->Frame();
+			LeaveCriticalSection(&wbSect);
+		}
 	}
 
 	return (int)msg.wParam;
@@ -710,6 +739,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		DeleteCriticalSection(&fileSect);
 		DeleteCriticalSection(&authentSect);
+		DeleteCriticalSection(&wbSect);
 		DestroyServer(serv);
 		CleanupNetworking();
 		PostQuitMessage(0);

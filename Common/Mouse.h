@@ -24,6 +24,7 @@
 
 class MouseServer;
 
+typedef unsigned long DWORD;
 typedef unsigned short USHORT;
 typedef unsigned char BYTE;
 typedef unsigned int UINT;
@@ -110,6 +111,7 @@ public:
 	void OnWheelDown(USHORT x, USHORT y);
 	bool IsInWindow() const;
 	void Extract(BYTE *byteBuffer);
+	void Insert(BYTE *byteBuffer, DWORD nBytes);
 	UINT GetBufferLen() const;
 private:
 	USHORT x, y;

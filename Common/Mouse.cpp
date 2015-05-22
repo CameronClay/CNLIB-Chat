@@ -67,11 +67,11 @@ void MouseServer::OnMouseMove( USHORT x,USHORT y )
 	this->x = x;
 	this->y = y;
 
-	buffer.push( MouseEvent( MouseEvent::Move,x,y ) );
+	/*buffer.push( MouseEvent( MouseEvent::Move,x,y ) );
 	if( buffer.size( ) > bufferSize )
 	{
 		buffer.pop( );
-	}
+	}*/
 }
 void MouseServer::OnMouseLeave()
 {
@@ -146,23 +146,53 @@ bool MouseServer::IsInWindow() const
 
 UINT MouseServer::GetBufferLen() const
 {
-	return buffer.size() * sizeof(MouseEvent::Type);
+	return (sizeof(bool) * 3) + (sizeof(USHORT) * 2) + (buffer.size() * sizeof(MouseEvent));
 }
 
 void MouseServer::Extract(BYTE *byteBuffer)
 {
-	MouseServer *serv = (MouseServer*)byteBuffer;
-	serv->x = x;
-	serv->y = y;
-	serv->leftIsPressed = leftIsPressed;
-	serv->rightIsPressed = rightIsPressed;
-	serv->isInWindow = isInWindow;
-	const UINT offsetToBuffer = sizeof(MouseServer) - sizeof(std::deque<MouseEvent>);
+	UINT pos = 0;
 
-	for (unsigned int i = 0; i < buffer.size(); i++)
+	*(USHORT*)&byteBuffer[pos] = x;
+	pos += sizeof(USHORT);
+	*(USHORT*)&byteBuffer[pos] = y;
+	pos += sizeof(USHORT);
+
+	*(bool*)&byteBuffer[pos] = leftIsPressed;
+	pos += 1;
+	*(bool*)&byteBuffer[pos] = rightIsPressed;
+	pos += 1;
+	*(bool*)&byteBuffer[pos] = isInWindow;
+	pos += 1;
+
+	while(!buffer.empty())
 	{
-		MouseEvent *mEvent = (MouseEvent*)&byteBuffer[offsetToBuffer];
-		mEvent[i] = buffer.front();
+		*(MouseEvent*)&byteBuffer[pos] = buffer.front();
+		pos += sizeof(MouseEvent);
 		buffer.pop();
+	}
+}
+
+void MouseServer::Insert(BYTE *byteBuffer, DWORD nBytes)
+{
+	UINT pos = 0;
+
+	x = *(USHORT*)&byteBuffer[pos];
+	pos += sizeof(USHORT);
+	y = *(USHORT*)&byteBuffer[pos];
+	pos += sizeof(USHORT);
+
+	leftIsPressed = *(bool*)&byteBuffer[pos];
+	pos += sizeof(bool);
+	rightIsPressed = *(bool*)&byteBuffer[pos];
+	pos += sizeof(bool);
+	isInWindow = *(bool*)&byteBuffer[pos];
+	pos += sizeof(bool);
+
+
+	while(pos != nBytes)
+	{
+		buffer.push(*(MouseEvent*)&byteBuffer[pos]);
+		pos += sizeof(MouseEvent);
 	}
 }

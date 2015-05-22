@@ -1,4 +1,5 @@
 #pragma once
+#include "CNLIB\TCPClientInterface.h"
 #include "Timer.h"
 #include "ColorDef.h"
 #include "Palette.h"
@@ -15,6 +16,7 @@ public:
 	~Whiteboard();
 
 	void Frame(const RectU &rect, const BYTE *pixelData);
+	void SendMouseData(MouseServer& mServ, TCPClientInterface* client);
 private:
 	void InitD3D();
 	void BeginFrame();

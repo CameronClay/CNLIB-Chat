@@ -742,14 +742,19 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	ShowWindow(hMainWind, nCmdShow);
 	UpdateWindow(hMainWind);
 
-	MSG msg;
-	while (GetMessage(&msg, NULL, 0, 0))
+	MSG msg = {};
+	while(msg.message != WM_QUIT)
 	{
-		if (!TranslateAccelerator(hMainWind, hndAccel, &msg))
+		if(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
+			if(!TranslateAccelerator(hMainWind, hndAccel, &msg))
+			{
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
 		}
+		else if(pWhiteboard)
+			pWhiteboard->SendMouseData(mServ, client);
 	}
 
 	return (int)msg.wParam;
@@ -1104,6 +1109,9 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	switch (message)
 	{
+	case WM_MOVE:
+		mServ.OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		break;
 	case WM_LBUTTONDOWN:
 		mServ.OnLeftPressed(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
@@ -1116,7 +1124,6 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_RBUTTONUP:
 		mServ.OnRightReleased(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
-
 	case WM_CLOSE:
 		client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_LEFT);
 		DestroyWindow(hWnd);
@@ -1629,7 +1636,11 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		case IDOK:
 		{
 			MsgStreamWriter streamWriter(TYPE_WHITEBOARD, MSG_WHITEBOARD_SETTINGS, sizeof(WBParams));
-			streamWriter.Write(WBParams(GetDlgItemInt(hWnd, WHITEBOARD_RES_X, NULL, FALSE), GetDlgItemInt(hWnd, WHITEBOARD_RES_Y, NULL, FALSE), GetDlgItemInt(hWnd, WHITEBOARD_FPS, NULL, FALSE), ComboBox_GetCurSel(Colors)));
+			streamWriter.Write(WBParams(
+				GetDlgItemInt(hWnd, WHITEBOARD_RES_X, NULL, FALSE), 
+				GetDlgItemInt(hWnd, WHITEBOARD_RES_Y, NULL, FALSE),
+				GetDlgItemInt(hWnd, WHITEBOARD_FPS, NULL, FALSE), 
+				ComboBox_GetCurSel(Colors)));
 
 			HANDLE hnd = client->SendServData(streamWriter, streamWriter.GetSize());
 			WaitAndCloseHandle(hnd);
@@ -1677,7 +1688,7 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		for(BYTE p = 0; p < count; p++)
 		{
 			for(UINT i = 0; i < nPixels; i++)
-				pBits[i] = palette.GetBGRColor(p);
+				pBits[i] = palette.GetRGBColor(p);
 			HBITMAP hbm = CreateBitmap( iLen, iHeight, 1, 32, pBits );
 			ImageList_Add( himl, hbm, NULL );
 			DeleteObject( hbm );
