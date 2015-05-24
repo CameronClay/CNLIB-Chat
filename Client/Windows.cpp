@@ -760,6 +760,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		else if(pWhiteboard)
 		{
 			pWhiteboard->BeginFrame();
+			pWhiteboard->Render();
 			pWhiteboard->SendMouseData(mServ, client);
 			pWhiteboard->EndFrame();
 		}
@@ -1118,7 +1119,7 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (message)
 	{
 	case WM_MOUSEMOVE:
-		if(pWhiteboard && pWhiteboard->Interval())
+		if(pWhiteboard && pWhiteboard->MouseInterval())
 			mServ.OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
 	case WM_LBUTTONDOWN:

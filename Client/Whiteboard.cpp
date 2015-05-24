@@ -5,29 +5,31 @@
 
 Whiteboard::Whiteboard(Palette& palette, HWND WinHandle, USHORT Width, USHORT Height, USHORT FPS, BYTE palIndex)
 	:
-palette(palette),
+surf(alloc<BYTE>(Width * Height)),
 hWnd(WinHandle),
 width(Width),
 height(Height),
-interval(1.0f / (float)FPS)
+interval(1.0f / (float)FPS),
+palette(palette)
 {
 	InitD3D();
-	bgColor = palette.GetRGBColor(palIndex);
+	memset(surf, palIndex, Width * Height);
 
 	BeginFrame();
-	pDevice->Clear(0, NULL, D3DCLEAR_TARGET, bgColor, 0.0f, 0);
+	pDevice->Clear(0, NULL, D3DCLEAR_TARGET, palette.GetRGBColor(palIndex), 0.0f, 0);
 	EndFrame();
 }
 
 Whiteboard::Whiteboard(Whiteboard&& wb)
 	:
+	surf(wb.surf),
 	hWnd(wb.hWnd),
 	width(wb.width),
 	height(wb.height),
 	pitch(wb.pitch),
 	interval(wb.interval),
 	timer(wb.timer),
-	bgColor(wb.bgColor),
+	mouseTimer(wb.mouseTimer),
 	pDirect3D(wb.pDirect3D),
 	pDevice(wb.pDevice),
 	pBackBuffer(wb.pBackBuffer),
@@ -39,13 +41,19 @@ Whiteboard::Whiteboard(Whiteboard&& wb)
 
 void Whiteboard::Frame(const RectU &rect, const BYTE *pixelData)
 {
-	Render(rect, pixelData);
+	Draw(rect, pixelData);
 }
 
 bool Whiteboard::Interval() const
 {
 	return timer.GetTimeMilli() >= interval;
 }
+
+bool Whiteboard::MouseInterval() const
+{
+	return mouseTimer.GetTimeMilli() >= interval;
+}
+
 
 void Whiteboard::SendMouseData(MouseServer& mServ, TCPClientInterface* client)
 {
@@ -75,19 +83,31 @@ void Whiteboard::BeginFrame()
 	assert(SUCCEEDED(hr));
 }
 
-void Whiteboard::Render(const RECT &rect, const BYTE *pixelData)
+void Whiteboard::Render()
 {
-	const USHORT width = rect.right - rect.left;
-	const USHORT height = rect.bottom - rect.top;
-
-	for (USHORT y = 0; y < height; y++)
+	for(USHORT y = 0; y < height; y++)
 	{
-		for (USHORT x = 0; x < width; x++)
+		for(USHORT x = 0; x < width; x++)
 		{
-			const UINT bIndex = (x + rect.left) + ((y + rect.top) * pitch);
+			const UINT bIndex = x + (y * pitch);
 			const UINT rIndex = x + (y * width);
 			D3DCOLOR *pSurface = (D3DCOLOR*)(lockRect.pBits);
-			pSurface[bIndex] = palette.GetRGBColor(pixelData[rIndex]);
+			pSurface[bIndex] = palette.GetRGBColor(surf[rIndex]);
+		}
+	}
+}
+
+void Whiteboard::Draw(const RECT &rect, const BYTE *pixelData)
+{
+	const USHORT rWidth = rect.right - rect.left;
+	const USHORT rHeight = rect.bottom - rect.top;
+
+	for(USHORT y = 0; y < rHeight; y++)
+	{
+		for(USHORT x = 0; x < rWidth; x++)
+		{
+			const UINT bIndex = (x + rect.left) + ((y + rect.top) * width);
+			surf[bIndex] = pixelData[x + (y * rWidth)];
 		}
 	}
 }
@@ -172,6 +192,8 @@ const Palette const &Whiteboard::GetPalette(BYTE& count)
 
 Whiteboard::~Whiteboard()
 {
+	dealloc(surf);
+
 	if (pBackBuffer)
 	{
 		pBackBuffer->Release();

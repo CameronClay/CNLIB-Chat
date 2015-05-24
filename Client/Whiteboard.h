@@ -20,19 +20,22 @@ public:
 	bool Interval() const;
 	void BeginFrame();
 	void EndFrame();
+	void Render();
+	bool MouseInterval() const;
 private:
 	void InitD3D();
-	void Render(const RECT &rect, const BYTE *pixelData);
+	void Draw(const RECT &rect, const BYTE *pixelData);
 	void ComposeImage(USHORT Width, USHORT Height, const BYTE *pixelData);
 
 	const Palette& GetPalette(BYTE& count);
 
+	BYTE* surf;
 	HWND hWnd;
 
 	USHORT width, height, pitch;
 	const float interval;
 	Timer timer;
-	D3DCOLOR bgColor;
+	Timer mouseTimer;
 	Palette& palette;
 
 	IDirect3D9 *pDirect3D;

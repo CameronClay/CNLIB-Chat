@@ -168,10 +168,12 @@ struct WBClientData
 {
 	WBClientData()
 		:
+		rect(),
 		tool(Tool::PaintBrush),
 		clrIndex(0),
 		mServ()
 	{}
+	RectU rect;
 	Tool tool;								// Enums are sizeof(int) 4 bytes
 	BYTE clrIndex;							// Palette color is 1 bytes
 	MouseServer mServ;						// MouseServer is 16 - 32 bytes

@@ -31,7 +31,7 @@ public:
 	const Palette& GetPalette() const;
 
 private:
-	void PaintBrush(MouseClient& mouse, BYTE clr);
+	void PaintBrush(WBClientData& clientData, BYTE clr);
 	void DrawLine(const PointU& p1, const PointU& p2, BYTE clr);
 	RectU MakeRect(const PointU &p0, const PointU &p1);
 	UINT GetBufferLen(const RectU& rec) const;

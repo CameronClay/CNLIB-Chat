@@ -53,13 +53,14 @@ bool Whiteboard::IsCreator(const std::tstring& user) const
 	return creator.compare(user) == 0;
 }
 
-void Whiteboard::PaintBrush(MouseClient& mouse, BYTE clr)
+void Whiteboard::PaintBrush(WBClientData& clientData, BYTE clr)
 {
+	RectU& rect = clientData.rect;
+	MouseClient mouse(clientData.mServ);
 	MouseEvent ev = mouse.Peek();
 
 	if(ev.GetType() != MouseEvent::Type::Invalid)
 	{
-		PointU topLeft(ev.GetX(), ev.GetY()), botRight(ev.GetX(), ev.GetY());
 		ev = mouse.Read();
 		bool send = false;
 
@@ -67,29 +68,19 @@ void Whiteboard::PaintBrush(MouseClient& mouse, BYTE clr)
 		{
 			PointU pt(ev.GetX(), ev.GetY());
 
-			if(pt.x < topLeft.x)
-				topLeft.x = pt.x;
-
-			else if(pt.x > botRight.x)
-				botRight.x = pt.x;
-
-			if(pt.y < topLeft.y)
-				topLeft.y = pt.y;
-
-			else if(pt.y > botRight.y)
-				botRight.y = pt.y;
-
 			switch(ev.GetType())
 			{
 			case MouseEvent::LRelease:
-				topLeft = botRight = pointList[0];
-				DrawLine(pointList[0], pointList[0], clr);
 				pointList.pop_back();
 				send = true;
 				break;
 			case MouseEvent::LPress:
 				if(pointList.empty())
+				{
 					pointList.push_back(pt);
+					rect.right = rect.left = pt.x;
+					rect.bottom = rect.top = pt.y;
+				}
 				break;
 			case MouseEvent::Move:
 				if(pointList.size() == 1)
@@ -104,13 +95,22 @@ void Whiteboard::PaintBrush(MouseClient& mouse, BYTE clr)
 				send = true;
 			}
 
+			if(pt.x - 1 < rect.left)
+				rect.left = (pt.x > 0 ? pt.x - 1 : 0);
+			else if(pt.x + 1 > rect.right)
+				rect.right = (pt.x < params.width ? pt.x + 1 : params.width);
+
+			if(pt.y - 1 < rect.top)
+				rect.top = (pt.y > 0 ? pt.y - 1 : 0);
+			else if(pt.y + 1 > rect.bottom)
+				rect.bottom = (pt.y < params.height ? pt.y + 1 : params.height);
+
 			ev = mouse.Read();
 
 		} while(ev.GetType() != MouseEvent::Type::Invalid);
 
 		if(send)
 		{
-			const RectU rect = MakeRect(topLeft, botRight);
 			SendBitmap(rect);
 		}
 	}
@@ -132,7 +132,7 @@ void Whiteboard::Draw()
 			switch(myTool)
 			{
 			case Tool::PaintBrush:
-				PaintBrush(mouse, color);
+				PaintBrush(it.second, color);
 				break;
 			}
 		}
