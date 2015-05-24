@@ -67,10 +67,24 @@ void Whiteboard::PaintBrush(WBClientData& clientData, BYTE clr)
 		ev = mouse.Read();
 		bool send = false;
 
+		PointU pt(ev.GetX(), ev.GetY());
+		if(!pointList.empty())
+		{
+			rect.left = (pointList[0].x > 0 ? pointList[0].x - 1 : 0);
+			rect.right = (pointList[0].x < params.width ? pointList[0].x + 1 : params.width);
+			rect.top = (pointList[0].y > 0 ? pointList[0].y - 1 : 0);
+			rect.bottom = (pointList[0].y < params.height ? pointList[0].y + 1 : params.height);
+		}
+		else
+		{
+			rect.left = (pt.x > 0 ? pt.x - 1 : 0);
+			rect.right = (pt.x < params.width ? pt.x + 1 : params.width);
+			rect.top = (pt.y > 0 ? pt.y - 1 : 0);
+			rect.bottom = (pt.y < params.height ? pt.y + 1 : params.height);
+		}
+
 		do
 		{
-			PointU pt(ev.GetX(), ev.GetY());
-
 			switch(ev.GetType())
 			{
 			case MouseEvent::LRelease:
@@ -80,13 +94,7 @@ void Whiteboard::PaintBrush(WBClientData& clientData, BYTE clr)
 				break;
 			case MouseEvent::LPress:
 				if(pointList.empty())
-				{
 					pointList.push_back(pt);
-					rect.left = (pt.x > 0 ? pt.x - 1 : 0);
-					rect.right = (pt.x < params.width ? pt.x + 1 : params.width);
-					rect.top = (pt.y > 0 ? pt.y - 1 : 0);
-					rect.bottom = (pt.y < params.height ? pt.y + 1 : params.height);
-				}
 				break;
 			case MouseEvent::Move:
 				if(pointList.size() == 1)
@@ -116,9 +124,7 @@ void Whiteboard::PaintBrush(WBClientData& clientData, BYTE clr)
 		} while(ev.GetType() != MouseEvent::Type::Invalid);
 
 		if(send)
-		{
 			SendBitmap(rect);
-		}
 	}
 }
 
