@@ -130,10 +130,15 @@ void Whiteboard::Draw()
 	{
 		MouseClient mouse(it.second.mServ);
 		const Tool myTool = it.second.tool;
-		const BYTE color = (rand() % 30) + 1;
 
 		if(!mouse.MouseEmpty())
 		{
+			BYTE color = 255;
+			do
+			{
+				color = rand() % 31;
+			} while(color == params.clrIndex);
+
 			EnterCriticalSection(&bitmapSect);
 			switch(myTool)
 			{
