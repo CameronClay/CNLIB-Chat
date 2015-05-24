@@ -160,7 +160,7 @@ HWND CreateWBWindow(USHORT width, USHORT height)
 			WS_MINIMIZEBOX;		// Shows the minimize button
 		
 		wbHandle = CreateWindowEx(
-			NULL,
+			WS_EX_TOPMOST,
 			wbClassName,
 			_T("Whiteboard Client View"),
 			style,
@@ -361,8 +361,12 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					break;
 				}
 				case MSG_DATA_BITMAP:
-					pWhiteboard->Frame(streamReader.Read<RectU>(), streamReader.Read<BYTE>(streamReader.GetDataSize() - sizeof(RectU)));
+				{
+					RectU& rect = streamReader.Read<RectU>();
+					BYTE* pixels = streamReader.ReadEnd<BYTE>();
+					pWhiteboard->Frame(rect, pixels);
 					break;
+				}
 			}
 			break;
 		}//TYPE_DATA
@@ -1109,8 +1113,9 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	switch (message)
 	{
-	case WM_MOVE:
-		mServ.OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+	case WM_MOUSEMOVE:
+		if(pWhiteboard && pWhiteboard->Interval())
+			mServ.OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
 	case WM_LBUTTONDOWN:
 		mServ.OnLeftPressed(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));

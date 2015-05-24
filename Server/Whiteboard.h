@@ -15,7 +15,7 @@ public:
 	~Whiteboard();
 
 	void Draw();
-	void SendBitmap();
+	void SendBitmap(const RectU& rect);
 	void SendBitmap(const RectU& rect, Socket& sock, bool single);
 	void Frame();
 
@@ -31,9 +31,9 @@ public:
 	const Palette& GetPalette() const;
 
 private:
-	void PaintBrush(std::deque<PointU> &pointList, BYTE clr);
-	void DrawLine(PointU start, PointU end, BYTE clr);
-	void MakeRect(const PointU &p0, const PointU &p1);
+	void PaintBrush(MouseClient& mouse, BYTE clr);
+	void DrawLine(const RectU& rect, BYTE clr);
+	RectU MakeRect(const PointU &p0, const PointU &p1);
 	UINT GetBufferLen(const RectU& rec) const;
 	void MakeRectPixels(const RectU& rect, char* ptr);
 
@@ -50,5 +50,5 @@ private:
 
 	std::unordered_map<Socket, WBClientData, Socket::Hash> clients;
 	std::vector<Socket> sendPcs;
-	std::queue<RectU> rectList;
+	std::deque<PointU> pointList;
 };

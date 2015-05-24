@@ -48,6 +48,13 @@ private:
 	int x;
 	int y;
 public:
+	MouseEvent()
+		:
+		type(Invalid),
+		x(USHRT_MAX),
+		y(USHRT_MAX)
+	{}
+
 	MouseEvent(Type type, USHORT x, USHORT y)
 		:
 		type( type ),
@@ -83,8 +90,6 @@ class MouseClient
 {
 public:
 	MouseClient( MouseServer& server );
-	USHORT GetX() const;
-	USHORT GetY() const;
 	bool LeftIsPressed() const;
 	bool RightIsPressed() const;
 	bool IsInWindow() const;
@@ -114,7 +119,6 @@ public:
 	void Insert(BYTE *byteBuffer, DWORD nBytes);
 	UINT GetBufferLen() const;
 private:
-	USHORT x, y;
 	bool leftIsPressed, rightIsPressed, isInWindow;
 	static const USHORT bufferSize = 4;
 	std::queue< MouseEvent > buffer;

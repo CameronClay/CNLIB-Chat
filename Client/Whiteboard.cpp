@@ -46,9 +46,14 @@ void Whiteboard::Frame(const RectU &rect, const BYTE *pixelData)
 	EndFrame();
 }
 
+bool Whiteboard::Interval() const
+{
+	return timer.GetTimeMilli() >= interval;
+}
+
 void Whiteboard::SendMouseData(MouseServer& mServ, TCPClientInterface* client)
 {
-	if(timer.GetTimeMilli() >= interval)
+	if(Interval())
 	{
 		MouseClient mClient(mServ);
 		if(!mClient.MouseEmpty())
@@ -61,8 +66,9 @@ void Whiteboard::SendMouseData(MouseServer& mServ, TCPClientInterface* client)
 			HANDLE hnd = client->SendServData(msg, nBytes);
 			WaitAndCloseHandle(hnd);
 			dealloc(msg);
+
+			timer.Reset();
 		}
-		timer.Reset();
 	}
 }
 
@@ -113,12 +119,12 @@ void Whiteboard::ComposeImage(USHORT Width, USHORT Height, const BYTE *pixelData
 	HRESULT hr = 0;
 	tempSurface =  alloc<D3DCOLOR>(Width * Height);
 
-	for (USHORT y = 0; y < height; y++)
+	for (USHORT y = 0; y < Height; y++)
 	{
 		const UINT rowOffset = y * Width;
 		for (USHORT x = 0; x < Width; x++)
 		{
-			const UINT index = x * rowOffset;
+			const UINT index = x + rowOffset;
 			tempSurface[index] = palette.GetRGBColor(pixelData[index]);
 		}
 	}

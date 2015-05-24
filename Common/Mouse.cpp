@@ -4,14 +4,6 @@
 MouseClient::MouseClient( MouseServer& server )
 : server( server )
 {}
-USHORT MouseClient::GetX() const
-{
-	return server.x;
-}
-USHORT MouseClient::GetY() const
-{
-	return server.y;
-}
 bool MouseClient::LeftIsPressed() const
 {
 	return server.leftIsPressed;
@@ -58,20 +50,12 @@ bool MouseClient::MouseEmpty( ) const
 MouseServer::MouseServer()
 :	isInWindow( false ),
 	leftIsPressed( false ),
-	rightIsPressed( false ),
-	x( -1 ),
-	y( -1 )
+	rightIsPressed( false )
 {}
 void MouseServer::OnMouseMove( USHORT x,USHORT y )
 {
-	this->x = x;
-	this->y = y;
-
-	/*buffer.push( MouseEvent( MouseEvent::Move,x,y ) );
-	if( buffer.size( ) > bufferSize )
-	{
-		buffer.pop( );
-	}*/
+	if(buffer.size() < bufferSize)
+		buffer.push(MouseEvent(MouseEvent::Move, x, y));
 }
 void MouseServer::OnMouseLeave()
 {
@@ -84,60 +68,30 @@ void MouseServer::OnMouseEnter()
 void MouseServer::OnLeftPressed( USHORT x,USHORT y )
 {
 	leftIsPressed = true;
-
 	buffer.push( MouseEvent( MouseEvent::LPress,x,y ) );
-	if( buffer.size( ) > bufferSize )
-	{
-		buffer.pop( );
-	}
 }
 void MouseServer::OnLeftReleased( USHORT x,USHORT y )
 {
 	leftIsPressed = false;
-
 	buffer.push( MouseEvent( MouseEvent::LRelease,x,y ) );
-	if( buffer.size( ) > bufferSize )
-	{
-		buffer.pop( );
-	}
 }
 void MouseServer::OnRightPressed( USHORT x,USHORT y )
 {
 	rightIsPressed = true;
-
 	buffer.push( MouseEvent( MouseEvent::RPress,x,y ) );
-	if( buffer.size( ) > bufferSize )
-	{
-		buffer.pop( );
-	}
 }
 void MouseServer::OnRightReleased( USHORT x,USHORT y )
 {
 	rightIsPressed = false;
-
 	buffer.push( MouseEvent( MouseEvent::RRelease,x,y ) );
-	if( buffer.size( ) > bufferSize )
-	{
-		buffer.pop( );
-	}
 }
 void MouseServer::OnWheelUp( USHORT x,USHORT y )
 {
 	buffer.push( MouseEvent( MouseEvent::WheelUp,x,y ) );
-	if( buffer.size( ) > bufferSize )
-	{
-		buffer.pop( );
-	}
-
 }
 void MouseServer::OnWheelDown( USHORT x,USHORT y )
 {
 	buffer.push( MouseEvent( MouseEvent::WheelDown,x,y ) );
-	if( buffer.size( ) > bufferSize )
-	{
-		buffer.pop( );
-	}
-
 }
 bool MouseServer::IsInWindow() const
 {
@@ -146,24 +100,19 @@ bool MouseServer::IsInWindow() const
 
 UINT MouseServer::GetBufferLen() const
 {
-	return (sizeof(bool) * 3) + (sizeof(USHORT) * 2) + (buffer.size() * sizeof(MouseEvent));
+	return (sizeof(bool) * 3)/* + (sizeof(USHORT) * 2)*/ + (buffer.size() * sizeof(MouseEvent));
 }
 
 void MouseServer::Extract(BYTE *byteBuffer)
 {
 	UINT pos = 0;
 
-	*(USHORT*)&byteBuffer[pos] = x;
-	pos += sizeof(USHORT);
-	*(USHORT*)&byteBuffer[pos] = y;
-	pos += sizeof(USHORT);
-
 	*(bool*)&byteBuffer[pos] = leftIsPressed;
-	pos += 1;
+	pos += sizeof(bool);
 	*(bool*)&byteBuffer[pos] = rightIsPressed;
-	pos += 1;
+	pos += sizeof(bool);
 	*(bool*)&byteBuffer[pos] = isInWindow;
-	pos += 1;
+	pos += sizeof(bool);
 
 	while(!buffer.empty())
 	{
@@ -176,11 +125,6 @@ void MouseServer::Extract(BYTE *byteBuffer)
 void MouseServer::Insert(BYTE *byteBuffer, DWORD nBytes)
 {
 	UINT pos = 0;
-
-	x = *(USHORT*)&byteBuffer[pos];
-	pos += sizeof(USHORT);
-	y = *(USHORT*)&byteBuffer[pos];
-	pos += sizeof(USHORT);
 
 	leftIsPressed = *(bool*)&byteBuffer[pos];
 	pos += sizeof(bool);

@@ -17,6 +17,7 @@ public:
 
 	void Frame(const RectU &rect, const BYTE *pixelData);
 	void SendMouseData(MouseServer& mServ, TCPClientInterface* client);
+	bool Interval() const;
 private:
 	void InitD3D();
 	void BeginFrame();
