@@ -74,6 +74,7 @@ void Whiteboard::PaintBrush(WBClientData& clientData, BYTE clr)
 			switch(ev.GetType())
 			{
 			case MouseEvent::LRelease:
+				DrawLine(pointList[0], pointList[0], clr);
 				pointList.pop_back();
 				send = true;
 				break;
@@ -81,8 +82,10 @@ void Whiteboard::PaintBrush(WBClientData& clientData, BYTE clr)
 				if(pointList.empty())
 				{
 					pointList.push_back(pt);
-					rect.right = rect.left = pt.x;
-					rect.bottom = rect.top = pt.y;
+					rect.left = (pt.x > 0 ? pt.x - 1 : 0);
+					rect.right = (pt.x < params.width ? pt.x + 1 : params.width);
+					rect.top = (pt.y > 0 ? pt.y - 1 : 0);
+					rect.bottom = (pt.y < params.height ? pt.y + 1 : params.height);
 				}
 				break;
 			case MouseEvent::Move:
@@ -127,7 +130,7 @@ void Whiteboard::Draw()
 	{
 		MouseClient mouse(it.second.mServ);
 		const Tool myTool = it.second.tool;
-		const BYTE color = rand() % 31;
+		const BYTE color = (rand() % 30) + 1;
 
 		if(!mouse.MouseEmpty())
 		{
