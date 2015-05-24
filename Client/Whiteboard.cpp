@@ -9,8 +9,7 @@ palette(palette),
 hWnd(WinHandle),
 width(Width),
 height(Height),
-interval(1.0f / (float)FPS),
-tempSurface(nullptr)
+interval(1.0f / (float)FPS)
 {
 	InitD3D();
 	bgColor = palette.GetRGBColor(palIndex);
@@ -32,7 +31,6 @@ Whiteboard::Whiteboard(Whiteboard&& wb)
 	pDirect3D(wb.pDirect3D),
 	pDevice(wb.pDevice),
 	pBackBuffer(wb.pBackBuffer),
-	tempSurface(wb.tempSurface),
 	lockRect(wb.lockRect),
 	palette(wb.palette)
 {
@@ -41,9 +39,7 @@ Whiteboard::Whiteboard(Whiteboard&& wb)
 
 void Whiteboard::Frame(const RectU &rect, const BYTE *pixelData)
 {
-	BeginFrame();
 	Render(rect, pixelData);
-	EndFrame();
 }
 
 bool Whiteboard::Interval() const
@@ -77,8 +73,6 @@ void Whiteboard::BeginFrame()
 	HRESULT hr = 0;
 	hr = pBackBuffer->LockRect(&lockRect, nullptr, NULL);
 	assert(SUCCEEDED(hr));
-
-	ClearTempSurface();
 }
 
 void Whiteboard::Render(const RECT &rect, const BYTE *pixelData)
@@ -86,20 +80,14 @@ void Whiteboard::Render(const RECT &rect, const BYTE *pixelData)
 	const USHORT width = rect.right - rect.left;
 	const USHORT height = rect.bottom - rect.top;
 
-	ComposeImage(width, height, pixelData);
-
 	for (USHORT y = 0; y < height; y++)
 	{
-		// Pitch won't always be the same as width * 4
-		const UINT bRowOffset = (y * pitch) + rect.top;
-		const UINT rectRowOffset = y * width;
-
-		for (USHORT x = 0; x < pitch; x++)
+		for (USHORT x = 0; x < width; x++)
 		{
-			UINT bIndex = x + bRowOffset + rect.left;
-			UINT rIndex = x + rectRowOffset;
+			const UINT bIndex = (x + rect.left) + ((y + rect.top) * pitch);
+			const UINT rIndex = x + (y * width);
 			D3DCOLOR *pSurface = (D3DCOLOR*)(lockRect.pBits);
-			pSurface[bIndex] = tempSurface[rIndex];
+			pSurface[bIndex] = palette.GetRGBColor(pixelData[rIndex]);
 		}
 	}
 }
@@ -114,26 +102,19 @@ void Whiteboard::EndFrame()
 	assert(SUCCEEDED(hr));
 }
 
-void Whiteboard::ComposeImage(USHORT Width, USHORT Height, const BYTE *pixelData)
-{
-	HRESULT hr = 0;
-	tempSurface =  alloc<D3DCOLOR>(Width * Height);
-
-	for (USHORT y = 0; y < Height; y++)
-	{
-		const UINT rowOffset = y * Width;
-		for (USHORT x = 0; x < Width; x++)
-		{
-			const UINT index = x + rowOffset;
-			tempSurface[index] = palette.GetRGBColor(pixelData[index]);
-		}
-	}
-}
-
-void Whiteboard::ClearTempSurface()
-{
-	dealloc(tempSurface);
-}
+//void Whiteboard::ComposeImage(USHORT Width, USHORT Height, const BYTE *pixelData)
+//{
+//	tempSurface =  alloc<D3DCOLOR>(Width * Height);
+//
+//	for (USHORT y = 0; y < Height; y++)
+//	{
+//		for (USHORT x = 0; x < Width; x++)
+//		{
+//			const UINT index = x + (y * Width);
+//			tempSurface[index] = palette.GetRGBColor(pixelData[index]);
+//		}
+//	}
+//}
 
 void Whiteboard::InitD3D()
 {
@@ -191,8 +172,6 @@ const Palette const &Whiteboard::GetPalette(BYTE& count)
 
 Whiteboard::~Whiteboard()
 {
-	ClearTempSurface();
-
 	if (pBackBuffer)
 	{
 		pBackBuffer->Release();

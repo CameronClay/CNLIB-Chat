@@ -32,7 +32,7 @@ public:
 
 private:
 	void PaintBrush(MouseClient& mouse, BYTE clr);
-	void DrawLine(const RectU& rect, BYTE clr);
+	void DrawLine(const PointU& p1, const PointU& p2, BYTE clr);
 	RectU MakeRect(const PointU &p0, const PointU &p1);
 	UINT GetBufferLen(const RectU& rec) const;
 	void MakeRectPixels(const RectU& rect, char* ptr);

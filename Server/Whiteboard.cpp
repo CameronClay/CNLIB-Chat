@@ -55,38 +55,62 @@ bool Whiteboard::IsCreator(const std::tstring& user) const
 
 void Whiteboard::PaintBrush(MouseClient& mouse, BYTE clr)
 {
-	MouseEvent ev;
-	while(mouse.Peek().GetType() != MouseEvent::Type::Invalid)
+	MouseEvent ev = mouse.Peek();
+
+	if(ev.GetType() != MouseEvent::Type::Invalid)
 	{
+		PointU topLeft(ev.GetX(), ev.GetY()), botRight(ev.GetX(), ev.GetY());
 		ev = mouse.Read();
+		bool send = false;
 
-		PointU pt;
-		pt.x = ev.GetX();
-		pt.y = ev.GetY();
-
-		switch(ev.GetType())
+		do
 		{
-		case MouseEvent::LRelease:
-			pointList.pop_back();
-			break;
-		case MouseEvent::LPress:
-			if(pointList.empty())
-				pointList.push_back(pt);
-			break;
-		case MouseEvent::Move:
-			if(pointList.size() == 1)
-				pointList.push_back(pt);
-			break;
-		}
+			PointU pt(ev.GetX(), ev.GetY());
 
-		if(pointList.size() == 2)
+			if(pt.x < topLeft.x)
+				topLeft.x = pt.x;
+
+			else if(pt.x > botRight.x)
+				botRight.x = pt.x;
+
+			if(pt.y < topLeft.y)
+				topLeft.y = pt.y;
+
+			else if(pt.y > botRight.y)
+				botRight.y = pt.y;
+
+			switch(ev.GetType())
+			{
+			case MouseEvent::LRelease:
+				topLeft = botRight = pointList[0];
+				DrawLine(pointList[0], pointList[0], clr);
+				pointList.pop_back();
+				send = true;
+				break;
+			case MouseEvent::LPress:
+				if(pointList.empty())
+					pointList.push_back(pt);
+				break;
+			case MouseEvent::Move:
+				if(pointList.size() == 1)
+					pointList.push_back(pt);
+				break;
+			}
+
+			if(pointList.size() >= 2)
+			{
+				DrawLine(pointList[0], pointList[1], clr);
+				pointList.pop_front();
+				send = true;
+			}
+
+			ev = mouse.Read();
+
+		} while(ev.GetType() != MouseEvent::Type::Invalid);
+
+		if(send)
 		{
-			const RectU rect = MakeRect(pointList[0], pointList[1]);
-
-			DrawLine(rect, clr);
-
-			pointList.pop_front();
-
+			const RectU rect = MakeRect(topLeft, botRight);
 			SendBitmap(rect);
 		}
 	}
@@ -118,20 +142,53 @@ void Whiteboard::Draw()
 	LeaveCriticalSection(&bitmapSect);
 }
 
-void Whiteboard::DrawLine(const RectU& rect, BYTE clr)
+void Whiteboard::DrawLine(const PointU& p1, const PointU& p2, BYTE clr)
 {
-	PointU dist(rect.right - rect.left, rect.bottom - rect.top);
-	float len = dist.Length();
-	dist = dist.Normalize();
+	short x1 = p1.x, x2 = p2.x, y1 = p1.y, y2 = p2.y;
+	const short dx = x2 - x1;
+	const short dy = y2 - y1;
 
-	for (float i = 0.0f; i < len; i++)
+	if(dy == 0 && dx == 0)
 	{
-		PointU pos = (dist * i);
-		pos.x += rect.left;
-		pos.y += rect.top;
-
-		UINT index = (pos.y * params.width) + pos.x;
-		pixels[index] = clr;
+		pixels[x1 + (y1 * params.width)] = clr;
+	}
+	else if(abs(dy) > abs(dx))
+	{
+		if(dy < 0)
+		{
+			short temp = x1;
+			x1 = x2;
+			x2 = temp;
+			temp = y1;
+			y1 = y2;
+			y2 = temp;
+		}
+		const float m = (float)dx / (float)dy;
+		const float b = x1 - m*y1;
+		for(short y = y1; y <= y2; y = y + 1)
+		{
+			const short x = (short)(m*y + b + 0.5f);
+			pixels[x + (y * params.width)] = clr;
+		}
+	}
+	else
+	{
+		if(dx < 0)
+		{
+			short temp = x1;
+			x1 = x2;
+			x2 = temp;
+			temp = y1;
+			y1 = y2;
+			y2 = temp;
+		}
+		const float m = (float)dy / (float)dx;
+		const float b = y1 - m*x1;
+		for(short x = x1; x <= x2; x = x + 1)
+		{
+			const short y = (short)(m*x + b + 0.5f);
+			pixels[x + (y * params.width)] = clr;
+		}
 	}
 }
 
@@ -185,12 +242,9 @@ void Whiteboard::MakeRectPixels(const RectU& rect, char* ptr)
 	memcpy(ptr, &rect, offset);
 	ptr += offset;
 
-	const USHORT height = rect.bottom - rect.top, 
-		width = rect.right - rect.left;
-
-	for(USHORT iy = 0; iy < height; iy++)
+	for(USHORT iy = 0, height = rect.bottom - rect.top; iy < height; iy++)
 	{
-		for(USHORT ix = 0; ix < width; ix++)
+		for(USHORT ix = 0, width = rect.right - rect.left; ix < width; ix++)
 		{
 			ptr[(iy * width) + ix] = pixels[((iy + rect.top) * params.width) + (ix + rect.left)];
 		}

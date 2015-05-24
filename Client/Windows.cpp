@@ -160,7 +160,7 @@ HWND CreateWBWindow(USHORT width, USHORT height)
 			WS_MINIMIZEBOX;		// Shows the minimize button
 		
 		wbHandle = CreateWindowEx(
-			WS_EX_TOPMOST,
+			NULL,
 			wbClassName,
 			_T("Whiteboard Client View"),
 			style,
@@ -758,7 +758,11 @@ int WINAPI WinMain(HINSTANCE hInstance,
 			}
 		}
 		else if(pWhiteboard)
+		{
+			pWhiteboard->BeginFrame();
 			pWhiteboard->SendMouseData(mServ, client);
+			pWhiteboard->EndFrame();
+		}
 	}
 
 	return (int)msg.wParam;

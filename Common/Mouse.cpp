@@ -32,14 +32,9 @@ MouseEvent MouseClient::Read()
 MouseEvent MouseClient::Peek()
 {
 	if (server.buffer.size() > 0)
-	{
-		MouseEvent e = server.buffer.front();
-		return e;
-	}
+		return server.buffer.front();
 	else
-	{
 		return MouseEvent(MouseEvent::Invalid, 0, 0);
-	}
 }
 bool MouseClient::MouseEmpty( ) const
 {
@@ -70,7 +65,7 @@ void MouseServer::OnLeftPressed( USHORT x,USHORT y )
 	leftIsPressed = true;
 	buffer.push( MouseEvent( MouseEvent::LPress,x,y ) );
 }
-void MouseServer::OnLeftReleased( USHORT x,USHORT y )
+void MouseServer::OnLeftReleased( USHORT x, USHORT y )
 {
 	leftIsPressed = false;
 	buffer.push( MouseEvent( MouseEvent::LRelease,x,y ) );
