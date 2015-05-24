@@ -74,7 +74,7 @@ void Whiteboard::PaintBrush(WBClientData& clientData, BYTE clr)
 			switch(ev.GetType())
 			{
 			case MouseEvent::LRelease:
-				DrawLine(pointList[0], pointList[0], clr);
+				PutPixel(pointList[0], clr);
 				pointList.pop_back();
 				send = true;
 				break;
@@ -148,6 +148,16 @@ void Whiteboard::Draw()
 	LeaveCriticalSection(&mapSect);
 }
 
+void Whiteboard::PutPixel(const PointU& point, BYTE clr)
+{
+	pixels[point.x + (point.y * params.width)] = clr;
+}
+
+void Whiteboard::PutPixel(USHORT x, USHORT y, BYTE clr)
+{
+	pixels[x + (y * params.width)] = clr;
+}
+
 void Whiteboard::DrawLine(const PointU& p1, const PointU& p2, BYTE clr)
 {
 	short x1 = p1.x, x2 = p2.x, y1 = p1.y, y2 = p2.y;
@@ -156,7 +166,7 @@ void Whiteboard::DrawLine(const PointU& p1, const PointU& p2, BYTE clr)
 
 	if(dy == 0 && dx == 0)
 	{
-		pixels[x1 + (y1 * params.width)] = clr;
+		PutPixel(x1, y1, clr);
 	}
 	else if(abs(dy) > abs(dx))
 	{
@@ -174,7 +184,7 @@ void Whiteboard::DrawLine(const PointU& p1, const PointU& p2, BYTE clr)
 		for(short y = y1; y <= y2; y = y + 1)
 		{
 			const short x = (short)(m*y + b + 0.5f);
-			pixels[x + (y * params.width)] = clr;
+			PutPixel(x, y, clr);
 		}
 	}
 	else
@@ -193,7 +203,7 @@ void Whiteboard::DrawLine(const PointU& p1, const PointU& p2, BYTE clr)
 		for(short x = x1; x <= x2; x = x + 1)
 		{
 			const short y = (short)(m*x + b + 0.5f);
-			pixels[x + (y * params.width)] = clr;
+			PutPixel(x, y, clr);
 		}
 	}
 }

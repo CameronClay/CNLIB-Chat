@@ -31,6 +31,9 @@ public:
 	const Palette& GetPalette() const;
 
 private:
+	void PutPixel(const PointU& point, BYTE clr);
+	void PutPixel(USHORT x, USHORT y, BYTE clr);
+
 	void PaintBrush(WBClientData& clientData, BYTE clr);
 	void DrawLine(const PointU& p1, const PointU& p2, BYTE clr);
 	RectU MakeRect(const PointU &p0, const PointU &p1);
