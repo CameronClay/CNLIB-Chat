@@ -1,6 +1,8 @@
 #include "Whiteboard.h"
 #include "CNLIB\HeapAlloc.h"
 #include "CNLIB\Messages.h"
+#include <stdlib.h>
+#include <time.h>
 
 Whiteboard::Whiteboard(TCPServInterface &serv, WBParams params, std::tstring creator)
 	:
@@ -14,6 +16,7 @@ interval(1.0f / (float)params.fps)
 
 	InitializeCriticalSection(&bitmapSect);
 	InitializeCriticalSection(&mapSect);
+	srand(time(NULL));
 }
 
 Whiteboard::Whiteboard(Whiteboard &&wb)
@@ -118,28 +121,28 @@ void Whiteboard::PaintBrush(WBClientData& clientData, BYTE clr)
 
 void Whiteboard::Draw()
 {
-	EnterCriticalSection(&bitmapSect);
 	EnterCriticalSection(&mapSect);
 
 	for (auto& it : clients)
 	{
 		MouseClient mouse(it.second.mServ);
 		const Tool myTool = it.second.tool;
-		const BYTE color = 12;
+		const BYTE color = rand() % 31;
 
 		if(!mouse.MouseEmpty())
 		{
+			EnterCriticalSection(&bitmapSect);
 			switch(myTool)
 			{
 			case Tool::PaintBrush:
 				PaintBrush(it.second, color);
 				break;
 			}
+			LeaveCriticalSection(&bitmapSect);
 		}
 	}
 
 	LeaveCriticalSection(&mapSect);
-	LeaveCriticalSection(&bitmapSect);
 }
 
 void Whiteboard::DrawLine(const PointU& p1, const PointU& p2, BYTE clr)
