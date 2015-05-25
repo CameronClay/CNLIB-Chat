@@ -1373,6 +1373,7 @@ INT_PTR CALLBACK AuthenticateProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 			break;
 		}
 		case IDCANCEL:
+			Disconnect();
 			EndDialog(hWnd, id);
 			break;
 		}
