@@ -569,16 +569,16 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 
 				WBParams *pParams =	&streamReader.Read<WBParams>();
 
-				SendMessage(hMainWind, WM_CREATEWIN, ID_WB, (LPARAM)pParams);
 				pWhiteboard = construct(
 					Whiteboard(
 					palette,
-					wbHandle, 
-					pParams->width, 
-					pParams->height, 
-					pParams->fps, 
+					pParams->width,
+					pParams->height,
+					pParams->fps,
 					pParams->clrIndex)
 					);
+
+				SendMessage(hMainWind, WM_CREATEWIN, ID_WB, (LPARAM)pParams);
 				break;
 			}
 			case MSG_WHITEBOARD_TERMINATE:
@@ -1035,6 +1035,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			WBParams *wbp = (WBParams*)lParam;
 			CreateWBWindow( wbp->width, wbp->height );
+			pWhiteboard->Initialize(wbHandle);
 		}	break;
 		}
 	}	break;
@@ -1119,21 +1120,31 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (message)
 	{
 	case WM_MOUSEMOVE:
-		if(pWhiteboard && pWhiteboard->MouseInterval())
+	{
+		if(pWhiteboard->MouseInterval())
 			mServ.OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
+	}
 	case WM_LBUTTONDOWN:
+	{
 		mServ.OnLeftPressed(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
+	}
 	case WM_RBUTTONDOWN:
+	{
 		mServ.OnRightPressed(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
+	}
 	case WM_LBUTTONUP:
+	{
 		mServ.OnLeftReleased(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
+	}
 	case WM_RBUTTONUP:
+	{
 		mServ.OnRightReleased(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
+	}
 	case WM_CLOSE:
 		client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_LEFT);
 		DestroyWindow(hWnd);

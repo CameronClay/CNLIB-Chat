@@ -166,6 +166,7 @@
     <ClInclude Include="..\Common\Mouse.h" />
     <ClInclude Include="..\Common\Palette.h" />
     <ClInclude Include="..\Common\Timer.h" />
+    <ClInclude Include="..\Common\Vec2.h" />
     <ClInclude Include="..\Common\WhiteboardClientData.h" />
     <ClInclude Include="..\Common\WinFirewall.h" />
     <ClInclude Include="resource.h" />

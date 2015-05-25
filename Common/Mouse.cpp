@@ -47,7 +47,7 @@ MouseServer::MouseServer()
 	leftIsPressed( false ),
 	rightIsPressed( false )
 {}
-void MouseServer::OnMouseMove( USHORT x,USHORT y )
+void MouseServer::OnMouseMove( USHORT x, USHORT y )
 {
 	if(buffer.size() < bufferSize)
 		buffer.push(MouseEvent(MouseEvent::Move, x, y));

@@ -9,7 +9,7 @@ Whiteboard::Whiteboard(TCPServInterface &serv, WBParams params, std::tstring cre
 params(std::move(params)),
 serv(serv),
 creator(creator),
-interval(1.0f / (float)params.fps)
+interval(1000.0f / (float)params.fps)
 {
 	pixels = alloc<BYTE>(params.width * params.height);
 	FillMemory(pixels, params.width * params.height, params.clrIndex);
@@ -104,6 +104,7 @@ void Whiteboard::PaintBrush(WBClientData& clientData, BYTE clr)
 
 			if(pointList.size() >= 2)
 			{
+				//DrawLineThick(pointList[0], pointList[1], 15.0f, clr);
 				DrawLine(pointList[0], pointList[1], clr);
 				pointList.pop_front();
 				send = true;
@@ -169,6 +170,71 @@ void Whiteboard::PutPixel(USHORT x, USHORT y, BYTE clr)
 	pixels[x + (y * params.width)] = clr;
 }
 
+void Whiteboard::DrawFlatTriangle(float y0, float y1, float m0, float b0, float m1, float b1, BYTE clr)
+{
+	const int yStart = (int)(y0 + 0.5f);
+	const int yEnd = (int)(y1 + 0.5f);
+
+	for(int y = yStart; y < yEnd; y++)
+	{
+		const int xStart = int(m0 * (float(y) + 0.5f) + b0 + 0.5f);
+		const int xEnd = int(m1 * (float(y) + 0.5f) + b1 + 0.5f);
+
+		for(int x = xStart; x < xEnd; x++)
+		{
+			PutPixel(x, y, clr);
+		}
+	}
+}
+
+void Whiteboard::DrawTriangle(Vec2 v0, Vec2 v1, Vec2 v2, BYTE clr)
+{
+	if(v1.y < v0.y) v0.Swap(v1);
+	if(v2.y < v1.y) v1.Swap(v2);
+	if(v1.y < v0.y) v0.Swap(v1);
+
+	if(v0.y == v1.y)
+	{
+		if(v1.x < v0.x) v0.Swap(v1);
+		const float m1 = (v0.x - v2.x) / (v0.y - v2.y);
+		const float m2 = (v1.x - v2.x) / (v1.y - v2.y);
+		float b1 = v0.x - m1 * v0.y;
+		float b2 = v1.x - m2 * v1.y;
+		DrawFlatTriangle(v1.y, v2.y, m1, b1, m2, b2, clr);
+	}
+	else if(v1.y == v2.y)
+	{
+		if(v2.x < v1.x) v1.Swap(v2);
+		const float m0 = (v0.x - v1.x) / (v0.y - v1.y);
+		const float m1 = (v0.x - v2.x) / (v0.y - v2.y);
+		float b0 = v0.x - m0 * v0.y;
+		float b1 = v0.x - m1 * v0.y;
+		DrawFlatTriangle(v0.y, v1.y, m0, b0, m1, b1, clr);
+	}
+	else
+	{
+		const float m0 = (v0.x - v1.x) / (v0.y - v1.y);
+		const float m1 = (v0.x - v2.x) / (v0.y - v2.y);
+		const float m2 = (v1.x - v2.x) / (v1.y - v2.y);
+		float b0 = v0.x - m0 * v0.y;
+		float b1 = v0.x - m1 * v0.y;
+		float b2 = v1.x - m2 * v1.y;
+
+		const float qx = m1 * v1.y + b1;
+
+		if(qx < v1.x)
+		{
+			DrawFlatTriangle(v0.y, v1.y, m1, b1, m0, b0, clr);
+			DrawFlatTriangle(v1.y, v2.y, m1, b1, m2, b2, clr);
+		}
+		else
+		{
+			DrawFlatTriangle(v0.y, v1.y, m0, b0, m1, b1, clr);
+			DrawFlatTriangle(v1.y, v2.y, m2, b2, m1, b1, clr);
+		}
+	}
+}
+
 void Whiteboard::DrawLine(const PointU& p1, const PointU& p2, BYTE clr)
 {
 	short x1 = p1.x, x2 = p2.x, y1 = p1.y, y2 = p2.y;
@@ -217,6 +283,25 @@ void Whiteboard::DrawLine(const PointU& p1, const PointU& p2, BYTE clr)
 			PutPixel(x, y, clr);
 		}
 	}
+}
+
+void Whiteboard::DrawLineThick(const PointU& p1, const PointU& p2, float width, BYTE clr)
+{
+	const Vec2 v1(p1.x, p1.y), v2(p2.x, p2.y);
+	const Vec2 norm = (v2 - v1).CCW90().Normalize();
+	const Vec2 normOffset = norm * width * 0.5f;
+	const Vec2 perpOffset = { norm.x, - norm.y };
+
+	const Vec2 points[] =
+	{
+		v1 - normOffset,
+		v1 + perpOffset,
+		v2 + normOffset,
+		v2 - perpOffset
+	};
+
+	DrawTriangle(points[0], points[1], points[2], clr);
+	DrawTriangle(points[0], points[2], points[3], clr);
 }
 
 RectU Whiteboard::MakeRect(const PointU &p0, const PointU &p1)

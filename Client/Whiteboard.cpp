@@ -3,26 +3,22 @@
 #include <assert.h>
 #include "CNLIB\HeapAlloc.h"
 
-Whiteboard::Whiteboard(Palette& palette, HWND WinHandle, USHORT Width, USHORT Height, USHORT FPS, BYTE palIndex)
+Whiteboard::Whiteboard(Palette& palette, USHORT Width, USHORT Height, USHORT FPS, BYTE palIndex)
 	:
 surf(alloc<BYTE>(Width * Height)),
-hWnd(WinHandle),
+palIndex(palIndex),
 width(Width),
 height(Height),
-interval(1.0f / (float)FPS),
+interval(1000.0f / (float)FPS),
 palette(palette)
 {
-	InitD3D();
-	memset(surf, palIndex, Width * Height);
 
-	BeginFrame();
-	pDevice->Clear(0, NULL, D3DCLEAR_TARGET, palette.GetRGBColor(palIndex), 0.0f, 0);
-	EndFrame();
 }
 
 Whiteboard::Whiteboard(Whiteboard&& wb)
 	:
 	surf(wb.surf),
+	palIndex(wb.palIndex),
 	hWnd(wb.hWnd),
 	width(wb.width),
 	height(wb.height),
@@ -39,6 +35,17 @@ Whiteboard::Whiteboard(Whiteboard&& wb)
 	ZeroMemory(&wb, sizeof(Whiteboard));
 }
 
+void Whiteboard::Initialize(HWND WinHandle)
+{
+	hWnd = WinHandle;
+	InitD3D();
+	memset(surf, palIndex, width * height);
+
+	BeginFrame();
+	pDevice->Clear(0, NULL, D3DCLEAR_TARGET, palette.GetRGBColor(palIndex), 0.0f, 0);
+	EndFrame();
+}
+
 void Whiteboard::Frame(const RectU &rect, const BYTE *pixelData)
 {
 	Draw(rect, pixelData);
@@ -52,6 +59,16 @@ bool Whiteboard::Interval() const
 bool Whiteboard::MouseInterval() const
 {
 	return mouseTimer.GetTimeMilli() >= interval;
+}
+
+USHORT Whiteboard::GetWidth() const
+{
+	return width;
+}
+
+USHORT Whiteboard::GetHeight() const
+{
+	return height;
 }
 
 

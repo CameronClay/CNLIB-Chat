@@ -5,6 +5,7 @@
 #include "WhiteboardClientData.h"
 #include "Palette.h"
 #include "Timer.h"
+#include "Vec2.h"
 
 class Whiteboard
 {
@@ -34,8 +35,13 @@ private:
 	void PutPixel(const PointU& point, BYTE clr);
 	void PutPixel(USHORT x, USHORT y, BYTE clr);
 
+	void DrawFlatTriangle(float y0, float y1, float m0, float b0, float m1, float b1, BYTE clr);
+	void DrawTriangle(Vec2 v0, Vec2 v1, Vec2 v2, BYTE clr);
+
+
 	void PaintBrush(WBClientData& clientData, BYTE clr);
 	void DrawLine(const PointU& p1, const PointU& p2, BYTE clr);
+	void DrawLineThick(const PointU& p1, const PointU& p2, float width, BYTE clr);
 	RectU MakeRect(const PointU &p0, const PointU &p1);
 	UINT GetBufferLen(const RectU& rec) const;
 	void MakeRectPixels(const RectU& rect, char* ptr);
