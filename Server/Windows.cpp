@@ -681,9 +681,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		{
 			EnterCriticalSection(&wbSect);
 			if(wb)
-			{
 				wb->Frame();
-			}
 			LeaveCriticalSection(&wbSect);
 		}
 	}
