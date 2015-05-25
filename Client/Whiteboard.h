@@ -22,9 +22,9 @@ public:
 	void BeginFrame();
 	void EndFrame();
 	void Render();
-	bool MouseInterval() const;
 	USHORT GetWidth() const;
 	USHORT GetHeight() const;
+	bool Initialized() const;
 private:
 	void InitD3D();
 	void Draw(const RECT &rect, const BYTE *pixelData);
@@ -40,7 +40,6 @@ private:
 	USHORT width, height, pitch;
 	const float interval;
 	Timer timer;
-	Timer mouseTimer;
 	Palette& palette;
 
 	IDirect3D9 *pDirect3D;

@@ -100,6 +100,5 @@ public:
 	UINT GetBufferLen() const;
 private:
 	bool leftIsPressed, rightIsPressed, isInWindow;
-	static const USHORT bufferSize = 20;
 	std::queue< MouseEvent > buffer;
 };

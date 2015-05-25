@@ -7,6 +7,7 @@ Whiteboard::Whiteboard(Palette& palette, USHORT Width, USHORT Height, USHORT FPS
 	:
 surf(alloc<BYTE>(Width * Height)),
 palIndex(palIndex),
+hWnd(NULL),
 width(Width),
 height(Height),
 interval(1000.0f / (float)FPS),
@@ -25,7 +26,6 @@ Whiteboard::Whiteboard(Whiteboard&& wb)
 	pitch(wb.pitch),
 	interval(wb.interval),
 	timer(wb.timer),
-	mouseTimer(wb.mouseTimer),
 	pDirect3D(wb.pDirect3D),
 	pDevice(wb.pDevice),
 	pBackBuffer(wb.pBackBuffer),
@@ -56,11 +56,6 @@ bool Whiteboard::Interval() const
 	return timer.GetTimeMilli() >= interval;
 }
 
-bool Whiteboard::MouseInterval() const
-{
-	return mouseTimer.GetTimeMilli() >= interval;
-}
-
 USHORT Whiteboard::GetWidth() const
 {
 	return width;
@@ -74,22 +69,19 @@ USHORT Whiteboard::GetHeight() const
 
 void Whiteboard::SendMouseData(MouseServer& mServ, TCPClientInterface* client)
 {
-	if(Interval())
+	MouseClient mClient(mServ);
+	if(!mClient.MouseEmpty())
 	{
-		MouseClient mClient(mServ);
-		if(!mClient.MouseEmpty())
-		{
-			const DWORD nBytes = mServ.GetBufferLen() + MSG_OFFSET;
-			char* msg = alloc<char>(nBytes);
-			msg[0] = TYPE_DATA;
-			msg[1] = MSG_DATA_MOUSE;
-			mServ.Extract((BYTE*)&msg[MSG_OFFSET]);
-			HANDLE hnd = client->SendServData(msg, nBytes);
-			WaitAndCloseHandle(hnd);
-			dealloc(msg);
+		const DWORD nBytes = mServ.GetBufferLen() + MSG_OFFSET;
+		char* msg = alloc<char>(nBytes);
+		msg[0] = TYPE_DATA;
+		msg[1] = MSG_DATA_MOUSE;
+		mServ.Extract((BYTE*)&msg[MSG_OFFSET]);
+		HANDLE hnd = client->SendServData(msg, nBytes);
+		WaitAndCloseHandle(hnd);
+		dealloc(msg);
 
-			timer.Reset();
-		}
+		timer.Reset();
 	}
 }
 
@@ -98,6 +90,11 @@ void Whiteboard::BeginFrame()
 	HRESULT hr = 0;
 	hr = pBackBuffer->LockRect(&lockRect, nullptr, NULL);
 	assert(SUCCEEDED(hr));
+}
+
+bool Whiteboard::Initialized() const
+{
+	return hWnd;
 }
 
 void Whiteboard::Render()

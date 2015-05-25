@@ -18,7 +18,7 @@ bool MouseClient::IsInWindow() const
 }
 MouseEvent MouseClient::Read()
 {
-	if( server.buffer.size() > 0 )
+	if(!server.buffer.empty())
 	{
 		MouseEvent e = server.buffer.front( );
 		server.buffer.pop( );
@@ -31,7 +31,7 @@ MouseEvent MouseClient::Read()
 }
 MouseEvent MouseClient::Peek()
 {
-	if (server.buffer.size() > 0)
+	if (!server.buffer.empty())
 		return server.buffer.front();
 	else
 		return MouseEvent(MouseEvent::Invalid, 0, 0);
@@ -47,10 +47,9 @@ MouseServer::MouseServer()
 	leftIsPressed( false ),
 	rightIsPressed( false )
 {}
-void MouseServer::OnMouseMove( USHORT x, USHORT y )
+void MouseServer::OnMouseMove(USHORT x, USHORT y)
 {
-	if(buffer.size() < bufferSize)
-		buffer.push(MouseEvent(MouseEvent::Move, x, y));
+	buffer.push(MouseEvent(MouseEvent::Move, x, y));
 }
 void MouseServer::OnMouseLeave()
 {

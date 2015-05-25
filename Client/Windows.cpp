@@ -757,7 +757,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 				DispatchMessage(&msg);
 			}
 		}
-		else if(pWhiteboard)
+		else if(pWhiteboard && pWhiteboard->Initialized() && pWhiteboard->Interval())
 		{
 			pWhiteboard->BeginFrame();
 			pWhiteboard->Render();
@@ -1120,31 +1120,20 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (message)
 	{
 	case WM_MOUSEMOVE:
-	{
-		if(pWhiteboard->MouseInterval())
-			mServ.OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		mServ.OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
-	}
 	case WM_LBUTTONDOWN:
-	{
 		mServ.OnLeftPressed(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
-	}
 	case WM_RBUTTONDOWN:
-	{
 		mServ.OnRightPressed(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
-	}
 	case WM_LBUTTONUP:
-	{
 		mServ.OnLeftReleased(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
-	}
 	case WM_RBUTTONUP:
-	{
 		mServ.OnRightReleased(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
-	}
 	case WM_CLOSE:
 		client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_LEFT);
 		DestroyWindow(hWnd);
