@@ -153,6 +153,15 @@ HWND CreateWBWindow(USHORT width, USHORT height)
 
 	if(!IsWindow(wbHandle))
 	{
+		/*RECT screen;
+		SystemParametersInfo(SPI_GETWORKAREA, NULL, &screen, NULL);*/
+
+		RECT wr;
+		wr.left = 0;
+		wr.right = wr.left + width;
+		wr.top = 0;
+		wr.bottom = wr.top + height;
+		AdjustWindowRect(&wr, WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU, FALSE);
 		DWORD style =
 			//WS_CHILD |			// Child window that
 			WS_POPUPWINDOW |	// Is not contained in parent window
@@ -165,7 +174,7 @@ HWND CreateWBWindow(USHORT width, USHORT height)
 			_T("Whiteboard Client View"),
 			style,
 			0, 0,
-			width, height,
+			wr.right - wr.left, wr.bottom - wr.top,
 			NULL, NULL,
 			hInst, nullptr);
 

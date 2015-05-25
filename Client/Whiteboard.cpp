@@ -103,10 +103,9 @@ void Whiteboard::Render()
 	{
 		for(USHORT x = 0; x < width; x++)
 		{
-			const UINT bIndex = x + (y * pitch);
-			const UINT rIndex = x + (y * width);
-			D3DCOLOR *pSurface = (D3DCOLOR*)(lockRect.pBits);
-			pSurface[bIndex] = palette.GetRGBColor(surf[rIndex]);
+			const UINT index = x + (y * width);
+			D3DCOLOR* d3dSurf = (D3DCOLOR*)&((char*)lockRect.pBits)[index * pitch];
+			*d3dSurf = palette.GetRGBColor(surf[index]);
 		}
 	}
 }
@@ -185,14 +184,10 @@ void Whiteboard::InitD3D()
 	hr = pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
 	assert(SUCCEEDED(hr));
 
-	// D3DLOCKED_RECT::Pitch is in bytes,
-	// divide by 4 (>> 2) to cnvert to D3DCOLOR (sizeof(int))
-	// Put in ctor since pitch won't change, unless run on laptop and they dock
-	// while running client
 	hr = pBackBuffer->LockRect(&lockRect, nullptr, NULL);
 	assert(SUCCEEDED(hr));
 
-	pitch = lockRect.Pitch >> 2;
+	pitch = lockRect.Pitch / width;
 
 	hr = pBackBuffer->UnlockRect();
 	assert(SUCCEEDED(hr));
