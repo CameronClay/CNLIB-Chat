@@ -30,8 +30,7 @@ creator(std::move(wb.creator)),
 interval(wb.interval),
 timer(wb.timer),
 clients(std::move(wb.clients)),
-sendPcs(std::move(wb.sendPcs)),
-pointList(std::move(wb.pointList))
+sendPcs(std::move(wb.sendPcs))
 {
 	wb.pixels = nullptr;
 }
@@ -58,6 +57,7 @@ bool Whiteboard::IsCreator(const std::tstring& user) const
 
 void Whiteboard::PaintBrush(WBClientData& clientData, BYTE clr)
 {
+	std::deque<PointU>& pointList = clientData.pointList;
 	RectU& rect = clientData.rect;
 	MouseClient mouse(clientData.mServ);
 	MouseEvent ev = mouse.Peek();
@@ -449,7 +449,6 @@ Whiteboard::~Whiteboard()
 		DeleteCriticalSection(&bitmapSect);
 		DeleteCriticalSection(&mapSect);
 
-		pointList.clear();
 		clients.clear();
 		sendPcs.clear();
 	}

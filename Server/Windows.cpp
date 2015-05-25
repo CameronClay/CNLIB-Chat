@@ -322,9 +322,12 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 		}
 		case MSG_DATA_MOUSE:
 		{
-			auto& map = wb->GetMap();
-			WBClientData& wbClientData = map[clint->pc];
-			wbClientData.mServ.Insert((BYTE*)dat, nBytes);
+			if(wb)
+			{
+				auto& map = wb->GetMap();
+				WBClientData& wbClientData = map[clint->pc];
+				wbClientData.mServ.Insert((BYTE*)dat, nBytes);
+			}
 			break;
 		}
 		break;

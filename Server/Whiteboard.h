@@ -59,5 +59,4 @@ private:
 
 	std::unordered_map<Socket, WBClientData, Socket::Hash> clients;
 	std::vector<Socket> sendPcs;
-	std::deque<PointU> pointList;
 };

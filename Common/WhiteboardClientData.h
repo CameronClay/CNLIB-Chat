@@ -173,6 +173,8 @@ struct WBClientData
 		clrIndex(0),
 		mServ()
 	{}
+
+	std::deque<PointU> pointList;
 	RectU rect;
 	Tool tool;								// Enums are sizeof(int) 4 bytes
 	BYTE clrIndex;							// Palette color is 1 bytes
