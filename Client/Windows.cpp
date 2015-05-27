@@ -20,6 +20,7 @@
 #include <string.h>
 #include <list>
 #include <assert.h>
+#include <math.h>
 
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "shlwapi.lib")
@@ -61,7 +62,7 @@ const USHORT DEFAULTPORT = 565;
 
 #define WB_DEF_RES_X 800
 #define WB_DEF_RES_Y 600
-#define WB_DEF_FPS 20
+#define WB_DEF_FPS 60
 
 #define WM_CREATEWIN WM_APP
 #define ID_WB 1
@@ -133,6 +134,11 @@ static HMENU main, file, options;
 
 std::tstring user;
 #pragma endregion
+
+POINT pt = { 0, 0 };
+double mouseX = 0.0, mouseY = 0.0;
+double mouseSpeed = 1.0;
+void UpdateMouse();
 
 
 HWND CreateWBWindow(USHORT width, USHORT height)
@@ -755,9 +761,20 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	ShowWindow(hMainWind, nCmdShow);
 	UpdateWindow(hMainWind);
 
+	/*RAWINPUTDEVICE rid;
+	rid.usUsagePage = 0x01;
+	rid.usUsage = 0x02;
+	rid.dwFlags = NULL;
+	rid.hwndTarget = NULL;
+
+	RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE));*/
+
 	MSG msg = {};
 	while(msg.message != WM_QUIT)
 	{
+		if(pWhiteboard)
+			UpdateMouse();
+
 		if(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
 			if(!TranslateAccelerator(hMainWind, hndAccel, &msg))
@@ -777,6 +794,173 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 	return (int)msg.wParam;
 }
+
+void UpdateMouse()
+{
+	static POINT prevPt;
+
+	BYTE buffer[512];
+	UINT size = ARRAYSIZE(buffer);
+
+
+	//GetRawInputBuffer(HRAWINPUT)lParam, RID_INPUT, ri, &size, sizeof(RAWINPUTHEADER));
+	const UINT count = GetRawInputBuffer((RAWINPUT*)buffer, &size, sizeof(RAWINPUTHEADER));
+	DWORD err = GetLastError();
+
+
+	RAWINPUT *pri = (RAWINPUT*)buffer;
+	for(UINT i = 0; i < count; i++)
+	{
+		if(pri->header.dwType == RIM_TYPEMOUSE)
+		{
+			RAWMOUSE& mouse = ((RAWINPUT*)((char*)pri + 8))->data.mouse;
+
+			if(mouse.usFlags == MOUSE_MOVE_RELATIVE)
+			{
+				prevPt = pt;
+				mouseX += mouseSpeed * (double)mouse.lLastX;
+				mouseY += mouseSpeed * (double)mouse.lLastY;
+				pt = { mouseX, mouseY };
+			}
+
+			else if(mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
+			{
+				prevPt = pt;
+				pt = { mouseX = mouse.lLastX, mouseY = mouse.lLastY };
+			}
+
+			RECT rc{};
+			GetClientRect(wbHandle, &rc);
+			if(PtInRect(&rc, pt))
+			{
+				POINT temp = pt;
+				ScreenToClient(wbHandle, &temp);
+
+				SetCursorPos(temp.x, temp.y);
+
+				switch(mouse.usButtonFlags)
+				{
+				case RI_MOUSE_LEFT_BUTTON_DOWN:
+					mServ.OnLeftPressed(temp.x, temp.y);
+					break;
+
+				case RI_MOUSE_LEFT_BUTTON_UP:
+					mServ.OnLeftReleased(temp.x, temp.y);
+					break;
+
+				case RI_MOUSE_RIGHT_BUTTON_DOWN:
+					mServ.OnRightPressed(temp.x, temp.y);
+					break;
+
+				case RI_MOUSE_RIGHT_BUTTON_UP:
+					mServ.OnRightReleased(temp.x, temp.y);
+					break;
+				}
+
+				if((pt.x != prevPt.x) || (pt.y != prevPt.y))
+					mServ.OnMouseMove(temp.x, temp.y);
+			}
+
+			LIB_TCHAR textBuffer[128];
+			_stprintf(textBuffer, _T("(%d, %d)"), pt.x, pt.y);
+			SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)textBuffer);
+		}
+		pri = NEXTRAWINPUTBLOCK(pri);
+	}
+}
+
+//DWORD CALLBACK Mouse(LPVOID)
+//{
+//	static POINT pt, prevPt;
+//
+//	RAWINPUTDEVICE rid;
+//	rid.usUsagePage = 0x01;
+//	rid.usUsage = 0x02;
+//	rid.dwFlags = NULL;
+//	rid.hwndTarget = wbHandle;
+//
+//	BOOL RESULT = RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE));
+//
+//	MSG msg = {};
+//	while(msg.message != WM_QUIT)
+//	{
+//		if(!PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+//		{
+//			UINT size;
+//			//GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
+//			DWORD err = GetRawInputBuffer(NULL, &size, sizeof(RAWINPUTHEADER));
+//
+//			size = 16;
+//			size += 8;
+//			size *= 16;
+//
+//			RAWINPUT *ri = (RAWINPUT*)alloc<BYTE>(size);
+//
+//			//GetRawInputBuffer(HRAWINPUT)lParam, RID_INPUT, ri, &size, sizeof(RAWINPUTHEADER));
+//			const UINT count = GetRawInputBuffer(ri, &size, sizeof(RAWINPUTHEADER));
+//			err = GetLastError();
+//
+//
+//			RAWINPUT *pri = ri;
+//			for(UINT i = 0; i < count; i++)
+//			{
+//				if(pri->header.dwType == RIM_TYPEMOUSE)
+//				{
+//					RAWMOUSE& mouse = ((RAWINPUT*)((char*)pri + 8))->data.mouse;
+//
+//					if(mouse.usFlags == MOUSE_MOVE_RELATIVE)
+//					{
+//						prevPt = pt;
+//						pt = { pt.x + mouse.lLastX, pt.y + mouse.lLastY };
+//					}
+//
+//					else if(mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
+//					{
+//						prevPt = pt;
+//						pt = { mouse.lLastX, mouse.lLastY };
+//					}
+//
+//					RECT rc{};
+//					GetClientRect(wbHandle, &rc);
+//					if(PtInRect(&rc, pt))
+//					{
+//						POINT temp = pt;
+//						ScreenToClient(wbHandle, &temp);
+//
+//						switch(mouse.usButtonFlags)
+//						{
+//						case RI_MOUSE_LEFT_BUTTON_DOWN:
+//							mServ.OnLeftPressed(temp.x, temp.y);
+//							break;
+//
+//						case RI_MOUSE_LEFT_BUTTON_UP:
+//							mServ.OnLeftReleased(temp.x, temp.y);
+//							break;
+//
+//						case RI_MOUSE_RIGHT_BUTTON_DOWN:
+//							mServ.OnRightPressed(temp.x, temp.y);
+//							break;
+//
+//						case RI_MOUSE_RIGHT_BUTTON_UP:
+//							mServ.OnRightReleased(temp.x, temp.y);
+//							break;
+//						}
+//
+//						if((pt.x != prevPt.x) || (pt.y != prevPt.y))
+//							mServ.OnMouseMove(temp.x, temp.y);
+//					}
+//				}
+//				pri = NEXTRAWINPUTBLOCK(pri);
+//			}
+//
+//			LIB_TCHAR buffer[128];
+//			_stprintf(buffer, _T("(%d, %d)"), pt.x, pt.y);
+//			SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)buffer);
+//			dealloc(ri);
+//		}
+//	}
+//	return 0;
+//}
 
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -1124,25 +1308,190 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	LRESULT result = 0;	
+	static POINT pt, prevPt;
 
 	switch (message)
 	{
-	case WM_MOUSEMOVE:
-		mServ.OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+	/*case WM_INPUT:
+	{
+		UINT size;
+		GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
+
+		RAWINPUT *ri = (RAWINPUT*)alloc<BYTE>(size);
+
+		GetRawInputData((HRAWINPUT)lParam, RID_INPUT, ri, &size, sizeof(RAWINPUTHEADER));
+
+		if(ri->header.dwType == RIM_TYPEMOUSE)
+		{
+			RAWMOUSE& mouse = ri->data.mouse;
+
+			if(mouse.usFlags == MOUSE_MOVE_RELATIVE)
+			{
+				prevPt = pt;
+				mouseX += mouseSpeed * (double)mouse.lLastX;
+				mouseY += mouseSpeed * (double)mouse.lLastY;
+				pt = { mouseX, mouseY };
+			}
+
+			else if(mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
+			{
+				prevPt = pt;
+				pt = { mouseX = mouse.lLastX, mouseY = mouse.lLastY };
+			}
+
+			RECT rc{};
+			GetClientRect(hWnd, &rc);
+			if(PtInRect(&rc, pt))
+			{
+				POINT temp = pt;
+				ScreenToClient(hWnd, &temp);
+
+				SetCursorPos(temp.x, temp.y);
+
+				switch(mouse.usButtonFlags)
+				{
+				case RI_MOUSE_LEFT_BUTTON_DOWN:
+					mServ.OnLeftPressed(temp.x, temp.y);
+					break;
+
+				case RI_MOUSE_LEFT_BUTTON_UP:
+					mServ.OnLeftReleased(temp.x, temp.y);
+					break;
+
+				case RI_MOUSE_RIGHT_BUTTON_DOWN:
+					mServ.OnRightPressed(temp.x, temp.y);
+					break;
+
+				case RI_MOUSE_RIGHT_BUTTON_UP:
+					mServ.OnRightReleased(temp.x, temp.y);
+					break;
+				}
+
+				if((pt.x != prevPt.x) || (pt.y != prevPt.y))
+					mServ.OnMouseMove(temp.x, temp.y);
+			}
+		}
+
+		LIB_TCHAR buffer[128];
+		_stprintf(buffer, _T("(%d, %d)"), pt.x, pt.y);
+		SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)buffer);
+		dealloc(ri);
 		break;
-	case WM_LBUTTONDOWN:
-		mServ.OnLeftPressed(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+	}*/
+
+
+	//	if(ri->header.dwType == RIM_TYPEMOUSE)
+	//	{
+	//		RAWMOUSE& mouse = ri->data.mouse;
+
+	//		if(mouse.usFlags == MOUSE_MOVE_RELATIVE)
+	//		{
+	//			prevPt = pt;
+	//			pt = { pt.x + mouse.lLastX, pt.y + mouse.lLastY };
+	//		}
+
+	//		else if(mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
+	//		{
+	//			prevPt = pt;
+	//			pt = { mouse.lLastX, mouse.lLastY };
+	//		}
+
+	//		RECT rc{};
+	//		GetClientRect(hWnd, &rc);
+	//		if(PtInRect(&rc, pt))
+	//		{
+	//			POINT temp = pt;
+	//			ScreenToClient(hWnd, &temp);
+
+	//			switch(mouse.usButtonFlags)
+	//			{
+	//			case RI_MOUSE_LEFT_BUTTON_DOWN:
+	//				mServ.OnLeftPressed(temp.x, temp.y);
+	//				break;
+
+	//			case RI_MOUSE_LEFT_BUTTON_UP:
+	//				mServ.OnLeftReleased(temp.x, temp.y);
+	//				break;
+
+	//			case RI_MOUSE_RIGHT_BUTTON_DOWN:
+	//				mServ.OnRightPressed(temp.x, temp.y);
+	//				break;
+
+	//			case RI_MOUSE_RIGHT_BUTTON_UP:
+	//				mServ.OnRightReleased(temp.x, temp.y);
+	//				break;
+	//			}
+
+	//			if((pt.x != prevPt.x) || (pt.y != prevPt.y))
+	//				mServ.OnMouseMove(temp.x, temp.y);
+	//		}
+	//	}
+
+	//	dealloc(ri);
+	//	break;
+	//}
+	
+	//case WM_MOUSEMOVE:
+	//	mServ.OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+	//	break;
+	//case WM_LBUTTONDOWN:
+	//	mServ.OnLeftPressed(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+	//	break;
+	//case WM_RBUTTONDOWN:
+	//	mServ.OnRightPressed(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+	//	break;
+	//case WM_LBUTTONUP:
+	//	mServ.OnLeftReleased(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+	//	break;
+	//case WM_RBUTTONUP:
+	//	mServ.OnRightReleased(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+	//	break;
+
+
+	case WM_CREATE:
+	{
+		RAWINPUTDEVICE rid;
+		rid.usUsagePage = 0x01;
+		rid.usUsage = 0x02;
+		rid.dwFlags = NULL;
+		rid.hwndTarget = hWnd;
+
+		RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE));
+
+		const double exponent = pow(4, 1.0 / 10.0);
+
+		int temp;
+		SystemParametersInfo(SPI_GETMOUSESPEED, 0, &temp, 0);
+
+		if(temp >= 10)
+		{
+			const double exponent = pow(4, 1.0 / 10.0);
+			mouseSpeed = pow(exponent, temp - 10);
+		}
+		else if(temp < 10)
+		{
+			const double exponent = pow((1.0 / 10.0) / (4.0 * (9.0 / 10.0)), 1.0 / 10.0);
+			mouseSpeed = pow(exponent, 10 - temp);
+		};
+
+
+		//mouseThread = CreateThread(NULL, NULL, Mouse, NULL, NULL, &mouseThreadID);
+
 		break;
-	case WM_RBUTTONDOWN:
-		mServ.OnRightPressed(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+	}
+
+	case WM_ACTIVATE:
+	{
+		GetCursorPos(&pt);
+		mouseX = pt.x;
+		mouseY = pt.y;
+
+		LIB_TCHAR buffer[128];
+		_stprintf(buffer, _T("(%d, %d)"), pt.x, pt.y);
+		SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)buffer);
 		break;
-	case WM_LBUTTONUP:
-		mServ.OnLeftReleased(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-		break;
-	case WM_RBUTTONUP:
-		mServ.OnRightReleased(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-		break;
+	}
+
 	case WM_CLOSE:
 		client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_LEFT);
 		DestroyWindow(hWnd);
@@ -1151,16 +1500,19 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_ENABLED);
 		EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_GRAYED);
 
+		/*PostThreadMessage(mouseThreadID, WM_QUIT, 0, 0);
+		CloseHandle(mouseThread);*/
+
 		wbHandle = nullptr;
 		UnregisterClass(wbClassName, hInst);
 		destruct(pWhiteboard);
 		break;
 
 	default:
-		result = DefWindowProc(hWnd, message, wParam, lParam);
+		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
 
-	return result;
+	return 0;
 }
 
 INT_PTR CALLBACK ConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)

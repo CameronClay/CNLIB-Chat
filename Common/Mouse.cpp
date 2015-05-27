@@ -49,6 +49,10 @@ MouseServer::MouseServer()
 {}
 void MouseServer::OnMouseMove(USHORT x, USHORT y)
 {
+	if(buffer.size() >= 5)
+	{
+		int a = 0;
+	}
 	buffer.push(MouseEvent(MouseEvent::Move, x, y));
 }
 void MouseServer::OnMouseLeave()
@@ -92,12 +96,13 @@ bool MouseServer::IsInWindow() const
 	return isInWindow;
 }
 
-UINT MouseServer::GetBufferLen() const
+UINT MouseServer::GetBufferLen(UINT& count) const
 {
-	return (sizeof(bool) * 3)/* + (sizeof(USHORT) * 2)*/ + (buffer.size() * sizeof(MouseEvent));
+	count = buffer.size();
+	return (sizeof(bool) * 3)/* + (sizeof(USHORT) * 2)*/ + (count * sizeof(MouseEvent));
 }
 
-void MouseServer::Extract(BYTE *byteBuffer)
+void MouseServer::Extract(BYTE *byteBuffer, UINT count)
 {
 	UINT pos = 0;
 
@@ -108,7 +113,7 @@ void MouseServer::Extract(BYTE *byteBuffer)
 	*(bool*)&byteBuffer[pos] = isInWindow;
 	pos += sizeof(bool);
 
-	while(!buffer.empty())
+	for(UINT i = 0; i < count; i++)
 	{
 		*(MouseEvent*)&byteBuffer[pos] = buffer.front();
 		pos += sizeof(MouseEvent);

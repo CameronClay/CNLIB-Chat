@@ -88,9 +88,12 @@ void Whiteboard::PaintBrush(WBClientData& clientData, BYTE clr)
 			switch(ev.GetType())
 			{
 			case MouseEvent::LRelease:
-				PutPixel(pointList[0], clr);
-				pointList.pop_back();
-				send = true;
+				if(!pointList.empty())
+				{
+					PutPixel(pointList[0], clr);
+					pointList.pop_back();
+					send = true;
+				}
 				break;
 			case MouseEvent::LPress:
 				if(pointList.empty())
@@ -147,12 +150,16 @@ void Whiteboard::Draw()
 			} while(color == params.clrIndex);
 
 			EnterCriticalSection(&bitmapSect);
+			EnterCriticalSection(&it.second.mouseSect);
+
 			switch(myTool)
 			{
 			case Tool::PaintBrush:
 				PaintBrush(it.second, color);
 				break;
 			}
+
+			LeaveCriticalSection(&it.second.mouseSect);
 			LeaveCriticalSection(&bitmapSect);
 		}
 	}

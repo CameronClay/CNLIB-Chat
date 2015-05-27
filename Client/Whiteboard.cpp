@@ -72,11 +72,12 @@ void Whiteboard::SendMouseData(MouseServer& mServ, TCPClientInterface* client)
 	MouseClient mClient(mServ);
 	if(!mClient.MouseEmpty())
 	{
-		const DWORD nBytes = mServ.GetBufferLen() + MSG_OFFSET;
+		UINT count;
+		const DWORD nBytes = mServ.GetBufferLen(count) + MSG_OFFSET;
 		char* msg = alloc<char>(nBytes);
 		msg[0] = TYPE_DATA;
 		msg[1] = MSG_DATA_MOUSE;
-		mServ.Extract((BYTE*)&msg[MSG_OFFSET]);
+		mServ.Extract((BYTE*)&msg[MSG_OFFSET], count);
 		HANDLE hnd = client->SendServData(msg, nBytes);
 		WaitAndCloseHandle(hnd);
 		dealloc(msg);

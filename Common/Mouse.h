@@ -95,9 +95,9 @@ public:
 	void OnWheelUp(USHORT x, USHORT y);
 	void OnWheelDown(USHORT x, USHORT y);
 	bool IsInWindow() const;
-	void Extract(BYTE *byteBuffer);
+	void Extract(BYTE *byteBuffer, UINT count);
 	void Insert(BYTE *byteBuffer, DWORD nBytes);
-	UINT GetBufferLen() const;
+	UINT GetBufferLen(UINT& count) const;
 private:
 	bool leftIsPressed, rightIsPressed, isInWindow;
 	std::queue< MouseEvent > buffer;

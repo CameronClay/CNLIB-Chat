@@ -326,7 +326,10 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 			{
 				auto& map = wb->GetMap();
 				WBClientData& wbClientData = map[clint->pc];
+
+				EnterCriticalSection(&wbClientData.mouseSect);
 				wbClientData.mServ.Insert((BYTE*)dat, nBytes);
+				LeaveCriticalSection(&wbClientData.mouseSect);
 			}
 			break;
 		}
@@ -390,7 +393,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 		}
 		case MSG_RESPONSE_WHITEBOARD_DECLINED:
 		{
-			
+			break;
 		}
 		}
 		break;
