@@ -135,6 +135,7 @@ static HMENU main, file, options;
 std::tstring user;
 #pragma endregion
 
+RECT wbWindowRect;
 POINT pt = { 0, 0 };
 double mouseX = 0.0, mouseY = 0.0;
 double mouseSpeed = 1.0;
@@ -167,13 +168,14 @@ HWND CreateWBWindow(USHORT width, USHORT height)
 		wr.right = wr.left + width;
 		wr.top = 0;
 		wr.bottom = wr.top + height;
-		AdjustWindowRect(&wr, WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU, FALSE);
+
 		DWORD style =
 			//WS_CHILD |			// Child window that
 			WS_POPUPWINDOW |	// Is not contained in parent window
 			WS_CAPTION |		// Shows the title bar
 			WS_MINIMIZEBOX;		// Shows the minimize button
-		
+
+		AdjustWindowRect(&wr, style, FALSE);
 		wbHandle = CreateWindowEx(
 			NULL,
 			wbClassName,
@@ -703,6 +705,26 @@ void WinMainInit()
 	opts->Load(windowName);
 }
 
+RECT GetD3DRect()
+{
+	RECT clientRect{}, rc{};
+	GetClientRect(wbHandle, &clientRect);
+
+	const USHORT width = clientRect.right - clientRect.left,
+		height = clientRect.bottom - clientRect.top;
+
+	const USHORT border = ((wbWindowRect.right - wbWindowRect.left) - width) / 2;
+
+	const USHORT caption = ((wbWindowRect.bottom - wbWindowRect.top) - height) - (2 * border);
+
+	rc.left = wbWindowRect.left + border;
+	rc.right = rc.left + width;
+	rc.top = wbWindowRect.top + caption + border;
+	rc.bottom = rc.top + height;
+
+	return rc;
+}
+
 int WINAPI WinMain(HINSTANCE hInstance,
 	HINSTANCE hPrevInstance,
 	LPSTR lpCmdLine,
@@ -772,7 +794,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	MSG msg = {};
 	while(msg.message != WM_QUIT)
 	{
-		if(pWhiteboard)
+		if(pWhiteboard && GetFocus() == wbHandle)
 			UpdateMouse();
 
 		if(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -797,7 +819,14 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 void UpdateMouse()
 {
-	static POINT prevPt;
+	static POINT prevPt, screen = { GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
+	//static short borderX = GetSystemMetrics(SM_CXSIZEFRAME),
+	//	borderY = GetSystemMetrics(SM_CYSIZEFRAME),
+	//	boxX = GetSystemMetrics(SM_CXSIZE),
+	//	boxY = GetSystemMetrics(SM_CYSIZE),
+	//	caption = GetSystemMetrics(SM_CYCAPTION),
+	//	boxPaddedX = GetSystemMetrics(SM_CXPADDEDBORDER);
+
 
 	BYTE buffer[512];
 	UINT size = ARRAYSIZE(buffer);
@@ -829,13 +858,20 @@ void UpdateMouse()
 				pt = { mouseX = mouse.lLastX, mouseY = mouse.lLastY };
 			}
 
-			RECT rc{};
-			GetClientRect(wbHandle, &rc);
+			/*if(mouseX > screen.x)
+				pt.x = pt.x = screen.x;
+			if(mouseY > screen.y)
+				pt.y = pt.y = screen.y;*/
+			
+
+			RECT rc = GetD3DRect();
+
+			
 			if(PtInRect(&rc, pt))
 			{
 				POINT temp = pt;
-				ScreenToClient(wbHandle, &temp);
 
+				ScreenToClient(wbHandle, &temp);
 				SetCursorPos(temp.x, temp.y);
 
 				switch(mouse.usButtonFlags)
@@ -861,9 +897,9 @@ void UpdateMouse()
 					mServ.OnMouseMove(temp.x, temp.y);
 			}
 
-			LIB_TCHAR textBuffer[128];
+			/*LIB_TCHAR textBuffer[128];
 			_stprintf(textBuffer, _T("(%d, %d)"), pt.x, pt.y);
-			SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)textBuffer);
+			SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)textBuffer);*/
 		}
 		pri = NEXTRAWINPUTBLOCK(pri);
 	}
@@ -1379,7 +1415,6 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	}*/
 
-
 	//	if(ri->header.dwType == RIM_TYPEMOUSE)
 	//	{
 	//		RAWMOUSE& mouse = ri->data.mouse;
@@ -1454,11 +1489,9 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		rid.usUsagePage = 0x01;
 		rid.usUsage = 0x02;
 		rid.dwFlags = NULL;
-		rid.hwndTarget = hWnd;
+		rid.hwndTarget = NULL;
 
 		RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE));
-
-		const double exponent = pow(4, 1.0 / 10.0);
 
 		int temp;
 		SystemParametersInfo(SPI_GETMOUSESPEED, 0, &temp, 0);
@@ -1474,21 +1507,43 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			mouseSpeed = pow(exponent, 10 - temp);
 		};
 
-
 		//mouseThread = CreateThread(NULL, NULL, Mouse, NULL, NULL, &mouseThreadID);
 
 		break;
 	}
 
+	//case WM_MOVING:
+	//{
+	//	POINT screen = { GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
+
+	//	wbWindowRect.left = 0;
+	//	wbWindowRect.right = screen.x;
+	//	wbWindowRect.top = 0;
+	//	wbWindowRect.bottom = screen.y;
+
+	//	break;
+	//}
+
+	case WM_MOVE:
 	case WM_ACTIVATE:
 	{
-		GetCursorPos(&pt);
-		mouseX = pt.x;
-		mouseY = pt.y;
+		GetWindowRect(hWnd, &wbWindowRect);
 
-		LIB_TCHAR buffer[128];
+		RECT rect = GetD3DRect();
+		pt.x = mouseX = (rect.right + rect.left) / 2.0;
+		pt.y = mouseY = (rect.bottom + rect.top) / 2.0;
+
+		//ClipCursor(&wbWindowRect);
+
+		POINT temp = pt;
+
+		ScreenToClient(hWnd, &temp);
+		SetCursorPos(temp.x, temp.y);
+
+
+		/*LIB_TCHAR buffer[128];
 		_stprintf(buffer, _T("(%d, %d)"), pt.x, pt.y);
-		SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)buffer);
+		SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)buffer);*/
 		break;
 	}
 
@@ -2007,6 +2062,7 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		{
 		case IDOK:
 		{
+			//Problem in here
 			MsgStreamWriter streamWriter(TYPE_WHITEBOARD, MSG_WHITEBOARD_SETTINGS, sizeof(WBParams));
 			streamWriter.Write(WBParams(
 				GetDlgItemInt(hWnd, WHITEBOARD_RES_X, NULL, FALSE), 

@@ -49,6 +49,14 @@ MouseServer::MouseServer()
 {}
 void MouseServer::OnMouseMove(USHORT x, USHORT y)
 {
+	if(x > 800)
+	{
+		int a = 0;
+	}
+	if(y > 600)
+	{
+		int a = 0;
+	}
 	if(buffer.size() >= 5)
 	{
 		int a = 0;
