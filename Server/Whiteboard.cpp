@@ -113,15 +113,18 @@ void Whiteboard::PaintBrush(WBClientData& clientData, BYTE clr)
 				send = true;
 			}
 
-			if(pt.x - 1 < rect.left)
-				rect.left = (pt.x > 0 ? pt.x - 1 : 0);
-			else if(pt.x + 1 > rect.right)
-				rect.right = (pt.x < params.width ? pt.x + 1 : params.width);
+			if(send)
+			{
+				if(pt.x - 1 < rect.left)
+					rect.left = (pt.x > 0 ? pt.x - 1 : 0);
+				else if(pt.x + 1 > rect.right)
+					rect.right = (pt.x < params.width ? pt.x + 1 : params.width);
 
-			if(pt.y - 1 < rect.top)
-				rect.top = (pt.y > 0 ? pt.y - 1 : 0);
-			else if(pt.y + 1 > rect.bottom)
-				rect.bottom = (pt.y < params.height ? pt.y + 1 : params.height);
+				if(pt.y - 1 < rect.top)
+					rect.top = (pt.y > 0 ? pt.y - 1 : 0);
+				else if(pt.y + 1 > rect.bottom)
+					rect.bottom = (pt.y < params.height ? pt.y + 1 : params.height);
+			}
 
 			ev = mouse.Read();
 

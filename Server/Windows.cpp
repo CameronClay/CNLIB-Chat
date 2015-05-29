@@ -686,6 +686,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		else if(wb)
 		{
 			EnterCriticalSection(&wbSect);
+			//second if because waits for crit sect and may get wb may get destroyed
 			if(wb)
 				wb->Frame();
 			LeaveCriticalSection(&wbSect);
