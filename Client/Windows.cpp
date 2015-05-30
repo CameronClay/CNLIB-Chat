@@ -982,31 +982,31 @@ int WINAPI WinMain(HINSTANCE hInstance,
 				DispatchMessage(&msg);
 			}
 		}
-		else if(pWhiteboard && pWhiteboard->Initialized() && pWhiteboard->Interval())
-		{
-			pWhiteboard->BeginFrame();
-
-			/*if(inD3DRect && GetForegroundWindow() == wbHandle)
-			{
-				DrawCursor(cursor, wbHandle, ptClient.x, ptClient.y);
-				HideWinCursor();
-				SetCursorPos(pt.x, pt.y);
-
-				LIB_TCHAR textBuffer[128];
-				_stprintf(textBuffer, _T("In D3D Rect:%d\r\nMove Updates:%d\r\nLeft Down: %d\r\nLeftUp:%d"), inRect, nMoveUpdate, leftDown, leftUp);
-				SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)textBuffer);
-			}
-			else
-				ShowWinCursor();
-*/
-			pWhiteboard->Render();
-
-			pWhiteboard->EndFrame();
-
-			//EnterCriticalSection(&mouseSect);
-			pWhiteboard->SendMouseData(mServ, client);
-			//LeaveCriticalSection(&mouseSect);
-		}
+//		else if(pWhiteboard && pWhiteboard->Initialized() && pWhiteboard->Interval())
+//		{
+//			pWhiteboard->BeginFrame();
+//
+//			/*if(inD3DRect && GetForegroundWindow() == wbHandle)
+//			{
+//				DrawCursor(cursor, wbHandle, ptClient.x, ptClient.y);
+//				HideWinCursor();
+//				SetCursorPos(pt.x, pt.y);
+//
+//				LIB_TCHAR textBuffer[128];
+//				_stprintf(textBuffer, _T("In D3D Rect:%d\r\nMove Updates:%d\r\nLeft Down: %d\r\nLeftUp:%d"), inRect, nMoveUpdate, leftDown, leftUp);
+//				SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)textBuffer);
+//			}
+//			else
+//				ShowWinCursor();
+//*/
+//			pWhiteboard->Render();
+//
+//			pWhiteboard->EndFrame();
+//
+//			//EnterCriticalSection(&mouseSect);
+//			pWhiteboard->SendMouseData(mServ, client);
+//			//LeaveCriticalSection(&mouseSect);
+//		}
 	}
 
 	return (int)msg.wParam;
@@ -1473,6 +1473,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			WBParams *wbp = (WBParams*)lParam;
 			CreateWBWindow( wbp->width, wbp->height );
 			pWhiteboard->Initialize(wbHandle);
+			pWhiteboard->StartThread(mServ, client);
 		}	break;
 		}
 	}	break;
@@ -1631,19 +1632,29 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}*/
 
 	case WM_MOUSEMOVE:
+		EnterCriticalSection(pWhiteboard->GetMouseSect());
 		mServ.OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		LeaveCriticalSection(pWhiteboard->GetMouseSect());
 		break;
 	case WM_LBUTTONDOWN:
+		EnterCriticalSection(pWhiteboard->GetMouseSect());
 		mServ.OnLeftPressed(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		LeaveCriticalSection(pWhiteboard->GetMouseSect());
 		break;
 	case WM_RBUTTONDOWN:
+		EnterCriticalSection(pWhiteboard->GetMouseSect());
 		mServ.OnRightPressed(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		LeaveCriticalSection(pWhiteboard->GetMouseSect());
 		break;
 	case WM_LBUTTONUP:
+		EnterCriticalSection(pWhiteboard->GetMouseSect());
 		mServ.OnLeftReleased(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		LeaveCriticalSection(pWhiteboard->GetMouseSect());
 		break;
 	case WM_RBUTTONUP:
+		EnterCriticalSection(pWhiteboard->GetMouseSect());
 		mServ.OnRightReleased(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		LeaveCriticalSection(pWhiteboard->GetMouseSect());
 		break;
 
 	//case WM_INPUT:
@@ -2220,7 +2231,6 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		{
 		case IDOK:
 		{
-			//Problem in here client is invalid
 			MsgStreamWriter streamWriter(TYPE_WHITEBOARD, MSG_WHITEBOARD_SETTINGS, sizeof(WBParams));
 			streamWriter.Write(WBParams(
 				GetDlgItemInt(hWnd, WHITEBOARD_RES_X, NULL, FALSE), 
@@ -2228,6 +2238,7 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 				GetDlgItemInt(hWnd, WHITEBOARD_FPS, NULL, FALSE), 
 				ComboBox_GetCurSel(Colors)));
 
+			//Problem in here client is invalid
 			HANDLE hnd = client->SendServData(streamWriter, streamWriter.GetSize());
 			WaitAndCloseHandle(hnd);
 

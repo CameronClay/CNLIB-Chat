@@ -15,16 +15,19 @@ public:
 	Whiteboard(Whiteboard&& wb);
 	~Whiteboard();
 
+	void StartThread(MouseServer& mServ, TCPClientInterface* client);
+
 	void Initialize(HWND WinHandle);
 	void Frame(const RectU &rect, const BYTE *pixelData);
 	void SendMouseData(MouseServer& mServ, TCPClientInterface* client);
-	bool Interval() const;
 	void BeginFrame();
 	void EndFrame();
 	void Render();
+
 	USHORT GetWidth() const;
 	USHORT GetHeight() const;
-	bool Initialized() const;
+	HANDLE GetTimer() const;
+	CRITICAL_SECTION* GetMouseSect();
 private:
 	void InitD3D();
 	void Draw(const RECT &rect, const BYTE *pixelData);
@@ -38,8 +41,13 @@ private:
 	HWND hWnd;
 
 	USHORT width, height, pitch;
+
 	const float interval;
-	Timer timer;
+	HANDLE timer, thread;
+	DWORD threadID;
+
+	CRITICAL_SECTION mouseSect;
+
 	Palette& palette;
 
 	IDirect3D9 *pDirect3D;

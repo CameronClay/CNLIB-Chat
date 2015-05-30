@@ -7,7 +7,7 @@
 
 enum class Tool
 {
-	PaintBrush, Line, Rect, FilledRect, ellipse, FilledEllipse
+	PaintBrush, Line, Rect, FilledRect, ellipse, FilledEllipse, INVALID
 };
 
 struct PointU
@@ -176,9 +176,24 @@ struct WBClientData
 		InitializeCriticalSection(&mouseSect);
 	}
 
+	WBClientData(WBClientData&& clientData)
+		:
+		pointList(std::move(clientData.pointList)),
+		rect(clientData.rect),
+		tool(clientData.tool),
+		clrIndex(clientData.clrIndex),
+		mServ(std::move(clientData.mServ)),
+		mouseSect(clientData.mouseSect)
+	{
+		clientData.tool = Tool::INVALID;
+	}
+
 	~WBClientData()
 	{
-		DeleteCriticalSection(&mouseSect);
+		if(tool != Tool::INVALID)
+		{
+			DeleteCriticalSection(&mouseSect);
+		}
 	}
 
 	std::deque<PointU> pointList;

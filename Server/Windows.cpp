@@ -483,8 +483,9 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 				WaitAndCloseHandle(hnd);
 
 				wb = construct<Whiteboard>(Whiteboard(serv, *params, clint->user));
-
 				wb->AddClient(clint->pc);
+
+				wb->StartThread();
 			}
 			else
 			{
@@ -683,14 +684,14 @@ int WINAPI WinMain(HINSTANCE hInstance,
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
-		else if(wb)
-		{
-			EnterCriticalSection(&wbSect);
-			//second if because waits for crit sect and may get wb may get destroyed
-			if(wb)
-				wb->Frame();
-			LeaveCriticalSection(&wbSect);
-		}
+		//else if(wb)
+		//{
+		//	EnterCriticalSection(&wbSect);
+		//	//second if because waits for crit sect and may get wb may get destroyed
+		//	if(wb)
+		//		wb->Frame();
+		//	LeaveCriticalSection(&wbSect);
+		//}
 	}
 
 	return (int)msg.wParam;

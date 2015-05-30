@@ -15,6 +15,8 @@ public:
 
 	~Whiteboard();
 
+	void StartThread();
+
 	void Draw();
 	void SendBitmap(const RectU& rect);
 	void SendBitmap(const RectU& rect, Socket& sock, bool single);
@@ -30,6 +32,7 @@ public:
 	void RemoveClient(Socket pc);
 	const WBParams& GetParams() const;
 	const Palette& GetPalette() const;
+	HANDLE GetTimer() const;
 
 private:
 	void PutPixel(const PointU& point, BYTE clr);
@@ -55,7 +58,8 @@ private:
 	std::tstring creator;
 
 	const float interval;
-	Timer timer;
+	HANDLE timer, thread;
+	DWORD threadID;
 
 	std::unordered_map<Socket, WBClientData, Socket::Hash> clients;
 	std::vector<Socket> sendPcs;

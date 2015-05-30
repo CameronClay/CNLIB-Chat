@@ -3,6 +3,77 @@
 #include <assert.h>
 #include "CNLIB\HeapAlloc.h"
 
+struct WBThreadParams
+{
+	WBThreadParams(Whiteboard* wb, MouseServer& mServ, TCPClientInterface* client)
+		:
+		wb(wb),
+		mServ(mServ),
+		client(client)
+	{}
+
+	WBThreadParams(WBThreadParams&& params)
+		:
+		wb(params.wb),
+		mServ(params.mServ),
+		client(params.client)
+	{
+		ZeroMemory(&params, sizeof(WBThreadParams));
+	}
+
+	~WBThreadParams(){}
+
+	Whiteboard* wb;
+	MouseServer& mServ;
+	TCPClientInterface* client;
+};
+
+DWORD CALLBACK WBThread(LPVOID param)
+{
+	WBThreadParams* wbParams = (WBThreadParams*)param;
+	Whiteboard& wb = *(Whiteboard*)(wbParams->wb);
+	HANDLE timer = wb.GetTimer();
+
+	while(true)
+	{
+		const DWORD ret = MsgWaitForMultipleObjects(1, &timer, FALSE, INFINITE, QS_ALLINPUT);
+		if(ret == WAIT_OBJECT_0)
+		{
+			EnterCriticalSection(wb.GetMouseSect());
+			wb.SendMouseData(wbParams->mServ, wbParams->client);
+			LeaveCriticalSection(wb.GetMouseSect());
+
+			wb.BeginFrame();
+			wb.Render();
+			wb.EndFrame();
+		}
+
+		else if(ret == WAIT_OBJECT_0 + 1)
+		{
+			MSG msg;
+			while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) != 0)
+			{
+				if(msg.message == WM_QUIT)
+				{
+					CancelWaitableTimer(timer);
+					CloseHandle(timer);
+
+					destruct(wbParams);
+					return 0;
+				}
+			}
+		}
+
+		else
+		{
+			destruct(wbParams);
+			return 0;
+		}
+	}
+
+}
+
+
 Whiteboard::Whiteboard(Palette& palette, USHORT Width, USHORT Height, USHORT FPS, BYTE palIndex)
 	:
 surf(alloc<BYTE>(Width * Height)),
@@ -10,10 +81,13 @@ palIndex(palIndex),
 hWnd(NULL),
 width(Width),
 height(Height),
-interval(1000.0f / (float)FPS),
+interval(1.0f / (float)FPS),
+timer(CreateWaitableTimer(NULL, FALSE, NULL)),
+thread(NULL),
+threadID(NULL),
 palette(palette)
 {
-
+	InitializeCriticalSection(&mouseSect);
 }
 
 Whiteboard::Whiteboard(Whiteboard&& wb)
@@ -26,13 +100,16 @@ Whiteboard::Whiteboard(Whiteboard&& wb)
 	pitch(wb.pitch),
 	interval(wb.interval),
 	timer(wb.timer),
+	thread(wb.thread),
+	threadID(wb.threadID),
+	mouseSect(wb.mouseSect),
 	pDirect3D(wb.pDirect3D),
 	pDevice(wb.pDevice),
 	pBackBuffer(wb.pBackBuffer),
 	lockRect(wb.lockRect),
 	palette(wb.palette)
 {
-	ZeroMemory(&wb, sizeof(Whiteboard));
+	wb.surf = nullptr;
 }
 
 void Whiteboard::Initialize(HWND WinHandle)
@@ -49,11 +126,6 @@ void Whiteboard::Initialize(HWND WinHandle)
 void Whiteboard::Frame(const RectU &rect, const BYTE *pixelData)
 {
 	Draw(rect, pixelData);
-}
-
-bool Whiteboard::Interval() const
-{
-	return timer.GetTimeMilli() >= interval;
 }
 
 USHORT Whiteboard::GetWidth() const
@@ -81,8 +153,6 @@ void Whiteboard::SendMouseData(MouseServer& mServ, TCPClientInterface* client)
 		HANDLE hnd = client->SendServData(msg, nBytes);
 		WaitAndCloseHandle(hnd);
 		dealloc(msg);
-
-		timer.Reset();
 	}
 }
 
@@ -91,11 +161,6 @@ void Whiteboard::BeginFrame()
 	HRESULT hr = 0;
 	hr = pBackBuffer->LockRect(&lockRect, nullptr, NULL);
 	assert(SUCCEEDED(hr));
-}
-
-bool Whiteboard::Initialized() const
-{
-	return hWnd;
 }
 
 void Whiteboard::Render()
@@ -200,24 +265,52 @@ const Palette const &Whiteboard::GetPalette(BYTE& count)
 	return palette;
 }
 
+
+HANDLE Whiteboard::GetTimer() const
+{
+	return timer;
+}
+
+CRITICAL_SECTION* Whiteboard::GetMouseSect()
+{
+	return &mouseSect;
+}
+
+void Whiteboard::StartThread(MouseServer& mServ, TCPClientInterface* client)
+{
+	LARGE_INTEGER LI;
+	LI.QuadPart = (LONGLONG)(interval * -10000000.0f);
+	SetWaitableTimer(timer, &LI, (LONG)(interval * 1000.0f), NULL, NULL, FALSE);
+
+	thread = CreateThread(NULL, 0, WBThread, construct<WBThreadParams>({this, mServ, client }), NULL, &threadID);
+}
+
+
 Whiteboard::~Whiteboard()
 {
-	dealloc(surf);
+	if(surf)
+	{
+		PostThreadMessage(threadID, WM_QUIT, 0, 0);
+		WaitAndCloseHandle(thread);
 
-	if (pBackBuffer)
-	{
-		pBackBuffer->Release();
-		pBackBuffer = nullptr;
-	}
-	if (pDevice)
-	{
-		pDevice->Release();
-		pDevice = nullptr;
-	}
-	if (pDirect3D)
-	{
-		pDirect3D->Release();
-		pDirect3D = nullptr;
-	}
+		DeleteCriticalSection(&mouseSect);
 
+		dealloc(surf);
+
+		if(pBackBuffer)
+		{
+			pBackBuffer->Release();
+			pBackBuffer = nullptr;
+		}
+		if(pDevice)
+		{
+			pDevice->Release();
+			pDevice = nullptr;
+		}
+		if(pDirect3D)
+		{
+			pDirect3D->Release();
+			pDirect3D = nullptr;
+		}
+	}
 }

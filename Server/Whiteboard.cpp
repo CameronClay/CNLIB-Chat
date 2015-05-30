@@ -4,12 +4,48 @@
 #include <stdlib.h>
 #include <time.h>
 
+DWORD CALLBACK WBThread(LPVOID param)
+{
+	Whiteboard& wb = *(Whiteboard*)param;
+	HANDLE timer = wb.GetTimer();
+
+	while(true)
+	{
+		const DWORD ret = MsgWaitForMultipleObjects(1, &timer, FALSE, INFINITE, QS_ALLINPUT);
+		if(ret == WAIT_OBJECT_0)
+		{
+			wb.Frame();
+		}
+
+		else if(ret == WAIT_OBJECT_0 + 1)
+		{
+			MSG msg;
+			while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) != 0)
+			{
+				if(msg.message == WM_QUIT)
+				{
+					CancelWaitableTimer(timer);
+					CloseHandle(timer);
+
+					return 0;
+				}
+			}
+		}
+
+		else
+			return 0;
+	}
+}
+
 Whiteboard::Whiteboard(TCPServInterface &serv, WBParams params, std::tstring creator)
 	:
 params(std::move(params)),
 serv(serv),
 creator(creator),
-interval(1000.0f / (float)params.fps)
+interval(1.0f / (float)params.fps),
+timer(CreateWaitableTimer(NULL, FALSE, NULL)),
+thread(NULL),
+threadID(NULL)
 {
 	pixels = alloc<BYTE>(params.width * params.height);
 	FillMemory(pixels, params.width * params.height, params.clrIndex);
@@ -29,6 +65,8 @@ serv(std::move(wb.serv)),
 creator(std::move(wb.creator)),
 interval(wb.interval),
 timer(wb.timer),
+thread(wb.thread),
+threadID(wb.threadID),
 clients(std::move(wb.clients)),
 sendPcs(std::move(wb.sendPcs))
 {
@@ -346,11 +384,7 @@ RectU Whiteboard::MakeRect(const PointU &p0, const PointU &p1)
 
 void Whiteboard::Frame()
 {
-	if(timer.GetTimeMilli() >= interval)
-	{
-		Draw();
-		timer.Reset();
-	}
+	Draw();
 }
 
 UINT Whiteboard::GetBufferLen(const RectU& rec) const
@@ -449,11 +483,27 @@ void Whiteboard::SendBitmap(const RectU& rect, Socket& sock, bool single)
 	dealloc(msg);
 }
 
+HANDLE Whiteboard::GetTimer() const
+{
+	return timer;
+}
+
+void Whiteboard::StartThread()
+{
+	LARGE_INTEGER LI;
+	LI.QuadPart = (LONGLONG)(interval * -10000000.0f);
+	SetWaitableTimer(timer, &LI, (LONG)(interval * 1000.0f), NULL, NULL, FALSE);
+
+	thread = CreateThread(NULL, 0, WBThread, this, NULL, &threadID);
+}
+
 Whiteboard::~Whiteboard()
 {
-	//need a way to check if has been inited for mctor
 	if(pixels)
 	{
+		PostThreadMessage(threadID, WM_QUIT, 0, 0);
+		WaitAndCloseHandle(thread);
+
 		dealloc(pixels);
 
 		DeleteCriticalSection(&bitmapSect);
