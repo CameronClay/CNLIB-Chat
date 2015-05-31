@@ -974,13 +974,11 @@ int WINAPI WinMain(HINSTANCE hInstance,
 				ShowWinCursor();
 		}*/
 
-		if(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		GetMessage(&msg, NULL, 0, 0);
+		if(!TranslateAccelerator(hMainWind, hndAccel, &msg))
 		{
-			if(!TranslateAccelerator(hMainWind, hndAccel, &msg))
-			{
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
-			}
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
 		}
 //		else if(pWhiteboard && pWhiteboard->Initialized() && pWhiteboard->Interval())
 //		{
