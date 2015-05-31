@@ -167,22 +167,22 @@ long Socket::ReadData(void* dest, DWORD nBytes)
 #if NTDDI_VERSION >= NTDDI_VISTA
 	return recv(pc, (char*)dest, nBytes, MSG_WAITALL);
 #else
-	long received = 0;
+	long received = 0, temp = SOCKET_ERROR;
 	do
 	{
-		received += recv(pc, &(((char*)dest)[received]), nBytes - received, 0);
-	} while(received != nBytes && received > 0);
+		received += temp = recv(pc, &(((char*)dest)[received]), nBytes - received, 0);
+	} while((temp != SOCKET_ERROR) && (received != nBytes));
 	return received;
 #endif
 }
 
 long Socket::SendData(const void* data, DWORD nBytes)
 {
-	long sent = 0;
+	long sent = 0, temp = SOCKET_ERROR;
 	do
 	{
-		sent += send(pc, &(((char*)data)[sent]), nBytes - sent, 0);
-	} while(sent != nBytes && sent > 0);
+		sent += temp = send(pc, &(((char*)data)[sent]), nBytes - sent, 0);
+	} while((temp != SOCKET_ERROR) && (sent != nBytes));
 	return sent;
 }
 
