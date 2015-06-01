@@ -23,7 +23,6 @@ public:
 	void Frame();
 
 	BYTE* GetBitmap();
-	CRITICAL_SECTION* GetBitmapSection();
 	CRITICAL_SECTION* GetMapSect();
 	std::unordered_map<Socket, WBClientData, Socket::Hash>& GetMap();
 	std::vector<Socket>& GetPcs();
@@ -52,7 +51,7 @@ private:
 private:
 	WBParams params;
 	BYTE *pixels;
-	CRITICAL_SECTION bitmapSect, mapSect;
+	CRITICAL_SECTION mapSect;
 	TCPServInterface &serv;
 	Palette palette;
 	std::tstring creator;

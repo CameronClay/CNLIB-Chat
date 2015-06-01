@@ -641,7 +641,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 	wcex.lpszMenuName = NULL;
-	wcex.lpszClassName = _T("Server");
+	wcex.lpszClassName = szWindowClass;
 	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_APPLICATION));
 
 	LIB_TCHAR title[30];
@@ -677,9 +677,8 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	UpdateWindow(hMainWind);
 
 	MSG msg = {};
-	while(msg.message != WM_QUIT)
+	while(GetMessage(&msg, NULL, 0, 0))
 	{
-		GetMessage(&msg, NULL, 0, 0);
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}

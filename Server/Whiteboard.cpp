@@ -50,7 +50,6 @@ threadID(NULL)
 	pixels = alloc<BYTE>(params.width * params.height);
 	FillMemory(pixels, params.width * params.height, params.clrIndex);
 
-	InitializeCriticalSection(&bitmapSect);
 	InitializeCriticalSection(&mapSect);
 	srand(time(NULL));
 }
@@ -59,7 +58,6 @@ Whiteboard::Whiteboard(Whiteboard &&wb)
 	:
 params(std::move(wb.params)),
 pixels(wb.pixels),
-bitmapSect(wb.bitmapSect),
 mapSect(wb.mapSect),
 serv(std::move(wb.serv)),
 creator(std::move(wb.creator)),
@@ -81,11 +79,6 @@ BYTE* Whiteboard::GetBitmap()
 CRITICAL_SECTION* Whiteboard::GetMapSect()
 {
 	return &mapSect;
-}
-
-CRITICAL_SECTION* Whiteboard::GetBitmapSection()
-{
-	return &bitmapSect;
 }
 
 bool Whiteboard::IsCreator(const std::tstring& user) const
@@ -190,7 +183,6 @@ void Whiteboard::Draw()
 				color = rand() % 31;
 			} while(color == params.clrIndex);
 
-			EnterCriticalSection(&bitmapSect);
 			EnterCriticalSection(&it.second.mouseSect);
 
 			switch(myTool)
@@ -201,7 +193,6 @@ void Whiteboard::Draw()
 			}
 
 			LeaveCriticalSection(&it.second.mouseSect);
-			LeaveCriticalSection(&bitmapSect);
 		}
 	}
 
@@ -506,7 +497,6 @@ Whiteboard::~Whiteboard()
 
 		dealloc(pixels);
 
-		DeleteCriticalSection(&bitmapSect);
 		DeleteCriticalSection(&mapSect);
 
 		clients.clear();

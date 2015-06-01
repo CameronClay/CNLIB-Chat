@@ -960,7 +960,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE));*/
 
 	MSG msg = {};
-	while(msg.message != WM_QUIT)
+	while(GetMessage(&msg, NULL, 0, 0))
 	{
 		/*if(pWhiteboard && GetForegroundWindow() == wbHandle)
 		{
@@ -973,8 +973,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 			else
 				ShowWinCursor();
 		}*/
-
-		GetMessage(&msg, NULL, 0, 0);
 		if(!TranslateAccelerator(hMainWind, hndAccel, &msg))
 		{
 			TranslateMessage(&msg);
