@@ -39,6 +39,7 @@ DWORD CALLBACK WBThread(LPVOID param)
 
 Whiteboard::Whiteboard(TCPServInterface &serv, WBParams params, std::tstring creator)
 	:
+pixels(alloc<BYTE>(params.width * params.height)),
 params(std::move(params)),
 serv(serv),
 creator(creator),
@@ -47,7 +48,6 @@ timer(CreateWaitableTimer(NULL, FALSE, NULL)),
 thread(NULL),
 threadID(NULL)
 {
-	pixels = alloc<BYTE>(params.width * params.height);
 	FillMemory(pixels, params.width * params.height, params.clrIndex);
 
 	InitializeCriticalSection(&mapSect);
@@ -56,8 +56,8 @@ threadID(NULL)
 
 Whiteboard::Whiteboard(Whiteboard &&wb)
 	:
-params(std::move(wb.params)),
 pixels(wb.pixels),
+params(std::move(wb.params)),
 mapSect(wb.mapSect),
 serv(std::move(wb.serv)),
 creator(std::move(wb.creator)),

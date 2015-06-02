@@ -49,8 +49,8 @@ private:
 	void MakeRectPixels(const RectU& rect, char* ptr);
 
 private:
-	WBParams params;
 	BYTE *pixels;
+	WBParams params;
 	CRITICAL_SECTION mapSect;
 	TCPServInterface &serv;
 	Palette palette;

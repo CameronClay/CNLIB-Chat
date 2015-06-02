@@ -171,7 +171,7 @@ long Socket::ReadData(void* dest, DWORD nBytes)
 	do
 	{
 		received += temp = recv(pc, &(((char*)dest)[received]), nBytes - received, 0);
-	} while((temp != SOCKET_ERROR) && (received != nBytes));
+	} while( !((temp == 0) || (temp == SOCKET_ERROR)) && (received != nBytes) );
 	return received;
 #endif
 }
