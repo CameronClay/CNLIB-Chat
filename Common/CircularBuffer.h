@@ -31,36 +31,24 @@ public:
 
 	void push_back(const T& val)
 	{
-		if(size() == max_size())
-		{
-			*++_end = val;
-		}
-		else if(_end != _endPtr)
-		{
-			*++_end = val;
-			++written;
-		}
-		else
-		{
+		if(_end == _endPtr)
 			_end = _data - 1;
-		}
+
+		*++_end = val;
+
+		if(size() != max_size())
+			++written;
 	}
 
 	void push_back(T&& val)
 	{
-		if(written == max_size())
-		{
-			*++_end = std::forward<T>(val);
-		}
-		else if(_end != _endPtr)
-		{
-			*++_end = std::forward<T>(val);
-			++written;
-		}
-		else
-		{
+		if(_end == _endPtr)
 			_end = _data - 1;
-		}
+
+		*++_end = val;
+
+		if(size() != max_size())
+			++written;
 	}
 
 	void pop_front()
@@ -69,11 +57,10 @@ public:
 		{
 			--written;
 			*_begin = std::forward<T>(T());
-			++_begin;
-			if(_begin - 1 == _endPtr)
-			{
+			if(_begin == _endPtr)
 				_begin = _data;
-			}
+			else
+				++_begin;
 		}
 	}
 

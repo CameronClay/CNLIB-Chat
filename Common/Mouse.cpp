@@ -32,7 +32,7 @@ bool MouseClient::MouseEmpty() const
 
 MouseServer::MouseServer()
 :	
-buffer( 100 )
+buffer( 120 )
 {}
 MouseServer::MouseServer(MouseServer&& mServ)
 	:
