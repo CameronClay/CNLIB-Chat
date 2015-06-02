@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <deque>
 #include <Windows.h>
 
 #include "Mouse.h"
@@ -173,7 +174,6 @@ struct WBClientData
 		clrIndex(0),
 		mServ()
 	{
-		InitializeCriticalSection(&mouseSect);
 	}
 
 	WBClientData(WBClientData&& clientData)
@@ -182,24 +182,18 @@ struct WBClientData
 		rect(clientData.rect),
 		tool(clientData.tool),
 		clrIndex(clientData.clrIndex),
-		mServ(std::move(clientData.mServ)),
-		mouseSect(clientData.mouseSect)
+		mServ(std::move(clientData.mServ))
 	{
 		clientData.tool = Tool::INVALID;
 	}
 
 	~WBClientData()
 	{
-		if(tool != Tool::INVALID)
-		{
-			DeleteCriticalSection(&mouseSect);
-		}
 	}
 
 	std::deque<PointU> pointList;
 	RectU rect;
 	Tool tool;								// Enums are sizeof(int) 4 bytes
 	BYTE clrIndex;							// Palette color is 1 bytes
-	MouseServer mServ;						// MouseServer is 16 - 32 bytes
-	CRITICAL_SECTION mouseSect;
+	MouseServer mServ;						
 };

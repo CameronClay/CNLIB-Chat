@@ -183,16 +183,12 @@ void Whiteboard::Draw()
 				color = rand() % 31;
 			} while(color == params.clrIndex);
 
-			EnterCriticalSection(&it.second.mouseSect);
-
 			switch(myTool)
 			{
 			case Tool::PaintBrush:
 				PaintBrush(it.second, color);
 				break;
 			}
-
-			LeaveCriticalSection(&it.second.mouseSect);
 		}
 	}
 

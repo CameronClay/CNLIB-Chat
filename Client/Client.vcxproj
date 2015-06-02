@@ -162,6 +162,7 @@
     <ClCompile Include="Windows.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Common\CircularBuffer.h" />
     <ClInclude Include="..\Common\CNLIB\File.h" />
     <ClInclude Include="..\Common\CNLIB\HeapAlloc.h" />
     <ClInclude Include="..\Common\CNLIB\Messages.h" />

@@ -39,9 +39,7 @@ DWORD CALLBACK WBThread(LPVOID param)
 		const DWORD ret = MsgWaitForMultipleObjects(1, &timer, FALSE, INFINITE, QS_ALLINPUT);
 		if(ret == WAIT_OBJECT_0)
 		{
-			EnterCriticalSection(wb.GetMouseSect());
 			wb.SendMouseData(wbParams->mServ, wbParams->client);
-			LeaveCriticalSection(wb.GetMouseSect());
 
 			wb.BeginFrame();
 			wb.Render();
@@ -86,9 +84,7 @@ timer(CreateWaitableTimer(NULL, FALSE, NULL)),
 thread(NULL),
 threadID(NULL),
 palette(palette)
-{
-	InitializeCriticalSection(&mouseSect);
-}
+{}
 
 Whiteboard::Whiteboard(Whiteboard&& wb)
 	:
@@ -102,7 +98,6 @@ Whiteboard::Whiteboard(Whiteboard&& wb)
 	timer(wb.timer),
 	thread(wb.thread),
 	threadID(wb.threadID),
-	mouseSect(wb.mouseSect),
 	pDirect3D(wb.pDirect3D),
 	pDevice(wb.pDevice),
 	pBackBuffer(wb.pBackBuffer),
@@ -271,10 +266,6 @@ HANDLE Whiteboard::GetTimer() const
 	return timer;
 }
 
-CRITICAL_SECTION* Whiteboard::GetMouseSect()
-{
-	return &mouseSect;
-}
 
 void Whiteboard::StartThread(MouseServer& mServ, TCPClientInterface* client)
 {
@@ -292,8 +283,6 @@ Whiteboard::~Whiteboard()
 	{
 		PostThreadMessage(threadID, WM_QUIT, 0, 0);
 		WaitAndCloseHandle(thread);
-
-		DeleteCriticalSection(&mouseSect);
 
 		dealloc(surf);
 

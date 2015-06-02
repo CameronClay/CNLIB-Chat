@@ -1,6 +1,5 @@
 #pragma once
-#include <queue>
-
+#include "CircularBuffer.h"
 
 class MouseServer;
 
@@ -25,8 +24,7 @@ public:
 	};
 private:
 	Type type;
-	int x;
-	int y;
+	USHORT x, y;
 public:
 	MouseEvent()
 		:
@@ -43,11 +41,12 @@ public:
 	{}
 	MouseEvent& operator=(const MouseEvent& mevt)
 	{
-		const_cast<Type>(type) = mevt.type;
-		const_cast<int&>(x) = mevt.x;
-		const_cast<int&>(y) = mevt.y;
+		type = mevt.type;
+		x = mevt.x;
+		y = mevt.y;
 		return *this;
 	}
+
 	bool IsValid() const
 	{
 		return type != Invalid;
@@ -69,12 +68,10 @@ public:
 class MouseClient
 {
 public:
-	MouseClient( MouseServer& server );
-	bool LeftIsPressed() const;
-	bool RightIsPressed() const;
+	MouseClient(MouseServer& server);
 	bool IsInWindow() const;
 	MouseEvent Read();
-	MouseEvent Peek();
+	MouseEvent Peek() const;
 	bool MouseEmpty() const;
 private:
 	MouseServer& server;
@@ -85,9 +82,8 @@ class MouseServer
 	friend MouseClient;
 public:
 	MouseServer();
+	MouseServer(MouseServer&& mServ);
 	void OnMouseMove(USHORT x, USHORT y);
-	void OnMouseLeave();
-	void OnMouseEnter();
 	void OnLeftPressed(USHORT x, USHORT y);
 	void OnLeftReleased(USHORT x, USHORT y);
 	void OnRightPressed(USHORT x, USHORT y);
@@ -99,6 +95,5 @@ public:
 	void Insert(BYTE *byteBuffer, DWORD nBytes);
 	UINT GetBufferLen(UINT& count) const;
 private:
-	bool leftIsPressed, rightIsPressed, isInWindow;
-	std::queue< MouseEvent > buffer;
+	CircularBuffer<MouseEvent> buffer;
 };

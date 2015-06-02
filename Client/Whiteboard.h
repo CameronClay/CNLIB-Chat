@@ -27,7 +27,6 @@ public:
 	USHORT GetWidth() const;
 	USHORT GetHeight() const;
 	HANDLE GetTimer() const;
-	CRITICAL_SECTION* GetMouseSect();
 private:
 	void InitD3D();
 	void Draw(const RECT &rect, const BYTE *pixelData);
@@ -45,8 +44,6 @@ private:
 	const float interval;
 	HANDLE timer, thread;
 	DWORD threadID;
-
-	CRITICAL_SECTION mouseSect;
 
 	Palette& palette;
 

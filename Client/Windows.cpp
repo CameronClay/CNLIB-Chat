@@ -1628,30 +1628,33 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}*/
 
 	case WM_MOUSEMOVE:
-		EnterCriticalSection(pWhiteboard->GetMouseSect());
-		mServ.OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-		LeaveCriticalSection(pWhiteboard->GetMouseSect());
+	{
+		const USHORT x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
+		if(x < pWhiteboard->GetWidth() && y < pWhiteboard->GetHeight())
+			mServ.OnMouseMove(x, y);
 		break;
+	}
 	case WM_LBUTTONDOWN:
-		EnterCriticalSection(pWhiteboard->GetMouseSect());
-		mServ.OnLeftPressed(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-		LeaveCriticalSection(pWhiteboard->GetMouseSect());
+	{
+		const USHORT x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
+		if(x < pWhiteboard->GetWidth() && y < pWhiteboard->GetHeight())
+			mServ.OnLeftPressed(x, y);
 		break;
-	case WM_RBUTTONDOWN:
-		EnterCriticalSection(pWhiteboard->GetMouseSect());
-		mServ.OnRightPressed(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-		LeaveCriticalSection(pWhiteboard->GetMouseSect());
-		break;
+	}
+
 	case WM_LBUTTONUP:
-		EnterCriticalSection(pWhiteboard->GetMouseSect());
-		mServ.OnLeftReleased(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-		LeaveCriticalSection(pWhiteboard->GetMouseSect());
+	{
+		const USHORT x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
+		if(x < pWhiteboard->GetWidth() && y < pWhiteboard->GetHeight())
+			mServ.OnLeftReleased(x, y);
 		break;
-	case WM_RBUTTONUP:
-		EnterCriticalSection(pWhiteboard->GetMouseSect());
-		mServ.OnRightReleased(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-		LeaveCriticalSection(pWhiteboard->GetMouseSect());
-		break;
+	}
+	//case WM_RBUTTONDOWN:
+	//	mServ.OnRightPressed(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+	//	break;
+	//case WM_RBUTTONUP:
+	//	mServ.OnRightReleased(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+	//	break;
 
 	//case WM_INPUT:
 	//{
