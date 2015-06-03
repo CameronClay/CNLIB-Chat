@@ -125,10 +125,6 @@ static HWND wbHandle = nullptr;
 Whiteboard *pWhiteboard = nullptr;
 // Whiteboard declarations end
 
-// Mouse declaration
-MouseServer mServ;
-// Mouse declaration end
-
 static HWND textDisp, textInput, listClients;
 static HMENU main, file, options;
 
@@ -1469,7 +1465,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			WBParams *wbp = (WBParams*)lParam;
 			CreateWBWindow( wbp->width, wbp->height );
 			pWhiteboard->Initialize(wbHandle);
-			pWhiteboard->StartThread(mServ, client);
+			pWhiteboard->StartThread(client);
 		}	break;
 		}
 	}	break;
@@ -1630,23 +1626,26 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_MOUSEMOVE:
 	{
 		const USHORT x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
-		if(x < pWhiteboard->GetWidth() && y < pWhiteboard->GetHeight())
-			mServ.OnMouseMove(x, y);
+		Whiteboard& wb = *pWhiteboard;
+		if(x < wb.GetWidth() && y < wb.GetHeight())
+			wb.GetMServ().OnMouseMove(x, y);
 		break;
 	}
 	case WM_LBUTTONDOWN:
 	{
 		const USHORT x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
-		if(x < pWhiteboard->GetWidth() && y < pWhiteboard->GetHeight())
-			mServ.OnLeftPressed(x, y);
+		Whiteboard& wb = *pWhiteboard;
+		if(x < wb.GetWidth() && y < wb.GetHeight())
+			wb.GetMServ().OnLeftPressed(x, y);
 		break;
 	}
 
 	case WM_LBUTTONUP:
 	{
 		const USHORT x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
-		if(x < pWhiteboard->GetWidth() && y < pWhiteboard->GetHeight())
-			mServ.OnLeftReleased(x, y);
+		Whiteboard& wb = *pWhiteboard;
+		if(x < wb.GetWidth() && y < wb.GetHeight())
+			wb.GetMServ().OnLeftReleased(x, y);
 		break;
 	}
 	//case WM_RBUTTONDOWN:

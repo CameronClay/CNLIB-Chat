@@ -106,16 +106,15 @@ void Whiteboard::PaintBrush(WBClientData& clientData, BYTE clr)
 			rect.top = (pointList[0].y > 0 ? pointList[0].y - 1 : 0);
 			rect.bottom = (pointList[0].y < params.height ? pointList[0].y + 1 : params.height);
 		}
-		else
-		{
-			rect.left = (pt.x > 0 ? pt.x - 1 : 0);
-			rect.right = (pt.x < params.width ? pt.x + 1 : params.width);
-			rect.top = (pt.y > 0 ? pt.y - 1 : 0);
-			rect.bottom = (pt.y < params.height ? pt.y + 1 : params.height);
-		}
 
 		do
 		{
+			clr = 255;
+			do
+			{
+				clr = rand() % 31;
+			} while(clr == params.clrIndex);
+
 			switch(ev.GetType())
 			{
 			case MouseEvent::LRelease:
@@ -127,6 +126,11 @@ void Whiteboard::PaintBrush(WBClientData& clientData, BYTE clr)
 				}
 				break;
 			case MouseEvent::LPress:
+				rect.left = (pt.x > 0 ? pt.x - 1 : 0);
+				rect.right = (pt.x < params.width ? pt.x + 1 : params.width);
+				rect.top = (pt.y > 0 ? pt.y - 1 : 0);
+				rect.bottom = (pt.y < params.height ? pt.y + 1 : params.height);
+
 				if(pointList.empty())
 					pointList.push_back(pt);
 				break;
@@ -157,6 +161,8 @@ void Whiteboard::PaintBrush(WBClientData& clientData, BYTE clr)
 					rect.bottom = (pt.y < params.height ? pt.y + 1 : params.height);
 			}
 
+			pt = { ev.GetX(), ev.GetY() };
+
 			ev = mouse.Read();
 
 		} while(ev.GetType() != MouseEvent::Type::Invalid);
@@ -177,16 +183,11 @@ void Whiteboard::Draw()
 
 		if(!mouse.MouseEmpty())
 		{
-			BYTE color = 255;
-			do
-			{
-				color = rand() % 31;
-			} while(color == params.clrIndex);
 
 			switch(myTool)
 			{
 			case Tool::PaintBrush:
-				PaintBrush(it.second, color);
+				PaintBrush(it.second, it.second.clrIndex);
 				break;
 			}
 		}
@@ -413,7 +414,7 @@ void Whiteboard::AddClient(Socket pc)
 {
 	EnterCriticalSection(&mapSect);
 
-	clients.emplace(pc, WBClientData());
+	clients.emplace(pc, WBClientData(params.fps));
 	sendPcs.push_back(pc);
 
 	LeaveCriticalSection(&mapSect);

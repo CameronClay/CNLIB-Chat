@@ -172,9 +172,16 @@ struct WBClientData
 		rect(),
 		tool(Tool::PaintBrush),
 		clrIndex(0),
-		mServ()
-	{
-	}
+		mServ(100)
+	{}
+
+	WBClientData(USHORT FPS)
+		:
+		rect(),
+		tool(Tool::PaintBrush),
+		clrIndex(0),
+		mServ((FPS >= 60 ? 6000 / FPS : 1000))
+	{}
 
 	WBClientData(WBClientData&& clientData)
 		:
@@ -187,9 +194,7 @@ struct WBClientData
 		clientData.tool = Tool::INVALID;
 	}
 
-	~WBClientData()
-	{
-	}
+	~WBClientData(){}
 
 	std::deque<PointU> pointList;
 	RectU rect;

@@ -30,9 +30,9 @@ bool MouseClient::MouseEmpty() const
 }
 
 
-MouseServer::MouseServer()
+MouseServer::MouseServer(size_t bufferSize)
 :	
-buffer( 120 )
+buffer( bufferSize )
 {}
 MouseServer::MouseServer(MouseServer&& mServ)
 	:
@@ -44,6 +44,10 @@ MouseServer::MouseServer(MouseServer&& mServ)
 void MouseServer::OnMouseMove(USHORT x, USHORT y)
 {
 	buffer.push_back(MouseEvent(MouseEvent::Move, x, y));
+	if(buffer.size() + 3 > buffer.max_size())
+	{
+		int a = 0;
+	}
 }
 void MouseServer::OnLeftPressed( USHORT x,USHORT y )
 {

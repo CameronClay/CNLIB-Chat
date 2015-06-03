@@ -36,7 +36,7 @@ public:
 
 		*++_end = val;
 
-		if(size() != max_size())
+		if(size() < max_size())
 			++written;
 	}
 
@@ -47,7 +47,7 @@ public:
 
 		*++_end = val;
 
-		if(size() != max_size())
+		if(size() < max_size())
 			++written;
 	}
 

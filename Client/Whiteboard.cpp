@@ -5,17 +5,15 @@
 
 struct WBThreadParams
 {
-	WBThreadParams(Whiteboard* wb, MouseServer& mServ, TCPClientInterface* client)
+	WBThreadParams(Whiteboard* wb, TCPClientInterface* client)
 		:
 		wb(wb),
-		mServ(mServ),
 		client(client)
 	{}
 
 	WBThreadParams(WBThreadParams&& params)
 		:
 		wb(params.wb),
-		mServ(params.mServ),
 		client(params.client)
 	{
 		ZeroMemory(&params, sizeof(WBThreadParams));
@@ -24,7 +22,6 @@ struct WBThreadParams
 	~WBThreadParams(){}
 
 	Whiteboard* wb;
-	MouseServer& mServ;
 	TCPClientInterface* client;
 };
 
@@ -39,7 +36,7 @@ DWORD CALLBACK WBThread(LPVOID param)
 		const DWORD ret = MsgWaitForMultipleObjects(1, &timer, FALSE, INFINITE, QS_ALLINPUT);
 		if(ret == WAIT_OBJECT_0)
 		{
-			wb.SendMouseData(wbParams->mServ, wbParams->client);
+			wb.SendMouseData(wbParams->client);
 
 			wb.BeginFrame();
 			wb.Render();
@@ -74,6 +71,7 @@ DWORD CALLBACK WBThread(LPVOID param)
 
 Whiteboard::Whiteboard(Palette& palette, USHORT Width, USHORT Height, USHORT FPS, BYTE palIndex)
 	:
+mouse((FPS >= 60 ? 6000 / FPS : 1000)),
 surf(alloc<BYTE>(Width * Height)),
 palIndex(palIndex),
 hWnd(NULL),
@@ -88,6 +86,7 @@ palette(palette)
 
 Whiteboard::Whiteboard(Whiteboard&& wb)
 	:
+	mouse(std::move(wb.mouse)),
 	surf(wb.surf),
 	palIndex(wb.palIndex),
 	hWnd(wb.hWnd),
@@ -123,6 +122,11 @@ void Whiteboard::Frame(const RectU &rect, const BYTE *pixelData)
 	Draw(rect, pixelData);
 }
 
+MouseServer& Whiteboard::GetMServ()
+{
+	return mouse;
+}
+
 USHORT Whiteboard::GetWidth() const
 {
 	return width;
@@ -134,17 +138,17 @@ USHORT Whiteboard::GetHeight() const
 }
 
 
-void Whiteboard::SendMouseData(MouseServer& mServ, TCPClientInterface* client)
+void Whiteboard::SendMouseData(TCPClientInterface* client)
 {
-	MouseClient mClient(mServ);
+	MouseClient mClient(mouse);
 	if(!mClient.MouseEmpty())
 	{
 		UINT count;
-		const DWORD nBytes = mServ.GetBufferLen(count) + MSG_OFFSET;
+		const DWORD nBytes = mouse.GetBufferLen(count) + MSG_OFFSET;
 		char* msg = alloc<char>(nBytes);
 		msg[0] = TYPE_DATA;
 		msg[1] = MSG_DATA_MOUSE;
-		mServ.Extract((BYTE*)&msg[MSG_OFFSET], count);
+		mouse.Extract((BYTE*)&msg[MSG_OFFSET], count);
 		HANDLE hnd = client->SendServData(msg, nBytes);
 		WaitAndCloseHandle(hnd);
 		dealloc(msg);
@@ -267,13 +271,13 @@ HANDLE Whiteboard::GetTimer() const
 }
 
 
-void Whiteboard::StartThread(MouseServer& mServ, TCPClientInterface* client)
+void Whiteboard::StartThread(TCPClientInterface* client)
 {
 	LARGE_INTEGER LI;
 	LI.QuadPart = (LONGLONG)(interval * -10000000.0f);
 	SetWaitableTimer(timer, &LI, (LONG)(interval * 1000.0f), NULL, NULL, FALSE);
 
-	thread = CreateThread(NULL, 0, WBThread, construct<WBThreadParams>({this, mServ, client }), NULL, &threadID);
+	thread = CreateThread(NULL, 0, WBThread, construct<WBThreadParams>({this, client}), NULL, &threadID);
 }
 
 

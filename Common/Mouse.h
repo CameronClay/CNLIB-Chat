@@ -81,7 +81,7 @@ class MouseServer
 {
 	friend MouseClient;
 public:
-	MouseServer();
+	MouseServer(size_t bufferSize);
 	MouseServer(MouseServer&& mServ);
 	void OnMouseMove(USHORT x, USHORT y);
 	void OnLeftPressed(USHORT x, USHORT y);

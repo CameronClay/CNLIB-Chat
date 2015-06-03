@@ -15,15 +15,16 @@ public:
 	Whiteboard(Whiteboard&& wb);
 	~Whiteboard();
 
-	void StartThread(MouseServer& mServ, TCPClientInterface* client);
+	void StartThread(TCPClientInterface* client);
 
 	void Initialize(HWND WinHandle);
 	void Frame(const RectU &rect, const BYTE *pixelData);
-	void SendMouseData(MouseServer& mServ, TCPClientInterface* client);
+	void SendMouseData(TCPClientInterface* client);
 	void BeginFrame();
 	void EndFrame();
 	void Render();
 
+	MouseServer& GetMServ();
 	USHORT GetWidth() const;
 	USHORT GetHeight() const;
 	HANDLE GetTimer() const;
@@ -33,6 +34,8 @@ private:
 	void ComposeImage(USHORT Width, USHORT Height, const BYTE *pixelData);
 
 	const Palette& GetPalette(BYTE& count);
+
+	MouseServer mouse;
 
 	BYTE* surf;
 	BYTE palIndex;
