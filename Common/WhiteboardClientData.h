@@ -180,7 +180,7 @@ struct WBClientData
 		rect(),
 		tool(Tool::PaintBrush),
 		clrIndex(0),
-		mServ((FPS <= 60 ? 4000 / FPS : 66))
+		mServ((FPS <= 60 ? 6000 / FPS : 100))
 	{}
 
 	WBClientData(WBClientData&& clientData)
