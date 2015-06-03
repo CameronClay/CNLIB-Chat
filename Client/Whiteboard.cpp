@@ -71,7 +71,7 @@ DWORD CALLBACK WBThread(LPVOID param)
 
 Whiteboard::Whiteboard(Palette& palette, USHORT Width, USHORT Height, USHORT FPS, BYTE palIndex)
 	:
-mouse((FPS <= 60 ? 6000 / FPS : 100)),
+mouse((FPS <= 60 ? 4000 / FPS : 67), (USHORT)((1000.0f / (float)FPS) + 0.5f)),
 surf(alloc<BYTE>(Width * Height)),
 palIndex(palIndex),
 hWnd(NULL),

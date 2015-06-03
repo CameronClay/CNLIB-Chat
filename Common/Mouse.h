@@ -81,7 +81,7 @@ class MouseServer
 {
 	friend MouseClient;
 public:
-	MouseServer(size_t bufferSize);
+	MouseServer(size_t bufferSize, USHORT interval);
 	MouseServer(MouseServer&& mServ);
 	void OnMouseMove(USHORT x, USHORT y);
 	void OnLeftPressed(USHORT x, USHORT y);
@@ -95,5 +95,8 @@ public:
 	void Insert(BYTE *byteBuffer, DWORD nBytes);
 	UINT GetBufferLen(UINT& count) const;
 private:
+	void WaitForBuffer();
+
 	CircularBuffer<MouseEvent> buffer;
+	USHORT interval;
 };

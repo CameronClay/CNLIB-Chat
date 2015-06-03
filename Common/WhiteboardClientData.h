@@ -172,7 +172,7 @@ struct WBClientData
 		rect(),
 		tool(Tool::PaintBrush),
 		clrIndex(0),
-		mServ(100)
+		mServ(50, 17)
 	{}
 
 	WBClientData(USHORT FPS)
@@ -180,7 +180,7 @@ struct WBClientData
 		rect(),
 		tool(Tool::PaintBrush),
 		clrIndex(0),
-		mServ((FPS <= 60 ? 6000 / FPS : 100))
+		mServ((FPS <= 60 ? 4000 / FPS : 67), (USHORT)((1000.0f / (float)FPS) + 0.5f))
 	{}
 
 	WBClientData(WBClientData&& clientData)
