@@ -1553,6 +1553,7 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	//static HANDLE mouseThread;
 	//static DWORD mouseThreadID;
+	static bool leftPressed = true;
 
 	switch (message)
 	{
@@ -1625,10 +1626,13 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_MOUSEMOVE:
 	{
-		const USHORT x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
-		Whiteboard& wb = *pWhiteboard;
-		if(x < wb.GetWidth() && y < wb.GetHeight())
-			wb.GetMServ().OnMouseMove(x, y);
+		if(leftPressed)
+		{
+			const USHORT x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
+			Whiteboard& wb = *pWhiteboard;
+			if(x < wb.GetWidth() && y < wb.GetHeight())
+				wb.GetMServ().OnMouseMove(x, y);
+		}
 		break;
 	}
 	case WM_LBUTTONDOWN:
@@ -1637,6 +1641,9 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		Whiteboard& wb = *pWhiteboard;
 		if(x < wb.GetWidth() && y < wb.GetHeight())
 			wb.GetMServ().OnLeftPressed(x, y);
+
+		leftPressed = true;
+
 		break;
 	}
 
@@ -1646,6 +1653,9 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		Whiteboard& wb = *pWhiteboard;
 		if(x < wb.GetWidth() && y < wb.GetHeight())
 			wb.GetMServ().OnLeftReleased(x, y);
+
+		//leftPressed = false;
+
 		break;
 	}
 	//case WM_RBUTTONDOWN:

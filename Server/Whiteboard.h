@@ -41,10 +41,15 @@ private:
 	void DrawTriangle(Vec2 v0, Vec2 v1, Vec2 v2, BYTE clr);
 
 
-	void PaintBrush(WBClientData& clientData, BYTE clr);
+	void PaintBrush(WBClientData& clientData);
 	void DrawLine(const PointU& p1, const PointU& p2, BYTE clr);
-	void DrawLineThick(const PointU& p1, const PointU& p2, float width, BYTE clr);
-	RectU MakeRect(const PointU &p0, const PointU &p1);
+	void DrawQuadrilateral(Vec2* vertices, BYTE clr);
+
+	Vec2 ModifyPoint(const Vec2& vect);
+
+	RectU ResetRect(const Vec2& p0, const Vec2& p1, float width) const;
+	void ModifyRect(RectU& rect, const Vec2& p0, const Vec2& p1, float width);
+
 	UINT GetBufferLen(const RectU& rec) const;
 	void MakeRectPixels(const RectU& rect, char* ptr);
 

@@ -86,90 +86,106 @@ bool Whiteboard::IsCreator(const std::tstring& user) const
 	return creator.compare(user) == 0;
 }
 
-void Whiteboard::PaintBrush(WBClientData& clientData, BYTE clr)
+void Whiteboard::PaintBrush(WBClientData& clientData)
 {
-	std::deque<PointU>& pointList = clientData.pointList;
-	RectU& rect = clientData.rect;
 	MouseClient mouse(clientData.mServ);
-	MouseEvent ev = mouse.Peek();
+	const size_t evCount = mouse.EventCount();
 
-	if(ev.GetType() != MouseEvent::Type::Invalid)
+	bool send = false;
+
+	for(size_t i = 0; i < evCount; i++)
 	{
-		ev = mouse.Read();
-		bool send = false;
+		const MouseEvent ev = mouse.GetEvent(i);
 
-		PointU pt(ev.GetX(), ev.GetY());
-		if(!pointList.empty())
-		{
-			rect.left = (pointList[0].x > 0 ? pointList[0].x - 1 : 0);
-			rect.right = (pointList[0].x < params.width ? pointList[0].x + 1 : params.width);
-			rect.top = (pointList[0].y > 0 ? pointList[0].y - 1 : 0);
-			rect.bottom = (pointList[0].y < params.height ? pointList[0].y + 1 : params.height);
-		}
-
+		Vec2 vect = { (float)ev.GetX(), (float)ev.GetY() };
+		BYTE clr = 255;
 		do
 		{
-			clr = 255;
-			do
-			{
-				clr = rand() % 31;
-			} while(clr == params.clrIndex);
+			clr = rand() % 31;
+		} while(clr == params.clrIndex);
 
-			switch(ev.GetType())
+		switch(ev.GetType())
+		{
+		case MouseEvent::LPress:
+			if(clientData.nVertices == 0)
 			{
-			case MouseEvent::LRelease:
-				if(!pointList.empty())
+				clientData.vertices[clientData.nVertices++] = vect;
+			}
+			break;
+
+		case MouseEvent::LRelease:
+			if(clientData.nVertices == 1)
+			{
+				const float width = clientData.thickness * 0.5f;
+				const Vec2 temp = clientData.vertices[0];
+
+				Vec2 points[] =
 				{
-					PutPixel(pointList[0], clr);
-					pointList.pop_back();
-					send = true;
+					ModifyPoint({ temp.x + width, temp.y + width }),
+					ModifyPoint({ temp.x - width, temp.y + width }),
+					ModifyPoint({ temp.x - width, temp.y - width }),
+					ModifyPoint({ temp.x + width, temp.y - width })
+				};
+
+				DrawQuadrilateral(points, clr);
+				clientData.rect = ResetRect(points[0], points[2], clientData.thickness);
+			}
+			clientData.nVertices = 0;
+			send = true;
+			break;
+
+		case MouseEvent::Move:
+		{
+			if(clientData.vertices[0] == vect)
+				break;
+
+			if(clientData.nVertices > 0)
+			{
+				const Vec2 norm = (vect - clientData.vertices[0]).CCW90().Normalize();
+				const Vec2 normOffset = norm * clientData.thickness * 0.5f;
+				Vec2 points[4];
+
+				if(clientData.nVertices == 3)
+				{
+					points[0] = clientData.vertices[1];
+					points[1] = clientData.vertices[2];
 				}
-				break;
-			case MouseEvent::LPress:
-				rect.left = (pt.x > 0 ? pt.x - 1 : 0);
-				rect.right = (pt.x < params.width ? pt.x + 1 : params.width);
-				rect.top = (pt.y > 0 ? pt.y - 1 : 0);
-				rect.bottom = (pt.y < params.height ? pt.y + 1 : params.height);
+				else
+				{
+					points[0] = ModifyPoint(clientData.vertices[0] + normOffset);
+					points[1] = ModifyPoint(clientData.vertices[0] - normOffset);
 
-				if(pointList.empty())
-					pointList.push_back(pt);
-				break;
-			case MouseEvent::Move:
-				if(pointList.size() == 1)
-					pointList.push_back(pt);
-				break;
-			}
 
-			if(pointList.size() >= 2)
-			{
-				//DrawLineThick(pointList[0], pointList[1], 15.0f, clr);
-				DrawLine(pointList[0], pointList[1], clr);
-				pointList.pop_front();
+					clientData.rect = ResetRect(points[0], points[1], clientData.thickness);
+				}
+
+				points[2] = ModifyPoint(vect - normOffset);
+				points[3] = ModifyPoint(vect + normOffset);
+
+
+				ModifyRect(clientData.rect, points[2], points[3], clientData.thickness);
+
+				DrawQuadrilateral(points, clr);
+
+
+				clientData.vertices[0] = vect;
+					
+				clientData.vertices[1] = points[3];
+				clientData.vertices[2] = points[2];
+
+				clientData.nVertices = 3;
 				send = true;
+
 			}
-
-			if(send)
-			{
-				if(pt.x - 1 < rect.left)
-					rect.left = (pt.x > 0 ? pt.x - 1 : 0);
-				else if(pt.x + 1 > rect.right)
-					rect.right = (pt.x < params.width ? pt.x + 1 : params.width);
-
-				if(pt.y - 1 < rect.top)
-					rect.top = (pt.y > 0 ? pt.y - 1 : 0);
-				else if(pt.y + 1 > rect.bottom)
-					rect.bottom = (pt.y < params.height ? pt.y + 1 : params.height);
-			}
-
-			pt = { ev.GetX(), ev.GetY() };
-
-			ev = mouse.Read();
-
-		} while(ev.GetType() != MouseEvent::Type::Invalid);
-
-		if(send)
-			SendBitmap(rect);
+			break;
+		}
+		}
 	}
+
+	mouse.Erase(evCount);
+
+	if(send)
+		SendBitmap(clientData.rect);
 }
 
 void Whiteboard::Draw()
@@ -187,7 +203,7 @@ void Whiteboard::Draw()
 			switch(myTool)
 			{
 			case Tool::PaintBrush:
-				PaintBrush(it.second, it.second.clrIndex);
+				PaintBrush(it.second);
 				break;
 			}
 		}
@@ -321,53 +337,106 @@ void Whiteboard::DrawLine(const PointU& p1, const PointU& p2, BYTE clr)
 	}
 }
 
-void Whiteboard::DrawLineThick(const PointU& p1, const PointU& p2, float width, BYTE clr)
+void Whiteboard::DrawQuadrilateral(Vec2* vertices, BYTE clr)
 {
-	const Vec2 v1(p1.x, p1.y), v2(p2.x, p2.y);
-	const Vec2 norm = (v2 - v1).CCW90().Normalize();
-	const Vec2 normOffset = norm * width * 0.5f;
-	const Vec2 perpOffset = { norm.x, - norm.y };
-
-	const Vec2 points[] =
-	{
-		v1 - normOffset,
-		v1 + perpOffset,
-		v2 + normOffset,
-		v2 - perpOffset
-	};
-
-	DrawTriangle(points[0], points[1], points[2], clr);
-	DrawTriangle(points[0], points[2], points[3], clr);
+	DrawTriangle(vertices[0], vertices[1], vertices[2], clr);
+	DrawTriangle(vertices[0], vertices[2], vertices[3], clr);
 }
 
-RectU Whiteboard::MakeRect(const PointU &p0, const PointU &p1)
+Vec2 Whiteboard::ModifyPoint(const Vec2& vect)
+{
+	Vec2 temp = vect;
+
+	if(temp.x < 0.0f)
+		temp.x = 0.0f;
+
+	else if(temp.x > params.width)
+		temp.x = params.width;
+
+	if(temp.y < 0.0f)
+		temp.y = 0.0f;
+
+	else if(temp.y > params.height)
+		temp.y = params.height;
+
+	return temp;
+}
+
+RectU Whiteboard::ResetRect(const Vec2& p0, const Vec2& p1, float width) const
 {
 	RectU rect;
 
-	if(p0.x < p1.x)
-		rect.left = p0.x, rect.right = p1.x;
-	else if(p0.x > p1.x)
-		rect.left = p1.x, rect.right = p0.x;
+	//width = (width > 1.0f ? width * 0.5f : 1.0f);
+
+	RectU temp;
+
+	if(p1.x > p0.x)
+	{
+		temp.left = p0.x;
+		temp.right = p1.x;
+	}
 	else
-		rect.left = p0.x - 1, rect.right = p1.x + 1;
+	{
+		temp.left = p1.x;
+		temp.right = p0.x;
+	}
 
-	if(p0.y < p1.y)
-		rect.top = p0.y, rect.bottom = p1.y;
-	else if(p0.y > p1.y)
-		rect.top = p1.y, rect.bottom = p0.y;
+	if(p0.y > p1.y)
+	{
+		temp.top = p1.y;
+		temp.bottom = p0.y;
+	}
 	else
-		rect.top = p0.y - 1, rect.bottom = p1.y + 1;
+	{
+		temp.top = p0.y;
+		temp.bottom = p1.y;
+	}
 
-	//Not working right
-	/*p0.x < p1.x ?
-		rect.left = p0.x, rect.right = p1.x :
-		rect.left = p1.x, rect.right = p0.x;
-
-	p0.y < p1.y ?
-		rect.top = p0.y, rect.bottom = p1.y :
-		rect.top = p1.y, rect.bottom = p0.y;*/
+	rect.left = (temp.left > 0 ? temp.left - 1 : 0);
+	rect.right = (temp.right < params.width ? temp.right + 1 : params.width);
+	rect.top = (temp.top > 0 ? temp.top - 1 : 0);
+	rect.bottom = (temp.bottom < params.height ? temp.bottom + 1 : params.height);
 
 	return rect;
+}
+
+void Whiteboard::ModifyRect(RectU& rect, const Vec2& p0, const Vec2& p1, float width)
+{
+	width = (width > 1.0f ? width * 0.5f: 1.0f);
+
+	RectU temp;
+
+	if(p1.x > p0.x)
+	{
+		temp.left = p0.x;
+		temp.right = p1.x;
+	}
+	else
+	{
+		temp.left = p1.x;
+		temp.right = p0.x;
+	}
+
+	if(p0.y > p1.y)
+	{
+		temp.top = p1.y;
+		temp.bottom = p0.y;
+	}
+	else
+	{
+		temp.top = p0.y;
+		temp.bottom = p1.y;
+	}
+
+	if(temp.left - 1 < rect.left)
+		rect.left = (temp.left > 0 ? temp.left - 1 : 0);
+	else if(temp.right + 1 > rect.right)
+		rect.right = (temp.right < params.width ? temp.right + 1 : params.width);
+
+	if(temp.top - 1 < rect.top)
+		rect.top = (temp.top > 0 ? temp.top - 1 : 0);
+	else if(temp.bottom + 1 > rect.bottom)
+		rect.bottom = (temp.bottom < params.height ? temp.bottom + 1 : params.height);
 }
 
 void Whiteboard::Frame()

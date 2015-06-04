@@ -72,6 +72,9 @@ public:
 	bool IsInWindow() const;
 	MouseEvent Read();
 	MouseEvent Peek() const;
+	size_t EventCount() const;
+	const MouseEvent& GetEvent(size_t i);
+	void Erase(size_t count);
 	bool MouseEmpty() const;
 private:
 	MouseServer& server;

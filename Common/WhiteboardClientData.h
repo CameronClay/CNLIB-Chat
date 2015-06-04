@@ -3,6 +3,7 @@
 #include <vector>
 #include <deque>
 #include <Windows.h>
+#include "Vec2.h"
 
 #include "Mouse.h"
 
@@ -169,36 +170,54 @@ struct WBClientData
 {
 	WBClientData()
 		:
+		mServ(50, 17),
+		nVertices(0),
 		rect(),
 		tool(Tool::PaintBrush),
 		clrIndex(0),
-		mServ(50, 17)
-	{}
+		thickness(1.0f)
+	{
+		for(BYTE i = 0; i < 3; i++)
+			vertices[i] = {};
+	}
 
 	WBClientData(USHORT FPS)
 		:
+		mServ((FPS <= 60 ? 6000 / FPS : 100), (USHORT)((1000.0f / (float)FPS) + 0.5f)),
+		nVertices(0),
 		rect(),
 		tool(Tool::PaintBrush),
 		clrIndex(0),
-		mServ((FPS <= 60 ? 4000 / FPS : 67), (USHORT)((1000.0f / (float)FPS) + 0.5f))
-	{}
+		thickness(5.0f)
+	{
+		for(BYTE i = 0; i < 3; i++)
+			vertices[i] = {};
+	}
 
 	WBClientData(WBClientData&& clientData)
 		:
-		pointList(std::move(clientData.pointList)),
+		mServ(std::move(clientData.mServ)),
+		nVertices(clientData.nVertices),
 		rect(clientData.rect),
 		tool(clientData.tool),
 		clrIndex(clientData.clrIndex),
-		mServ(std::move(clientData.mServ))
+		thickness(clientData.thickness)
 	{
 		clientData.tool = Tool::INVALID;
+
+		for(BYTE i = 0; i < 3; i++)
+			vertices[i] = clientData.vertices[i];
 	}
 
 	~WBClientData(){}
 
-	std::deque<PointU> pointList;
+	MouseServer mServ;
+	Vec2 vertices[3];
+	BYTE nVertices;
+
 	RectU rect;
+
 	Tool tool;								// Enums are sizeof(int) 4 bytes
 	BYTE clrIndex;							// Palette color is 1 bytes
-	MouseServer mServ;						
+	float thickness;					
 };

@@ -11,7 +11,7 @@ public:
 		_end(_data - 1),
 		_endPtr(_data + (size - 1)),
 		written(0)
-	{}	
+	{}
 	CircularBuffer(CircularBuffer&& buffer)
 		:
 		_data(buffer._data),
@@ -51,6 +51,27 @@ public:
 			++written;
 	}
 
+	void push_back_ninc(const T& val)
+	{
+		if(_end == _endPtr)
+			_end = _data - 1;
+
+		*++_end = val;
+	}
+
+	void push_back_ninc(T&& val)
+	{
+		if(_end == _endPtr)
+			_end = _data - 1;
+
+		*++_end = val;
+	}
+
+	void IncreaseWritten(size_t amount)
+	{
+		written += min(amount, max_size() - written);
+	}
+
 	void pop_front()
 	{
 		if(written)
@@ -64,9 +85,51 @@ public:
 		}
 	}
 
+	void pop_back()
+	{
+		if(written)
+		{
+			--written;
+			*_end = std::forward<T>(T());
+			if(_end + 1 == _data)
+				_end = (T*)_endPtr;
+			else
+				--_end;
+		}
+	}
+
+	void erase(size_t count)
+	{
+		count = min(written, count);
+
+		for(size_t i = 0; i < count; i++)
+		{
+			*_begin = std::forward<T>(T());
+			if(_begin == _endPtr)
+				_begin = _data;
+			else
+				++_begin;
+		}
+
+		written -= count;
+	}
+
 	const T& front()
 	{
 		return *_begin;
+	}
+
+	const T& back()
+	{
+		return *_end;
+	}
+
+	const T& operator[](size_t i)
+	{
+		if(_begin + i > _endPtr)
+			return *(_data + ((_begin + i) - (_endPtr + 1)));
+
+		return *(_begin + i);
 	}
 
 	void clear()
@@ -95,6 +158,14 @@ public:
 	inline bool empty() const
 	{
 		return written == 0;
+	}
+	inline bool write_ahead()
+	{
+		return (_end + 1) > _begin;
+	}
+	inline bool read_ahead()
+	{
+		return _begin > _end;
 	}
 
 private:
