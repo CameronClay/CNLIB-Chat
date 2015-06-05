@@ -563,9 +563,12 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				}
 				case MSG_DATA_BITMAP:
 				{
-					RectU& rect = streamReader.Read<RectU>();
-					BYTE* pixels = streamReader.ReadEnd<BYTE>();
-					pWhiteboard->Frame(rect, pixels);
+					if(pWhiteboard)
+					{
+						RectU& rect = streamReader.Read<RectU>();
+						BYTE* pixels = streamReader.ReadEnd<BYTE>();
+						pWhiteboard->Frame(rect, pixels);
+					}
 					break;
 				}
 			}
