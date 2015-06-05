@@ -114,17 +114,17 @@ public:
 		written -= count;
 	}
 
-	const T& front()
+	const T& front() const 
 	{
 		return *_begin;
 	}
 
-	const T& back()
+	const T& back() const 
 	{
 		return *_end;
 	}
 
-	const T& operator[](size_t i)
+	const T& operator[](size_t i) const
 	{
 		if(_begin + i > _endPtr)
 			return *(_data + ((_begin + i) - (_endPtr + 1)));
@@ -158,14 +158,6 @@ public:
 	inline bool empty() const
 	{
 		return written == 0;
-	}
-	inline bool write_ahead()
-	{
-		return (_end + 1) > _begin;
-	}
-	inline bool read_ahead()
-	{
-		return _begin > _end;
 	}
 
 private:
