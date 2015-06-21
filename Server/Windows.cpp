@@ -250,7 +250,6 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 				//Add name to list
 				userList.push_back(Authent(user, pass));
 				auth = true;
-				clint->user = user;
 				AddToList(user, pass);
 			}
 
@@ -302,6 +301,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 				TransferMessageWithName(serv, clint->user, streamReader);
 			else
 				serv.SendMsg(clint->user, TYPE_ADMIN, MSG_ADMIN_NOT);
+			break;
 		}
 		}
 		break;
