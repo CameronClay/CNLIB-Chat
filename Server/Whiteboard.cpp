@@ -3,6 +3,7 @@
 #include "CNLIB\Messages.h"
 #include <stdlib.h>
 #include <time.h>
+#include <assert.h>
 
 DWORD CALLBACK WBThread(LPVOID param)
 {
@@ -174,7 +175,7 @@ void Whiteboard::PaintBrush(WBClientData& clientData, bool begin, bool end)
 
 		case MouseEvent::Move:
 		{
-			if(clientData.nVertices > 0)
+			if(clientData.nVertices != 0)
 			{
 				const Vec2 norm = (vect - clientData.vertices[0]).CCW90().Normalize();
 				const Vec2 normOffset = norm * clientData.thickness * 0.5f;
@@ -196,7 +197,6 @@ void Whiteboard::PaintBrush(WBClientData& clientData, bool begin, bool end)
 
 				points[2] = ModifyPoint(vect - normOffset);
 				points[3] = ModifyPoint(vect + normOffset);
-
 
 				ModifyRect(clientData.rect, points[2], points[3], clientData.thickness);
 
@@ -251,7 +251,7 @@ void Whiteboard::PutPixel(const PointU& point, BYTE clr)
 	pixels[point.x + (point.y * params.width)] = clr;
 }
 
-void Whiteboard::PutPixel(USHORT x, USHORT y, BYTE clr)
+void Whiteboard::PutPixel(int x, int y, BYTE clr)
 {
 	pixels[x + (y * params.width)] = clr;
 }
@@ -555,7 +555,7 @@ void Whiteboard::SendBitmap(const RectU& rect, const Socket& sock, bool single)
 }
 
 void Whiteboard::QueueSendBitmap(const RectU& rect, const Socket& sock, bool beginFrame, bool endFrame)
-{
+{	
 	WaitForSingleObject(sendThread.GetWbThreadEv(), INFINITE);
 	sendThread.SetRect(rect);
 	sendThread.SetBeginEnd(beginFrame, endFrame);

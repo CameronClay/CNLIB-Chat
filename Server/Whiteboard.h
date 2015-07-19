@@ -157,7 +157,7 @@ public:
 
 private:
 	void PutPixel(const PointU& point, BYTE clr);
-	void PutPixel(USHORT x, USHORT y, BYTE clr);
+	void PutPixel(int x, int y, BYTE clr);
 
 	void DrawFlatTriangle(float y0, float y1, float m0, float b0, float m1, float b1, BYTE clr);
 	void DrawTriangle(Vec2 v0, Vec2 v1, Vec2 v2, BYTE clr);

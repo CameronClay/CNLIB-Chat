@@ -1656,6 +1656,8 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		leftPressed = true;
 
+		prevX = x;
+		prevY = y;
 		break;
 	}
 

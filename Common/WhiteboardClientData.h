@@ -213,7 +213,7 @@ struct WBClientData
 
 	MouseServer mServ;
 	Vec2 vertices[3];
-	BYTE nVertices;
+	size_t nVertices;
 
 	RectU rect;
 

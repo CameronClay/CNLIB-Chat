@@ -98,12 +98,9 @@ UINT MouseServer::GetBufferLen(UINT& count) const
 }
 void MouseServer::Extract(BYTE *byteBuffer, UINT count)
 {
-	UINT pos = 0;
-
 	for(UINT i = 0; i < count; i++)
 	{
-		*((MouseEvent*)&byteBuffer[pos]) = buffer[i];
-		pos += sizeof(MouseEvent);
+		((MouseEvent*)(byteBuffer))[i] = buffer[i];
 	}
 
 	buffer.erase(count);
