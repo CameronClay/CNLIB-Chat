@@ -113,7 +113,7 @@ void MouseServer::Insert(BYTE *byteBuffer, DWORD nBytes)
 	const size_t count = nBytes / sizeof(MouseEvent);
 	while((int)buffer.max_size() - (int)(buffer.size() + count) < 0)
 	{
-		Sleep(interval);
+		Sleep(interval + 1);
 	}
 
 
@@ -129,6 +129,6 @@ void MouseServer::WaitForBuffer()
 {
 	while(buffer.size() == buffer.max_size())
 	{
-		Sleep(interval);
+		Sleep(interval + 1);
 	}
 }

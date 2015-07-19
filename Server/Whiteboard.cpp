@@ -14,7 +14,7 @@ DWORD CALLBACK WBThread(LPVOID param)
 		const DWORD ret = MsgWaitForMultipleObjects(1, &timer, FALSE, INFINITE, QS_ALLINPUT);
 		if(ret == WAIT_OBJECT_0)
 		{
-			wb.Frame();
+			wb.Draw();
 		}
 
 		else if(ret == WAIT_OBJECT_0 + 1)
@@ -37,6 +37,43 @@ DWORD CALLBACK WBThread(LPVOID param)
 	}
 }
 
+DWORD CALLBACK SendBitmapThread(LPVOID param)
+{
+	Whiteboard::SendThread& st = *(Whiteboard::SendThread*)param;
+	Whiteboard& wb = st.GetWhiteboard();
+	HANDLE ev = st.GetSendThreadEv();
+	HANDLE wbEv = st.GetWbThreadEv();
+
+	while(true)
+	{
+		const DWORD ret = MsgWaitForMultipleObjects(1, &ev, FALSE, INFINITE, QS_ALLINPUT);
+		if(ret == WAIT_OBJECT_0)
+		{
+			if(st.GetSocket().IsConnected())
+				wb.SendBitmap(st.GetRect(), st.GetSocket(), true);
+			else
+				wb.SendBitmap(st.GetRect());
+
+
+			ResetEvent(ev);
+			SetEvent(wbEv);
+		}
+
+		else if(ret == WAIT_OBJECT_0 + 1)
+		{
+			MSG msg;
+			while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) != 0)
+			{
+				if(msg.message == WM_QUIT)
+					return 0;
+			}
+		}
+
+		else
+			return 0;
+	}
+}
+
 Whiteboard::Whiteboard(TCPServInterface &serv, WBParams params, std::tstring creator)
 	:
 pixels(alloc<BYTE>(params.width * params.height)),
@@ -46,7 +83,8 @@ creator(creator),
 interval(1.0f / (float)params.fps),
 timer(CreateWaitableTimer(NULL, FALSE, NULL)),
 thread(NULL),
-threadID(NULL)
+threadID(NULL),
+sendThread(*this)
 {
 	FillMemory(pixels, params.width * params.height, params.clrIndex);
 
@@ -65,6 +103,7 @@ interval(wb.interval),
 timer(wb.timer),
 thread(wb.thread),
 threadID(wb.threadID),
+sendThread(std::move(wb.sendThread), *this),
 clients(std::move(wb.clients)),
 sendPcs(std::move(wb.sendPcs))
 {
@@ -86,7 +125,7 @@ bool Whiteboard::IsCreator(const std::tstring& user) const
 	return creator.compare(user) == 0;
 }
 
-void Whiteboard::PaintBrush(WBClientData& clientData)
+void Whiteboard::PaintBrush(WBClientData& clientData, bool begin, bool end)
 {
 	MouseClient mouse(clientData.mServ);
 	const size_t evCount = mouse.EventCount();
@@ -97,12 +136,11 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 	{
 		const MouseEvent ev = mouse.GetEvent(i);
 
-		Vec2 vect = { (float)ev.GetX(), (float)ev.GetY() };
-		BYTE clr = 255;
-		do
-		{
+		const Vec2 vect = { (float)ev.GetX(), (float)ev.GetY() };
+
+		BYTE clr = 0;
+		while(clr == params.clrIndex)
 			clr = rand() % 31;
-		} while(clr == params.clrIndex);
 
 		switch(ev.GetType())
 		{
@@ -119,7 +157,7 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 				const float width = clientData.thickness * 0.5f;
 				const Vec2 temp = clientData.vertices[0];
 
-				Vec2 points[] =
+				const Vec2 points[] =
 				{
 					ModifyPoint({ temp.x + width, temp.y + width }),
 					ModifyPoint({ temp.x - width, temp.y + width }),
@@ -136,9 +174,6 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 
 		case MouseEvent::Move:
 		{
-			if(clientData.vertices[0] == vect)
-				break;
-
 			if(clientData.nVertices > 0)
 			{
 				const Vec2 norm = (vect - clientData.vertices[0]).CCW90().Normalize();
@@ -185,25 +220,24 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 	mouse.Erase(evCount);
 
 	if(send)
-		SendBitmap(clientData.rect);
+		QueueSendBitmap(clientData.rect, Socket(), begin, end);
 }
 
 void Whiteboard::Draw()
 {
 	EnterCriticalSection(&mapSect);
 
-	for (auto& it : clients)
+	for(auto& it = clients.begin(), end = clients.end(); it != end; it++)
 	{
-		MouseClient mouse(it.second.mServ);
-		const Tool myTool = it.second.tool;
+		MouseClient mouse(it->second.mServ);
+		const Tool myTool = it->second.tool;
 
 		if(!mouse.MouseEmpty())
 		{
-
 			switch(myTool)
 			{
 			case Tool::PaintBrush:
-				PaintBrush(it.second);
+				PaintBrush(it->second, it == clients.begin(), it == --clients.end());
 				break;
 			}
 		}
@@ -337,7 +371,7 @@ void Whiteboard::DrawLine(const PointU& p1, const PointU& p2, BYTE clr)
 	}
 }
 
-void Whiteboard::DrawQuadrilateral(Vec2* vertices, BYTE clr)
+void Whiteboard::DrawQuadrilateral(const Vec2* vertices, BYTE clr)
 {
 	DrawTriangle(vertices[0], vertices[1], vertices[2], clr);
 	DrawTriangle(vertices[0], vertices[2], vertices[3], clr);
@@ -366,87 +400,59 @@ RectU Whiteboard::ResetRect(const Vec2& p0, const Vec2& p1, float width) const
 {
 	RectU rect;
 
-	//width = (width > 1.0f ? width * 0.5f : 1.0f);
-
-	RectU temp;
-
 	if(p1.x > p0.x)
 	{
-		temp.left = p0.x;
-		temp.right = p1.x;
+		rect.left = p0.x;
+		rect.right = p1.x;
 	}
 	else
 	{
-		temp.left = p1.x;
-		temp.right = p0.x;
+		rect.left = p1.x;
+		rect.right = p0.x;
 	}
 
 	if(p0.y > p1.y)
 	{
-		temp.top = p1.y;
-		temp.bottom = p0.y;
+		rect.top = p1.y;
+		rect.bottom = p0.y;
 	}
 	else
 	{
-		temp.top = p0.y;
-		temp.bottom = p1.y;
+		rect.top = p0.y;
+		rect.bottom = p1.y;
 	}
-
-	rect.left = (temp.left > 0 ? temp.left - 1 : 0);
-	rect.right = (temp.right < params.width ? temp.right + 1 : params.width);
-	rect.top = (temp.top > 0 ? temp.top - 1 : 0);
-	rect.bottom = (temp.bottom < params.height ? temp.bottom + 1 : params.height);
 
 	return rect;
 }
 
 void Whiteboard::ModifyRect(RectU& rect, const Vec2& p0, const Vec2& p1, float width)
 {
-	width = (width > 1.0f ? width * 0.5f: 1.0f);
-
-	RectU temp;
-
 	if(p1.x > p0.x)
 	{
-		temp.left = p0.x;
-		temp.right = p1.x;
+		rect.left = (p0.x > rect.left) ? rect.left : p0.x;
+		rect.right = (p1.x < rect.right) ? rect.right : p1.x;
 	}
 	else
 	{
-		temp.left = p1.x;
-		temp.right = p0.x;
+		rect.left = (p1.x > rect.left) ? rect.left : p1.x;
+		rect.right = (p0.x < rect.right) ? rect.right : p0.x;
 	}
 
 	if(p0.y > p1.y)
 	{
-		temp.top = p1.y;
-		temp.bottom = p0.y;
+		rect.top = (p1.y > rect.top) ? rect.top : p1.y;
+		rect.bottom = (p0.y < rect.bottom) ? rect.bottom : p0.y;
 	}
 	else
 	{
-		temp.top = p0.y;
-		temp.bottom = p1.y;
+		rect.top = (p0.y > rect.top) ? rect.top : p0.y;
+		rect.bottom = (p1.y < rect.bottom) ? rect.bottom : p1.y;;
 	}
-
-	if(temp.left - 1 < rect.left)
-		rect.left = (temp.left > 0 ? temp.left - 1 : 0);
-	else if(temp.right + 1 > rect.right)
-		rect.right = (temp.right < params.width ? temp.right + 1 : params.width);
-
-	if(temp.top - 1 < rect.top)
-		rect.top = (temp.top > 0 ? temp.top - 1 : 0);
-	else if(temp.bottom + 1 > rect.bottom)
-		rect.bottom = (temp.bottom < params.height ? temp.bottom + 1 : params.height);
-}
-
-void Whiteboard::Frame()
-{
-	Draw();
 }
 
 UINT Whiteboard::GetBufferLen(const RectU& rec) const
 {
-	return sizeof(RectU) + ((rec.right - rec.left) * (rec.bottom - rec.top));
+	return sizeof(RectU) + ((1 + rec.right - rec.left) * (1 + rec.bottom - rec.top));
 }
 
 void Whiteboard::MakeRectPixels(const RectU& rect, char* ptr)
@@ -455,9 +461,9 @@ void Whiteboard::MakeRectPixels(const RectU& rect, char* ptr)
 	memcpy(ptr, &rect, offset);
 	ptr += offset;
 
-	for(USHORT iy = 0, height = rect.bottom - rect.top; iy < height; iy++)
+	for(USHORT iy = 0, height = 1 + rect.bottom - rect.top; iy < height; iy++)
 	{
-		for(USHORT ix = 0, width = rect.right - rect.left; ix < width; ix++)
+		for(USHORT ix = 0, width = 1 + rect.right - rect.left; ix < width; ix++)
 		{
 			ptr[(iy * width) + ix] = pixels[((iy + rect.top) * params.width) + (ix + rect.left)];
 		}
@@ -514,30 +520,48 @@ const Palette& Whiteboard::GetPalette() const
 
 void Whiteboard::SendBitmap(const RectU& rect)
 {
-	const DWORD nBytes = GetBufferLen(rect) + MSG_OFFSET;
+	const DWORD nBytes = GetBufferLen(rect) + MSG_OFFSET + 2;
 	char* msg = alloc<char>(nBytes);
+
 	msg[0] = TYPE_DATA;
 	msg[1] = MSG_DATA_BITMAP;
 
-	MakeRectPixels(rect, &msg[MSG_OFFSET]);
+	msg[2] = sendThread.GetBegin();
+	msg[3] = sendThread.GetEnd();
+
+	MakeRectPixels(rect, &msg[MSG_OFFSET + 2]);
 
 	HANDLE hnd = serv.SendClientData(msg, nBytes, sendPcs);
 	WaitAndCloseHandle(hnd);
 	dealloc(msg);
 }
 
-void Whiteboard::SendBitmap(const RectU& rect, Socket& sock, bool single)
+void Whiteboard::SendBitmap(const RectU& rect, const Socket& sock, bool single)
 {
-	const DWORD nBytes = GetBufferLen(rect) + MSG_OFFSET;
+	const DWORD nBytes = GetBufferLen(rect) + MSG_OFFSET + 2;
 	char* msg = alloc<char>(nBytes);
+
 	msg[0] = TYPE_DATA;
 	msg[1] = MSG_DATA_BITMAP;
 
-	MakeRectPixels(rect, &msg[MSG_OFFSET]);
+	msg[2] = sendThread.GetBegin();
+	msg[3] = sendThread.GetEnd();
+
+	MakeRectPixels(rect, &msg[MSG_OFFSET + 2]);
 
 	HANDLE hnd = serv.SendClientData(msg, nBytes, sock, single);
 	WaitAndCloseHandle(hnd);
 	dealloc(msg);
+}
+
+void Whiteboard::QueueSendBitmap(const RectU& rect, const Socket& sock, bool beginFrame, bool endFrame)
+{
+	WaitForSingleObject(sendThread.GetWbThreadEv(), INFINITE);
+	sendThread.SetRect(rect);
+	sendThread.SetBeginEnd(beginFrame, endFrame);
+	sendThread.SetSinglePC(sock);
+	sendThread.SingleSendThread();
+	sendThread.ResetWbEv();
 }
 
 HANDLE Whiteboard::GetTimer() const
@@ -552,12 +576,16 @@ void Whiteboard::StartThread()
 	SetWaitableTimer(timer, &LI, (LONG)(interval * 1000.0f), NULL, NULL, FALSE);
 
 	thread = CreateThread(NULL, 0, WBThread, this, NULL, &threadID);
+
+	sendThread.Start(SendBitmapThread);
 }
 
 Whiteboard::~Whiteboard()
 {
 	if(pixels)
 	{
+		sendThread.Exit();
+
 		PostThreadMessage(threadID, WM_QUIT, 0, 0);
 		WaitAndCloseHandle(thread);
 

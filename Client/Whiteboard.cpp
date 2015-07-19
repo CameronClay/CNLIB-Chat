@@ -37,10 +37,6 @@ DWORD CALLBACK WBThread(LPVOID param)
 		if(ret == WAIT_OBJECT_0)
 		{
 			wb.SendMouseData(wbParams->client);
-
-			wb.BeginFrame();
-			wb.Render();
-			wb.EndFrame();
 		}
 
 		else if(ret == WAIT_OBJECT_0 + 1)
@@ -71,23 +67,26 @@ DWORD CALLBACK WBThread(LPVOID param)
 
 Whiteboard::Whiteboard(Palette& palette, USHORT Width, USHORT Height, USHORT FPS, BYTE palIndex)
 	:
-mouse((FPS <= 60 ? 6000 / FPS : 100), (USHORT)((1000.0f / (float)FPS) + 0.5f)),
-surf(alloc<BYTE>(Width * Height)),
+mouse((FPS < 60 ? 3000 / FPS : 50), (USHORT)((1000.0f / (float)FPS) + 0.5f)),
 palIndex(palIndex),
 hWnd(NULL),
 width(Width),
 height(Height),
+pitch(0),
 interval(1.0f / (float)FPS),
 timer(CreateWaitableTimer(NULL, FALSE, NULL)),
 thread(NULL),
 threadID(NULL),
-palette(palette)
+palette(palette),
+pDirect3D(nullptr),
+pDevice(nullptr),
+pBackBuffer(nullptr),
+lockRect()
 {}
 
 Whiteboard::Whiteboard(Whiteboard&& wb)
 	:
 	mouse(std::move(wb.mouse)),
-	surf(wb.surf),
 	palIndex(wb.palIndex),
 	hWnd(wb.hWnd),
 	width(wb.width),
@@ -103,23 +102,28 @@ Whiteboard::Whiteboard(Whiteboard&& wb)
 	lockRect(wb.lockRect),
 	palette(wb.palette)
 {
-	wb.surf = nullptr;
+	thread = NULL;
 }
 
 void Whiteboard::Initialize(HWND WinHandle)
 {
 	hWnd = WinHandle;
 	InitD3D();
-	memset(surf, palIndex, width * height);
 
 	BeginFrame();
 	pDevice->Clear(0, NULL, D3DCLEAR_TARGET, palette.GetRGBColor(palIndex), 0.0f, 0);
 	EndFrame();
 }
 
-void Whiteboard::Frame(const RectU &rect, const BYTE *pixelData)
+void Whiteboard::Frame(const RectU &rect, const BYTE *pixelData, bool beginFrame, bool endFrame)
 {
+	if(beginFrame)
+		BeginFrame();
+
 	Draw(rect, pixelData);
+
+	if(endFrame)
+		EndFrame();
 }
 
 MouseServer& Whiteboard::GetMServ()
@@ -162,30 +166,15 @@ void Whiteboard::BeginFrame()
 	assert(SUCCEEDED(hr));
 }
 
-void Whiteboard::Render()
-{
-	for(USHORT y = 0; y < height; y++)
-	{
-		for(USHORT x = 0; x < width; x++)
-		{
-			const UINT index = x + (y * width);
-			D3DCOLOR* d3dSurf = (D3DCOLOR*)&((char*)lockRect.pBits)[index * pitch];
-			*d3dSurf = palette.GetRGBColor(surf[index]);
-		}
-	}
-}
-
 void Whiteboard::Draw(const RECT &rect, const BYTE *pixelData)
 {
-	const USHORT rWidth = rect.right - rect.left;
-	const USHORT rHeight = rect.bottom - rect.top;
-
-	for(USHORT y = 0; y < rHeight; y++)
+	for(USHORT y = 0, rHeight = 1 + rect.bottom - rect.top; y < rHeight; y++)
 	{
-		for(USHORT x = 0; x < rWidth; x++)
+		for(USHORT x = 0, rWidth = 1 + rect.right - rect.left; x < rWidth; x++)
 		{
-			const UINT bIndex = (x + rect.left) + ((y + rect.top) * width);
-			surf[bIndex] = pixelData[x + (y * rWidth)];
+			const UINT index = (x + rect.left) + ((y + rect.top) * width);
+			D3DCOLOR* d3dSurf = (D3DCOLOR*)&((char*)lockRect.pBits)[index * pitch];
+			*d3dSurf = palette.GetRGBColor(pixelData[x + y * rWidth]);
 		}
 	}
 }
@@ -283,12 +272,10 @@ void Whiteboard::StartThread(TCPClientInterface* client)
 
 Whiteboard::~Whiteboard()
 {
-	if(surf)
+	if(thread)
 	{
 		PostThreadMessage(threadID, WM_QUIT, 0, 0);
 		WaitAndCloseHandle(thread);
-
-		dealloc(surf);
 
 		if(pBackBuffer)
 		{

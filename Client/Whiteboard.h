@@ -18,11 +18,10 @@ public:
 	void StartThread(TCPClientInterface* client);
 
 	void Initialize(HWND WinHandle);
-	void Frame(const RectU &rect, const BYTE *pixelData);
+	void Frame(const RectU &rect, const BYTE *pixelData, bool beginFrame, bool endFrame);
 	void SendMouseData(TCPClientInterface* client);
 	void BeginFrame();
 	void EndFrame();
-	void Render();
 
 	MouseServer& GetMServ();
 	USHORT GetWidth() const;
@@ -37,7 +36,6 @@ private:
 
 	MouseServer mouse;
 
-	BYTE* surf;
 	BYTE palIndex;
 
 	HWND hWnd;

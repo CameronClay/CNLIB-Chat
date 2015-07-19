@@ -183,7 +183,7 @@ struct WBClientData
 
 	WBClientData(USHORT FPS)
 		:
-		mServ((FPS <= 60 ? 6000 / FPS : 100), (USHORT)((1000.0f / (float)FPS) + 0.5f)),
+		mServ((FPS < 60 ? 3000 / FPS : 50), (USHORT)((1000.0f / (float)FPS) + 0.5f)),
 		nVertices(0),
 		rect(),
 		tool(Tool::PaintBrush),

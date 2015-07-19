@@ -42,7 +42,7 @@ Socket::Socket(Socket&& sock)
 Socket::~Socket(){}
 
 
-Socket& Socket::operator= (Socket& pc)
+Socket& Socket::operator= (const Socket& pc)
 {
 	this->pc = pc.pc;
 	return *this;

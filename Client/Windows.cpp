@@ -62,7 +62,7 @@ const USHORT DEFAULTPORT = 565;
 
 #define WB_DEF_RES_X 800
 #define WB_DEF_RES_Y 600
-#define WB_DEF_FPS 60
+#define WB_DEF_FPS 20
 
 #define WM_CREATEWIN WM_APP
 #define ID_WB 1
@@ -565,9 +565,11 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				{
 					if(pWhiteboard)
 					{
+						const bool beginFrame = streamReader.Read<bool>();
+						const bool endFrame = streamReader.Read<bool>();
 						RectU& rect = streamReader.Read<RectU>();
 						BYTE* pixels = streamReader.ReadEnd<BYTE>();
-						pWhiteboard->Frame(rect, pixels);
+						pWhiteboard->Frame(rect, pixels, beginFrame, endFrame);
 					}
 					break;
 				}
@@ -629,7 +631,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 					break;
 				}
 
-			}// MSG_RESPONES
+			}// MSG_RESPONSES
 			break;
 		}//TYPE_RESPONSE
 
@@ -1556,6 +1558,7 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	//static HANDLE mouseThread;
 	//static DWORD mouseThreadID;
+	static USHORT prevX, prevY;
 	static bool leftPressed = true;
 
 	switch (message)
@@ -1632,9 +1635,15 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if(leftPressed)
 		{
 			const USHORT x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
+			if((x == prevX) && (y == prevY))
+				break;
+
 			Whiteboard& wb = *pWhiteboard;
 			if(x < wb.GetWidth() && y < wb.GetHeight())
 				wb.GetMServ().OnMouseMove(x, y);
+
+			prevX = x;
+			prevY = y;
 		}
 		break;
 	}
@@ -1657,7 +1666,7 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if(x < wb.GetWidth() && y < wb.GetHeight())
 			wb.GetMServ().OnLeftReleased(x, y);
 
-		//leftPressed = false;
+		leftPressed = false;
 
 		break;
 	}

@@ -34,7 +34,7 @@ public:
 		}
 	};
 
-	Socket& operator= (Socket& pc);
+	Socket& operator= (const Socket& pc);
 	Socket& operator= (Socket&& pc);
 	bool operator== (const Socket pc) const;
 	bool operator!= (const Socket pc) const;
