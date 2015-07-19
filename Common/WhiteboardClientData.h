@@ -175,7 +175,7 @@ struct WBClientData
 		rect(),
 		tool(Tool::PaintBrush),
 		clrIndex(0),
-		thickness(5.0f)
+		thickness(10.0f)
 	{
 		for(BYTE i = 0; i < 3; i++)
 			vertices[i] = {};
@@ -188,7 +188,7 @@ struct WBClientData
 		rect(),
 		tool(Tool::PaintBrush),
 		clrIndex(0),
-		thickness(5.0f)
+		thickness(10.0f)
 	{
 		for(BYTE i = 0; i < 3; i++)
 			vertices[i] = {};

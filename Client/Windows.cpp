@@ -1650,6 +1650,7 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_LBUTTONDOWN:
 	{
 		const USHORT x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
+
 		Whiteboard& wb = *pWhiteboard;
 		if(x < wb.GetWidth() && y < wb.GetHeight())
 			wb.GetMServ().OnLeftPressed(x, y);
@@ -1733,6 +1734,11 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	//	}
 	//	break;
 	//}
+
+	case WM_ACTIVATE:
+		pWhiteboard->BeginFrame();
+		pWhiteboard->EndFrame();
+		break;
 
 	case WM_CLOSE:
 		client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_LEFT);

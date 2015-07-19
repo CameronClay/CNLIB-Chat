@@ -146,10 +146,7 @@ void Whiteboard::PaintBrush(WBClientData& clientData, bool begin, bool end)
 		switch(ev.GetType())
 		{
 		case MouseEvent::LPress:
-			if(clientData.nVertices == 0)
-			{
 				clientData.vertices[clientData.nVertices++] = vect;
-			}
 			break;
 
 		case MouseEvent::LRelease:
@@ -461,9 +458,9 @@ void Whiteboard::MakeRectPixels(const RectU& rect, char* ptr)
 	memcpy(ptr, &rect, offset);
 	ptr += offset;
 
-	for(USHORT iy = 0, height = 1 + rect.bottom - rect.top; iy < height; iy++)
+	for(size_t iy = 0, height = 1 + rect.bottom - rect.top; iy < height; iy++)
 	{
-		for(USHORT ix = 0, width = 1 + rect.right - rect.left; ix < width; ix++)
+		for(size_t ix = 0, width = 1 + rect.right - rect.left; ix < width; ix++)
 		{
 			ptr[(iy * width) + ix] = pixels[((iy + rect.top) * params.width) + (ix + rect.left)];
 		}
