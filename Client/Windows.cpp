@@ -1506,8 +1506,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			WBParams *wbp = (WBParams*)lParam;
 			CreateWBWindow( wbp->width, wbp->height );
-			pWhiteboard->Initialize(wbHandle);
-			pWhiteboard->StartThread(client);
 		}	break;
 		}
 	}	break;
@@ -1771,6 +1769,11 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	//	}
 	//	break;
 	//}
+
+	case WM_CREATE:
+		pWhiteboard->Initialize(hWnd);
+		pWhiteboard->StartThread(client);
+		break;
 
 	case WM_ACTIVATE:
 		pWhiteboard->BeginFrame();
