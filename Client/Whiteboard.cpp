@@ -2,6 +2,7 @@
 #include "CNLIB\Messages.h"
 #include <assert.h>
 #include "CNLIB\HeapAlloc.h"
+#include "CNLIB\MsgStream.h"
 
 struct WBThreadParams
 {
@@ -65,9 +66,11 @@ DWORD CALLBACK WBThread(LPVOID param)
 }
 
 
-Whiteboard::Whiteboard(Palette& palette, USHORT Width, USHORT Height, USHORT FPS, BYTE palIndex)
+Whiteboard::Whiteboard(TCPClientInterface& clint, Palette& palette, USHORT Width, USHORT Height, USHORT FPS, BYTE palIndex)
 	:
+clint(clint),
 mouse((FPS < 60 ? 3000 / FPS : 50), (USHORT)((1000.0f / (float)FPS) + 0.5f)),
+defaultColor(palIndex),
 palIndex(palIndex),
 hWnd(NULL),
 width(Width),
@@ -86,7 +89,9 @@ lockRect()
 
 Whiteboard::Whiteboard(Whiteboard&& wb)
 	:
+	clint(wb.clint),
 	mouse(std::move(wb.mouse)),
+	defaultColor(wb.defaultColor),
 	palIndex(wb.palIndex),
 	hWnd(wb.hWnd),
 	width(wb.width),
@@ -246,6 +251,18 @@ void Whiteboard::InitD3D()
 	assert(SUCCEEDED(hr));
 }
 
+
+void Whiteboard::ChangeTool(Tool tool, float brushSize, BYTE palIndex)
+{
+	const DWORD nBytes = sizeof(Tool) + sizeof(float) + sizeof(BYTE);
+	MsgStreamWriter streamWriter(TYPE_TOOL, MSG_TOOL_CHANGE, nBytes);
+	streamWriter.Write(tool);
+	streamWriter.Write(brushSize);
+	streamWriter.Write(palIndex);
+	HANDLE hnd = clint.SendServData(streamWriter, streamWriter.GetSize());
+	WaitAndCloseHandle(hnd);	
+}
+
 const Palette const &Whiteboard::GetPalette(BYTE& count)
 {
 	count = 32;
@@ -256,6 +273,11 @@ const Palette const &Whiteboard::GetPalette(BYTE& count)
 HANDLE Whiteboard::GetTimer() const
 {
 	return timer;
+}
+
+BYTE Whiteboard::GetDefaultColor() const
+{
+	return defaultColor;
 }
 
 

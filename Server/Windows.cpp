@@ -324,9 +324,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 		{
 			if(wb)
 			{
-				auto& map = wb->GetMap();
-				WBClientData& wbClientData = map[clint->pc];
-
+				WBClientData& wbClientData = wb->GetClientData(clint->pc);
 				wbClientData.mServ.Insert((BYTE*)dat, nBytes);
 			}
 			break;
@@ -554,6 +552,32 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 		}
 		}
 	}//TYPE_WHITEBOARD
+	case TYPE_TOOL:
+	{
+		switch(msg)
+		{
+		case MSG_TOOL_CHANGE:
+		{
+			WBClientData& wbClientData = wb->GetClientData(clint->pc);
+			wbClientData.tool = streamReader.Read<Tool>();
+			const float sizeAmount = streamReader.Read<float>();
+
+			if(wbClientData.thickness + sizeAmount < WBClientData::MINBRUSHSIZE)
+				wbClientData.thickness = WBClientData::MAXBRUSHSIZE;
+			else if(wbClientData.thickness + sizeAmount > WBClientData::MAXBRUSHSIZE)
+				wbClientData.thickness = WBClientData::MINBRUSHSIZE;
+			else
+				wbClientData.thickness += sizeAmount;
+
+			const BYTE clr = streamReader.Read<BYTE>();
+			if(clr != WBClientData::UNCHANGEDCOLOR)
+				wbClientData.clrIndex = clr;
+
+			break;
+		}
+		}
+		break;
+	}//TYPE_TOOL
 	}
 }
 

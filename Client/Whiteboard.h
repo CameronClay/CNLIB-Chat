@@ -11,7 +11,7 @@
 class Whiteboard
 {
 public:
-	Whiteboard(Palette& palette, USHORT Width, USHORT Height, USHORT FPS, BYTE palIndex = 0);
+	Whiteboard(TCPClientInterface& clint, Palette& palette, USHORT Width, USHORT Height, USHORT FPS, BYTE palIndex = 0);
 	Whiteboard(Whiteboard&& wb);
 	~Whiteboard();
 
@@ -23,10 +23,14 @@ public:
 	void BeginFrame();
 	void EndFrame();
 
+	//brushSize is relative
+	void ChangeTool(Tool tool, float brushSize, BYTE palIndex);
+
 	MouseServer& GetMServ();
 	USHORT GetWidth() const;
 	USHORT GetHeight() const;
 	HANDLE GetTimer() const;
+	BYTE GetDefaultColor() const;
 private:
 	void InitD3D();
 	void Draw(const RECT &rect, const BYTE *pixelData);
@@ -34,8 +38,11 @@ private:
 
 	const Palette& GetPalette(BYTE& count);
 
+
+	TCPClientInterface& clint;
 	MouseServer mouse;
 
+	const BYTE defaultColor;
 	BYTE palIndex;
 
 	HWND hWnd;

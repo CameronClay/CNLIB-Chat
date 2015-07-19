@@ -178,6 +178,7 @@
     <ClCompile Include="..\Common\Mouse.cpp" />
     <ClCompile Include="..\Common\Palette.cpp" />
     <ClCompile Include="..\Common\Timer.cpp" />
+    <ClCompile Include="..\Common\WhiteboardClientData.cpp" />
     <ClCompile Include="..\Common\WinFirewall.cpp" />
     <ClCompile Include="Whiteboard.cpp" />
     <ClCompile Include="Windows.cpp" />

@@ -121,6 +121,11 @@ CRITICAL_SECTION* Whiteboard::GetMapSect()
 	return &mapSect;
 }
 
+WBClientData& Whiteboard::GetClientData(Socket pc)
+{
+	return clients[pc];
+}
+
 bool Whiteboard::IsCreator(const std::tstring& user) const
 {
 	return creator.compare(user) == 0;
@@ -139,10 +144,6 @@ void Whiteboard::PaintBrush(WBClientData& clientData, bool begin, bool end)
 
 		const Vec2 vect = { (float)ev.GetX(), (float)ev.GetY() };
 
-		BYTE clr = 0;
-		while(clr == params.clrIndex)
-			clr = rand() % 31;
-
 		switch(ev.GetType())
 		{
 		case MouseEvent::LPress:
@@ -152,19 +153,26 @@ void Whiteboard::PaintBrush(WBClientData& clientData, bool begin, bool end)
 		case MouseEvent::LRelease:
 			if(clientData.nVertices == 1)
 			{
-				const float width = clientData.thickness * 0.5f;
-				const Vec2 temp = clientData.vertices[0];
-
-				const Vec2 points[] =
+				if(clientData.thickness == 1)
 				{
-					ModifyPoint({ temp.x + width, temp.y + width }),
-					ModifyPoint({ temp.x - width, temp.y + width }),
-					ModifyPoint({ temp.x - width, temp.y - width }),
-					ModifyPoint({ temp.x + width, temp.y - width })
-				};
+					PutPixel(clientData.vertices[0].x, clientData.vertices[0].y, clientData.clrIndex);
+				}
+				else
+				{
+					const float width = clientData.thickness * 0.5f;
+					const Vec2 temp = clientData.vertices[0];
 
-				DrawQuadrilateral(points, clr);
-				clientData.rect = ResetRect(points[0], points[2], clientData.thickness);
+					const Vec2 points[] =
+					{
+						ModifyPoint({ temp.x + width, temp.y + width }),
+						ModifyPoint({ temp.x - width, temp.y + width }),
+						ModifyPoint({ temp.x - width, temp.y - width }),
+						ModifyPoint({ temp.x + width, temp.y - width })
+					};
+
+					DrawQuadrilateral(points, clientData.clrIndex);
+					clientData.rect = ResetRect(points[0], points[2]);
+				}
 			}
 			clientData.nVertices = 0;
 			send = true;
@@ -174,38 +182,46 @@ void Whiteboard::PaintBrush(WBClientData& clientData, bool begin, bool end)
 		{
 			if(clientData.nVertices != 0)
 			{
-				const Vec2 norm = (vect - clientData.vertices[0]).CCW90().Normalize();
-				const Vec2 normOffset = norm * clientData.thickness * 0.5f;
-				Vec2 points[4];
-
-				if(clientData.nVertices == 3)
+				if(clientData.thickness > 1)
 				{
-					points[0] = clientData.vertices[1];
-					points[1] = clientData.vertices[2];
+					const Vec2 norm = (vect - clientData.vertices[0]).CCW90().Normalize();
+					const Vec2 normOffset = norm * clientData.thickness * 0.5f;
+					Vec2 points[4];
+
+					if(clientData.nVertices == 3)
+					{
+						points[0] = clientData.vertices[1];
+						points[1] = clientData.vertices[2];
+					}
+					else
+					{
+						points[0] = ModifyPoint(clientData.vertices[0] + normOffset);
+						points[1] = ModifyPoint(clientData.vertices[0] - normOffset);
+
+
+						clientData.rect = ResetRect(points[0], points[1]);
+					}
+
+					points[2] = ModifyPoint(vect - normOffset);
+					points[3] = ModifyPoint(vect + normOffset);
+
+					ModifyRect(clientData.rect, points[2], points[3]);
+
+					DrawQuadrilateral(points, clientData.clrIndex);
+
+					clientData.vertices[1] = points[3];
+					clientData.vertices[2] = points[2];
+
+					clientData.nVertices = 3;
 				}
 				else
 				{
-					points[0] = ModifyPoint(clientData.vertices[0] + normOffset);
-					points[1] = ModifyPoint(clientData.vertices[0] - normOffset);
-
-
-					clientData.rect = ResetRect(points[0], points[1], clientData.thickness);
+					ModifyRect(clientData.rect, clientData.vertices[0], vect);
+					DrawLine(PointU(clientData.vertices[0].x, clientData.vertices[0].y), PointU(vect.x, vect.y), clientData.clrIndex);
 				}
-
-				points[2] = ModifyPoint(vect - normOffset);
-				points[3] = ModifyPoint(vect + normOffset);
-
-				ModifyRect(clientData.rect, points[2], points[3], clientData.thickness);
-
-				DrawQuadrilateral(points, clr);
-
 
 				clientData.vertices[0] = vect;
 					
-				clientData.vertices[1] = points[3];
-				clientData.vertices[2] = points[2];
-
-				clientData.nVertices = 3;
 				send = true;
 
 			}
@@ -393,7 +409,7 @@ Vec2 Whiteboard::ModifyPoint(const Vec2& vect)
 	return temp;
 }
 
-RectU Whiteboard::ResetRect(const Vec2& p0, const Vec2& p1, float width) const
+RectU Whiteboard::ResetRect(const Vec2& p0, const Vec2& p1) const
 {
 	RectU rect;
 
@@ -422,7 +438,7 @@ RectU Whiteboard::ResetRect(const Vec2& p0, const Vec2& p1, float width) const
 	return rect;
 }
 
-void Whiteboard::ModifyRect(RectU& rect, const Vec2& p0, const Vec2& p1, float width)
+void Whiteboard::ModifyRect(RectU& rect, const Vec2& p0, const Vec2& p1)
 {
 	if(p1.x > p0.x)
 	{
@@ -486,7 +502,7 @@ void Whiteboard::AddClient(Socket pc)
 {
 	EnterCriticalSection(&mapSect);
 
-	clients.emplace(pc, WBClientData(params.fps));
+	clients.emplace(pc, WBClientData(params.fps, params.clrIndex));
 	sendPcs.push_back(pc);
 
 	LeaveCriticalSection(&mapSect);

@@ -156,6 +156,7 @@
     <ClCompile Include="..\Common\Mouse.cpp" />
     <ClCompile Include="..\Common\Palette.cpp" />
     <ClCompile Include="..\Common\Timer.cpp" />
+    <ClCompile Include="..\Common\WhiteboardClientData.cpp" />
     <ClCompile Include="..\Common\WinFirewall.cpp" />
     <ClCompile Include="FileTransfer.cpp" />
     <ClCompile Include="Options.cpp" />
@@ -200,4 +201,9 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties RESOURCE_FILE="Resource.rc" />
+    </VisualStudio>
+  </ProjectExtensions>
 </Project>

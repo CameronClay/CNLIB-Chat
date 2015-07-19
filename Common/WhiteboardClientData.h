@@ -9,7 +9,7 @@
 
 enum class Tool
 {
-	PaintBrush, Line, Rect, FilledRect, ellipse, FilledEllipse, INVALID
+	PaintBrush, INVALID
 };
 
 struct PointU
@@ -175,21 +175,26 @@ struct WBClientData
 		rect(),
 		tool(Tool::PaintBrush),
 		clrIndex(0),
-		thickness(10.0f)
+		thickness(1.0f)
 	{
 		for(BYTE i = 0; i < 3; i++)
 			vertices[i] = {};
 	}
 
-	WBClientData(USHORT FPS)
+	WBClientData(USHORT FPS, BYTE defColor)
 		:
 		mServ((FPS < 60 ? 3000 / FPS : 50), (USHORT)((1000.0f / (float)FPS) + 0.5f)),
 		nVertices(0),
 		rect(),
 		tool(Tool::PaintBrush),
 		clrIndex(0),
-		thickness(10.0f)
+		thickness(1.0f)
 	{
+		do
+		{
+			clrIndex = rand() % 32;
+		} while(clrIndex == defColor);
+
 		for(BYTE i = 0; i < 3; i++)
 			vertices[i] = {};
 	}
@@ -219,5 +224,10 @@ struct WBClientData
 
 	Tool tool;								// Enums are sizeof(int) 4 bytes
 	BYTE clrIndex;							// Palette color is 1 bytes
-	float thickness;					
+	float thickness;				
+
+	static const size_t UNCHANGEDCOLOR;
+	static const float MINBRUSHSIZE;
+	static const float MAXBRUSHSIZE;
 };
+

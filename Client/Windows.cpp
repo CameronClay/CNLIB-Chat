@@ -777,6 +777,7 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 
 				pWhiteboard = construct(
 					Whiteboard(
+					*client,
 					palette,
 					pParams->width,
 					pParams->height,
@@ -1256,7 +1257,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 
 		case ID_BUTTON_ENTER:
-		case ENTER:
+		case HK_ENTER:
 		{
 			if (GetWindowTextLength(textInput) == 0) break;
 
@@ -1282,6 +1283,42 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			HANDLE hnd = client->SendServData(msg, nBytes);
 			WaitAndCloseHandle(hnd);
 			dealloc(msg);
+			break;
+		}
+
+		case HK_BRUSH:
+		{
+			if(pWhiteboard)
+			{
+				const BYTE defColor = pWhiteboard->GetDefaultColor();
+				BYTE clr;
+				do
+				{
+					clr = rand() % 32;
+				} while(clr == defColor);
+				pWhiteboard->ChangeTool(Tool::PaintBrush, 0.0f, clr);
+			}
+			break;
+		}
+
+		case HK_ERASER:
+		{
+			if(pWhiteboard)
+				pWhiteboard->ChangeTool(Tool::PaintBrush, 0.0f, pWhiteboard->GetDefaultColor());
+			break;
+		}
+
+		case HK_BRUSHSIZE_DOWN:
+		{
+			if(pWhiteboard)
+				pWhiteboard->ChangeTool(Tool::PaintBrush, -1.0f, WBClientData::UNCHANGEDCOLOR);
+			break;
+		}
+
+		case HK_BRUSHSIZE_UP:
+		{
+			if(pWhiteboard)
+				pWhiteboard->ChangeTool(Tool::PaintBrush, 1.0f, WBClientData::UNCHANGEDCOLOR);
 			break;
 		}
 

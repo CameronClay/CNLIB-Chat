@@ -33,6 +33,7 @@ public:
 	const WBParams& GetParams() const;
 	const Palette& GetPalette() const;
 	HANDLE GetTimer() const;
+	WBClientData& GetClientData(Socket pc);
 
 	class SendThread
 	{
@@ -169,8 +170,8 @@ private:
 
 	Vec2 ModifyPoint(const Vec2& vect);
 
-	RectU ResetRect(const Vec2& p0, const Vec2& p1, float width) const;
-	void ModifyRect(RectU& rect, const Vec2& p0, const Vec2& p1, float width);
+	RectU ResetRect(const Vec2& p0, const Vec2& p1) const;
+	void ModifyRect(RectU& rect, const Vec2& p0, const Vec2& p1);
 
 	UINT GetBufferLen(const RectU& rec) const;
 	void MakeRectPixels(const RectU& rect, char* ptr);
