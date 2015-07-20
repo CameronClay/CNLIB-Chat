@@ -19,7 +19,7 @@ public:
 
 	void SendBitmap(const RectU& rect);
 	void SendBitmap(const RectU& rect, const Socket& sock, bool single);
-	void QueueSendBitmap(const RectU& rect, const Socket& sock, bool beginFrame, bool endFrame);
+	void QueueSendBitmap(const RectU& rect, const Socket& sock);
 
 	void Draw();
 
@@ -43,8 +43,6 @@ public:
 			wb(wb),
 			rect(),
 			sock(),
-			beginFrame(false),
-			endFrame(false),
 			sendThreadEv(CreateEvent(NULL, TRUE, FALSE, NULL)),
 			wbThreadEv(CreateEvent(NULL, TRUE, TRUE, NULL)),
 			sendThread(NULL),
@@ -55,8 +53,6 @@ public:
 			wb(wb),
 			rect(thread.rect),
 			sock(thread.sock),
-			beginFrame(thread.beginFrame),
-			endFrame(thread.endFrame),
 			sendThreadEv(thread.sendThreadEv),
 			wbThreadEv(thread.wbThreadEv),
 			sendThread(thread.sendThread),
@@ -111,11 +107,6 @@ public:
 		{
 			sock = socket;
 		}
-		void SetBeginEnd(bool begin, bool end)
-		{
-			beginFrame = begin;
-			endFrame = end;
-		}
 
 		const RectU& GetRect() const
 		{
@@ -137,19 +128,10 @@ public:
 		{
 			return wbThreadEv;
 		}
-		bool GetBegin() const
-		{
-			return beginFrame;
-		}
-		bool GetEnd() const
-		{
-			return endFrame;
-		}
 	private:
 		Whiteboard& wb;
 		RectU rect;
 		Socket sock;
-		bool beginFrame, endFrame;
 		HANDLE sendThreadEv, wbThreadEv;
 
 		HANDLE sendThread;
@@ -164,20 +146,14 @@ private:
 	void DrawTriangle(Vec2 v0, Vec2 v1, Vec2 v2, BYTE clr);
 
 
-	void PaintBrush(WBClientData& clientData, bool begin, bool end);
-	void DrawLine(const PointU& p1, const PointU& p2, BYTE clr);
+	void PaintBrush(WBClientData& clientData);
+	void DrawLine(int x1, int y1, int x2, int y2, BYTE clr);
 	void DrawQuadrilateral(const Vec2* vertices, BYTE clr);
 
 	Vec2 ModifyPoint(const Vec2& vect);
 
-	RectU ResetRect(const Vec2& p0, const Vec2& p1) const;
-	void ModifyRect(RectU& rect, const Vec2& p0, const Vec2& p1);
-
 	UINT GetBufferLen(const RectU& rec) const;
 	void MakeRectPixels(const RectU& rect, char* ptr);
-
-	size_t FirstClientWD();
-	size_t LastClientWD();
 private:
 	BYTE *pixels;
 	WBParams params;

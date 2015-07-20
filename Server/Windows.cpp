@@ -377,7 +377,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 				WaitAndCloseHandle(hnd);
 			}
 			RectU rect(0, 0, wbParams.width, wbParams.height);
-			wb->QueueSendBitmap(rect, clint->pc, true, true);
+			wb->QueueSendBitmap(rect, clint->pc);
 
 			{
 				const DWORD nameLen = clint->user.size() + 1;

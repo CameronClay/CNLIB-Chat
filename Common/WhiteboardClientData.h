@@ -134,8 +134,76 @@ struct RectU :RECT
 		return (*this);
 	}
 
-	~RectU()
-	{}
+	inline static RectU Create(const Vec2& p0)
+	{
+		return{ (USHORT)p0.x, (USHORT)p0.y, (USHORT)p0.x, (USHORT)p0.y };
+	}
+
+	static RectU Create(const Vec2& p0, const Vec2& p1)
+	{
+		RectU rect;
+
+		if(p1.x > p0.x)
+		{
+			rect.left = p0.x;
+			rect.right = p1.x;
+		}
+		else
+		{
+			rect.left = p1.x;
+			rect.right = p0.x;
+		}
+
+		if(p0.y > p1.y)
+		{
+			rect.top = p1.y;
+			rect.bottom = p0.y;
+		}
+		else
+		{
+			rect.top = p0.y;
+			rect.bottom = p1.y;
+		}
+
+		return rect;
+	}
+
+	void Modify(const Vec2& p0)
+	{
+		if(p0.x > right)
+			right = p0.x;
+		else if(p0.x < left)
+			left = p0.x;
+		if(p0.y > bottom)
+			bottom = p0.y;
+		else if(p0.y < top)
+			top = p0.y;
+	}
+
+	void Modify(const Vec2& p0, const Vec2& p1)
+	{
+		if(p1.x > p0.x)
+		{
+			left = (p0.x > left) ? left : p0.x;
+			right = (p1.x < right) ? right : p1.x;
+		}
+		else
+		{
+			left = (p1.x > left) ? left : p1.x;
+			right = (p0.x < right) ? right : p0.x;
+		}
+
+		if(p0.y > p1.y)
+		{
+			top = (p1.y > top) ? top : p1.y;
+			bottom = (p0.y < bottom) ? bottom : p0.y;
+		}
+		else
+		{
+			top = (p0.y > top) ? top : p0.y;
+			bottom = (p1.y < bottom) ? bottom : p1.y;;
+		}
+	}
 };
 
 

@@ -565,11 +565,9 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				{
 					if(pWhiteboard)
 					{
-						const bool beginFrame = streamReader.Read<bool>();
-						const bool endFrame = streamReader.Read<bool>();
 						RectU& rect = streamReader.Read<RectU>();
 						BYTE* pixels = streamReader.ReadEnd<BYTE>();
-						pWhiteboard->Frame(rect, pixels, beginFrame, endFrame);
+						pWhiteboard->Frame(rect, pixels);
 					}
 					break;
 				}

@@ -120,15 +120,11 @@ void Whiteboard::Initialize(HWND WinHandle)
 	EndFrame();
 }
 
-void Whiteboard::Frame(const RectU &rect, const BYTE *pixelData, bool beginFrame, bool endFrame)
+void Whiteboard::Frame(const RectU &rect, const BYTE *pixelData)
 {
-	if(beginFrame)
-		BeginFrame();
-
+	BeginFrame();
 	Draw(rect, pixelData);
-
-	if(endFrame)
-		EndFrame();
+	EndFrame();
 }
 
 MouseServer& Whiteboard::GetMServ()

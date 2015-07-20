@@ -18,7 +18,7 @@ public:
 	void StartThread(TCPClientInterface* client);
 
 	void Initialize(HWND WinHandle);
-	void Frame(const RectU &rect, const BYTE *pixelData, bool beginFrame, bool endFrame);
+	void Frame(const RectU &rect, const BYTE *pixelData);
 	void SendMouseData(TCPClientInterface* client);
 	void BeginFrame();
 	void EndFrame();
