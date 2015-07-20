@@ -175,6 +175,9 @@ private:
 
 	UINT GetBufferLen(const RectU& rec) const;
 	void MakeRectPixels(const RectU& rect, char* ptr);
+
+	size_t FirstClientWD();
+	size_t LastClientWD();
 private:
 	BYTE *pixels;
 	WBParams params;

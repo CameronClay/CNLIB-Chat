@@ -240,7 +240,14 @@ void Whiteboard::Draw()
 {
 	EnterCriticalSection(&mapSect);
 
-	for(auto& it = clients.begin(), end = clients.end(); it != end; it++)
+	const size_t first = FirstClientWD();
+	const size_t last = LastClientWD() + 1;
+
+	size_t i = first;
+	auto& it = clients.begin();
+	std::advance(it, first);
+
+	for(auto& end = clients.end(); i != last; it++, i++)
 	{
 		MouseClient mouse(it->second.mServ);
 		const Tool myTool = it->second.tool;
@@ -250,13 +257,32 @@ void Whiteboard::Draw()
 			switch(myTool)
 			{
 			case Tool::PaintBrush:
-				PaintBrush(it->second, it == clients.begin(), it == --clients.end());
+				PaintBrush(it->second, i == first, i == last - 1);
 				break;
 			}
 		}
 	}
 
 	LeaveCriticalSection(&mapSect);
+}
+size_t Whiteboard::FirstClientWD()
+{
+	for(auto& it = clients.begin(), end = clients.end(); it != end; it++)
+	{
+		MouseClient mouse(it->second.mServ);
+		if(!mouse.MouseEmpty())
+			return std::distance(it, end) - 1;
+	}
+}
+
+size_t Whiteboard::LastClientWD()
+{
+	for(auto& it = clients.rbegin(), end = clients.rend(); it != end; it++)
+	{
+		MouseClient mouse(it->second.mServ);
+		if(!mouse.MouseEmpty())
+			return std::distance(it, end) - 1;
+	}
 }
 
 void Whiteboard::PutPixel(const PointU& point, BYTE clr)
