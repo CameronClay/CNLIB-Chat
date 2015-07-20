@@ -243,7 +243,8 @@ struct WBClientData
 		rect(),
 		tool(Tool::PaintBrush),
 		clrIndex(0),
-		thickness(1.0f)
+		thickness(1.0f),
+		prevThickness(1.0f)
 	{
 		for(BYTE i = 0; i < 3; i++)
 			vertices[i] = {};
@@ -256,7 +257,8 @@ struct WBClientData
 		rect(),
 		tool(Tool::PaintBrush),
 		clrIndex(0),
-		thickness(1.0f)
+		thickness(1.0f),
+		prevThickness(1.0f)
 	{
 		do
 		{
@@ -274,7 +276,8 @@ struct WBClientData
 		rect(clientData.rect),
 		tool(clientData.tool),
 		clrIndex(clientData.clrIndex),
-		thickness(clientData.thickness)
+		thickness(clientData.thickness),
+		prevThickness(clientData.prevThickness)
 	{
 		clientData.tool = Tool::INVALID;
 
@@ -292,7 +295,7 @@ struct WBClientData
 
 	Tool tool;								// Enums are sizeof(int) 4 bytes
 	BYTE clrIndex;							// Palette color is 1 bytes
-	float thickness;				
+	float thickness, prevThickness;
 
 	static const size_t UNCHANGEDCOLOR;
 	static const float MINBRUSHSIZE;

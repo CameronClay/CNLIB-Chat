@@ -147,7 +147,7 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 		switch(ev.GetType())
 		{
 		case MouseEvent::LPress:
-				clientData.vertices[clientData.nVertices++] = vect;
+			clientData.vertices[clientData.nVertices++] = vect;
 			break;
 
 		case MouseEvent::LRelease:
@@ -156,6 +156,7 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 				if(clientData.thickness == 1.0f)
 				{
 					PutPixel(clientData.vertices[0].x, clientData.vertices[0].y, clientData.clrIndex);
+					clientData.rect = RectU::Create(vect);
 				}
 				else
 				{
@@ -174,6 +175,7 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 					clientData.rect = RectU::Create(points[0], points[2]);
 				}
 			}
+
 			clientData.nVertices = 0;
 			send = true;
 			break;
@@ -190,15 +192,25 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 
 					if(clientData.nVertices == 3)
 					{
-						points[0] = clientData.vertices[1];
-						points[1] = clientData.vertices[2];
+						//thickness was not changed since last update
+						if(clientData.prevThickness == clientData.thickness)
+						{
+							points[0] = clientData.vertices[1];
+							points[1] = clientData.vertices[2];
+						}
+						//thickness used to be 1
+						else
+						{
+							points[0] = ModifyPoint(clientData.vertices[0] + normOffset);
+							points[1] = ModifyPoint(clientData.vertices[0] - normOffset);
+							clientData.rect = RectU::Create(points[0], points[1]);
+							clientData.prevThickness = clientData.thickness;
+						}
 					}
 					else
 					{
 						points[0] = ModifyPoint(clientData.vertices[0] + normOffset);
 						points[1] = ModifyPoint(clientData.vertices[0] - normOffset);
-
-
 						clientData.rect = RectU::Create(points[0], points[1]);
 					}
 
@@ -211,7 +223,6 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 
 					clientData.vertices[1] = points[3];
 					clientData.vertices[2] = points[2];
-
 				}
 				else
 				{
@@ -225,7 +236,6 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 				clientData.vertices[0] = vect;
 				clientData.nVertices = 3;
 				send = true;
-
 			}
 			break;
 		}
@@ -421,9 +431,9 @@ void Whiteboard::MakeRectPixels(const RectU& rect, char* ptr)
 	memcpy(ptr, &rect, offset);
 	ptr += offset;
 
-	for(size_t iy = 0, height = 1 + rect.bottom - rect.top; iy < height; iy++)
+	for(size_t iy = 0, height = min(1 + rect.bottom - rect.top, params.height); iy < height; iy++)
 	{
-		for(size_t ix = 0, width = 1 + rect.right - rect.left; ix < width; ix++)
+		for(size_t ix = 0, width = min(1 + rect.right - rect.left, params.width); ix < width; ix++)
 		{
 			ptr[(iy * width) + ix] = pixels[((iy + rect.top) * params.width) + (ix + rect.left)];
 		}

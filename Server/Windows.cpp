@@ -562,6 +562,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 			wbClientData.tool = streamReader.Read<Tool>();
 			const float sizeAmount = streamReader.Read<float>();
 
+			wbClientData.prevThickness = wbClientData.thickness;
 			if(wbClientData.thickness + sizeAmount < WBClientData::MINBRUSHSIZE)
 				wbClientData.thickness = WBClientData::MAXBRUSHSIZE;
 			else if(wbClientData.thickness + sizeAmount > WBClientData::MAXBRUSHSIZE)
@@ -572,7 +573,6 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 			const BYTE clr = streamReader.Read<BYTE>();
 			if(clr != WBClientData::UNCHANGEDCOLOR)
 				wbClientData.clrIndex = clr;
-
 			break;
 		}
 		}

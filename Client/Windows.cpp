@@ -1704,6 +1704,8 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		leftPressed = false;
 
+		prevX = x;
+		prevY = y;
 		break;
 	}
 	//case WM_RBUTTONDOWN:
