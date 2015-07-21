@@ -65,7 +65,7 @@ public:
 			Exit();
 		}
 
-		void SingleSendThread()
+		void SignalSendThread()
 		{
 			SetEvent(sendThreadEv);
 		}

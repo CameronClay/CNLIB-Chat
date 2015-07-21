@@ -533,7 +533,7 @@ void Whiteboard::QueueSendBitmap(const RectU& rect, const Socket& sock)
 	WaitForSingleObject(sendThread.GetWbThreadEv(), INFINITE);
 	sendThread.SetRect(rect);
 	sendThread.SetSinglePC(sock);
-	sendThread.SingleSendThread();
+	sendThread.SignalSendThread();
 	sendThread.ResetWbEv();
 }
 
