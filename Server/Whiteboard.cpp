@@ -144,8 +144,6 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 	else if(clientData.nVertices == 1 || clientData.nVertices == -1)//-1 for single line identifer
 		rect = RectU::Create(clientData.vertices[0]);
 
-	static MouseEvent prevEvent;
-
 	for(size_t i = 0; i < evCount; i++)
 	{
 		const MouseEvent ev = mouse.GetEvent(i);
@@ -247,7 +245,6 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 			break;
 		}
 		}
-		prevEvent = ev;
 	}
 
 	mouse.Erase(evCount);
