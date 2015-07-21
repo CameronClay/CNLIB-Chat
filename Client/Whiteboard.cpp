@@ -171,9 +171,11 @@ void Whiteboard::BeginFrame()
 
 void Whiteboard::Draw(const RECT &rect, const BYTE *pixelData)
 {
-	for(size_t y = 0, rHeight = min(1 + rect.bottom - rect.top, height); y < rHeight; y++)
+	const size_t rHeight = min(1 + rect.bottom - rect.top, height);
+	const size_t rWidth = min(1 + rect.right - rect.left, width);
+	for(size_t y = 0; y < rHeight; y++)
 	{
-		for(size_t x = 0, rWidth = min(1 + rect.right - rect.left, width); x < rWidth; x++)
+		for(size_t x = 0; x < rWidth; x++)
 		{
 			D3DCOLOR* d3dSurf = (D3DCOLOR*)&((char*)lockRect.pBits)[pitch * ((x + rect.left) + (y + rect.top) * width)];
 			*d3dSurf = palette.GetRGBColor(pixelData[x + y * rWidth]);

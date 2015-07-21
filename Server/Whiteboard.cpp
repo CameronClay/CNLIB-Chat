@@ -439,9 +439,11 @@ void Whiteboard::MakeRectPixels(const RectU& rect, char* ptr)
 	memcpy(ptr, &rect, offset);
 	ptr += offset;
 
-	for(size_t iy = 0, height = min(1 + rect.bottom - rect.top, params.height); iy < height; iy++)
+	const size_t height = min(1 + rect.bottom - rect.top, params.height);
+	const size_t width = min(1 + rect.right - rect.left, params.width);
+	for(size_t iy = 0; iy < height; iy++)
 	{
-		for(size_t ix = 0, width = min(1 + rect.right - rect.left, params.width); ix < width; ix++)
+		for(size_t ix = 0; ix < width; ix++)
 		{
 			ptr[(iy * width) + ix] = pixels[((iy + rect.top) * params.width) + (ix + rect.left)];
 		}
