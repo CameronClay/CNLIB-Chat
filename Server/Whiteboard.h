@@ -139,8 +139,10 @@ public:
 	};
 
 private:
-	void PutPixel(const PointU& point, BYTE clr);
-	void PutPixel(int x, int y, BYTE clr);
+	inline void PutPixel(int x, int y, BYTE clr)
+	{
+		pixels[x + (y * params.width)] = clr;
+	}
 
 	void DrawFlatTriangle(float y0, float y1, float m0, float b0, float m1, float b1, BYTE clr);
 	void DrawTriangle(Vec2 v0, Vec2 v1, Vec2 v2, BYTE clr);
@@ -150,7 +152,7 @@ private:
 	void DrawLine(int x1, int y1, int x2, int y2, BYTE clr);
 	void DrawQuadrilateral(const Vec2* vertices, BYTE clr);
 
-	Vec2 ModifyPoint(const Vec2& vect);
+	Vec2 ModifyPoint(Vec2 vect);
 
 	UINT GetBufferLen(const RectU& rec) const;
 	void MakeRectPixels(const RectU& rect, char* ptr);

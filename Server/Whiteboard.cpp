@@ -136,56 +136,21 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 	MouseClient mouse(clientData.mServ);
 	const size_t evCount = mouse.EventCount();
 
-	bool send = false;
-
 	RectU rect;
 	if(clientData.nVertices == 3)
 		rect = RectU::Create(clientData.vertices[1], clientData.vertices[2]);
 	else if(clientData.nVertices == 1 || clientData.nVertices == -1)//-1 for single line identifer
 		rect = RectU::Create(clientData.vertices[0]);
 
+	bool send = false;
+
 	for(size_t i = 0; i < evCount; i++)
 	{
 		const MouseEvent ev = mouse.GetEvent(i);
-
 		const Vec2 vect = { (float)ev.GetX(), (float)ev.GetY() };
 
 		switch(ev.GetType())
 		{
-		case MouseEvent::LPress:
-			clientData.vertices[clientData.nVertices++] = vect;
-			break;
-
-		case MouseEvent::LRelease:
-			if(clientData.nVertices == 1)
-			{
-				if(clientData.thickness == 1.0f)
-				{
-					PutPixel(clientData.vertices[0].x, clientData.vertices[0].y, clientData.clrIndex);
-					rect = RectU::Create(vect);
-				}
-				else
-				{
-					const float width = clientData.thickness * 0.5f;
-					const Vec2 temp = clientData.vertices[0];
-
-					const Vec2 points[] =
-					{
-						ModifyPoint({ temp.x + width, temp.y + width }),
-						ModifyPoint({ temp.x - width, temp.y + width }),
-						ModifyPoint({ temp.x - width, temp.y - width }),
-						ModifyPoint({ temp.x + width, temp.y - width })
-					};
-
-					DrawQuadrilateral(points, clientData.clrIndex);
-					rect = RectU::Create(points[0], points[2]);
-				}
-			}
-
-			clientData.nVertices = 0;
-			send = true;
-			break;
-
 		case MouseEvent::Move:
 		{
 			if(clientData.nVertices != 0)
@@ -238,12 +203,42 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 					//-1 for single line identifer
 					clientData.nVertices = -1;
 				}
-
 				clientData.vertices[0] = vect;
 				send = true;
 			}
 			break;
 		}
+		case MouseEvent::LPress:
+			clientData.vertices[clientData.nVertices++] = vect;
+			break;
+		case MouseEvent::LRelease:
+			if(clientData.nVertices == 1)
+			{
+				if(clientData.thickness == 1.0f)
+				{
+					PutPixel(clientData.vertices[0].x, clientData.vertices[0].y, clientData.clrIndex);
+					rect = RectU::Create(vect);
+				}
+				else
+				{
+					const float width = clientData.thickness * 0.5f;
+					const Vec2 temp = clientData.vertices[0];
+
+					const Vec2 points[] =
+					{
+						ModifyPoint({ temp.x + width, temp.y + width }),
+						ModifyPoint({ temp.x - width, temp.y + width }),
+						ModifyPoint({ temp.x - width, temp.y - width }),
+						ModifyPoint({ temp.x + width, temp.y - width })
+					};
+
+					DrawQuadrilateral(points, clientData.clrIndex);
+					rect = RectU::Create(points[0], points[2]);
+				}
+			}
+			clientData.nVertices = 0;
+			send = true;
+			break;
 		}
 	}
 
@@ -274,16 +269,6 @@ void Whiteboard::Draw()
 	}
 
 	LeaveCriticalSection(&mapSect);
-}
-
-void Whiteboard::PutPixel(const PointU& point, BYTE clr)
-{
-	pixels[point.x + (point.y * params.width)] = clr;
-}
-
-void Whiteboard::PutPixel(int x, int y, BYTE clr)
-{
-	pixels[x + (y * params.width)] = clr;
 }
 
 void Whiteboard::DrawFlatTriangle(float y0, float y1, float m0, float b0, float m1, float b1, BYTE clr)
@@ -406,7 +391,7 @@ void Whiteboard::DrawQuadrilateral(const Vec2* vertices, BYTE clr)
 	DrawTriangle(vertices[0], vertices[2], vertices[3], clr);
 }
 
-Vec2 Whiteboard::ModifyPoint(const Vec2& vect)
+Vec2 Whiteboard::ModifyPoint(Vec2 vect)
 {
 	Vec2 temp = vect;
 
