@@ -1662,37 +1662,31 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 		case HK_BRUSH:
 		{
-			if(pWhiteboard)
+			const BYTE defColor = pWhiteboard->GetDefaultColor();
+			BYTE clr;
+			do
 			{
-				const BYTE defColor = pWhiteboard->GetDefaultColor();
-				BYTE clr;
-				do
-				{
-					clr = rand() % 32;
-				} while(clr == defColor);
-				pWhiteboard->ChangeTool(Tool::PaintBrush, 0.0f, clr);
-			}
+				clr = rand() % 32;
+			} while(clr == defColor);
+			pWhiteboard->ChangeTool(Tool::PaintBrush, 0.0f, clr);
 			break;
 		}
 
 		case HK_ERASER:
 		{
-			if(pWhiteboard)
-				pWhiteboard->ChangeTool(Tool::PaintBrush, 0.0f, pWhiteboard->GetDefaultColor());
+			pWhiteboard->ChangeTool(Tool::PaintBrush, 0.0f, pWhiteboard->GetDefaultColor());
 			break;
 		}
 
 		case HK_BRUSHSIZE_DOWN:
 		{
-			if(pWhiteboard)
-				pWhiteboard->ChangeTool(Tool::PaintBrush, -1.0f, WBClientData::UNCHANGEDCOLOR);
+			pWhiteboard->ChangeTool(Tool::PaintBrush, -1.0f, WBClientData::UNCHANGEDCOLOR);
 			break;
 		}
 
 		case HK_BRUSHSIZE_UP:
 		{
-			if(pWhiteboard)
-				pWhiteboard->ChangeTool(Tool::PaintBrush, 1.0f, WBClientData::UNCHANGEDCOLOR);
+			pWhiteboard->ChangeTool(Tool::PaintBrush, 1.0f, WBClientData::UNCHANGEDCOLOR);
 			break;
 		}
 		}
@@ -1818,7 +1812,6 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	//}
 
 	case WM_CREATE:
-
 		break;
 
 	case WM_ACTIVATE:
