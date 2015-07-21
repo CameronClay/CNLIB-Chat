@@ -123,6 +123,7 @@ ATOM wbAtom = NULL;
 static HMENU wbMenu = nullptr;
 static HWND wbHandle = nullptr;
 Whiteboard *pWhiteboard = nullptr;
+bool wbCanDraw = false;
 // Whiteboard declarations end
 
 static HWND textDisp, textInput, listClients;
@@ -715,8 +716,11 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 				}
 				case MSG_REQUEST_WHITEBOARD:
 				{
+					wbCanDraw = streamReader.Read<bool>();
+					LIB_TCHAR* name = streamReader.ReadEnd<TCHAR>();
+
 					LIB_TCHAR buffer[255];
-					_stprintf(buffer, _T("%s wants to display a whiteboard"), (LIB_TCHAR*)dat, _tcslen((LIB_TCHAR*)dat));
+					_stprintf(buffer, _T("%s wants to display a whiteboard. Can Draw: %s"), (LIB_TCHAR*)name, wbCanDraw ? _T("Yes") : _T("No"));
 
 					DialogBoxParam(hInst, MAKEINTRESOURCE(REQUEST), hMainWind, RequestWBProc, (LPARAM)buffer);
 					break;
@@ -1662,6 +1666,9 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 		case HK_BRUSH:
 		{
+			if(!wbCanDraw)
+				break;
+
 			const BYTE defColor = pWhiteboard->GetDefaultColor();
 			BYTE clr;
 			do
@@ -1674,18 +1681,27 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		case HK_ERASER:
 		{
+			if(!wbCanDraw)
+				break;
+
 			pWhiteboard->ChangeTool(Tool::PaintBrush, 0.0f, pWhiteboard->GetDefaultColor());
 			break;
 		}
 
 		case HK_BRUSHSIZE_DOWN:
 		{
+			if(!wbCanDraw)
+				break;
+
 			pWhiteboard->ChangeTool(Tool::PaintBrush, -1.0f, WBClientData::UNCHANGEDCOLOR);
 			break;
 		}
 
 		case HK_BRUSHSIZE_UP:
 		{
+			if(!wbCanDraw)
+				break;
+
 			pWhiteboard->ChangeTool(Tool::PaintBrush, 1.0f, WBClientData::UNCHANGEDCOLOR);
 			break;
 		}
@@ -1695,6 +1711,9 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_MOUSEMOVE:
 	{
+		if(!wbCanDraw)
+			break;
+
 		if(leftPressed)
 		{
 			const USHORT x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
@@ -1713,6 +1732,9 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_LBUTTONDOWN:
 	{
+		if(!wbCanDraw)
+			break;
+
 		SetCapture(hWnd);
 		const USHORT x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
 
@@ -1730,6 +1752,9 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_LBUTTONUP:
 	{
+		if(!wbCanDraw)
+			break;
+
 		if(leftPressed)
 		{
 			const USHORT x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
@@ -2357,6 +2382,8 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 			EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_GRAYED);
 			EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_ENABLED);
 
+			wbCanDraw = true;
+
 			EndDialog(hWnd, id);
 			break;
 		}
@@ -2440,8 +2467,8 @@ INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 			//const bool canDraw = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
 
 			MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_WHITEBOARD, (len * sizeof(LIB_TCHAR)) + sizeof(bool));
-			streamWriter.Write(usersel.c_str(), len);
 			streamWriter.Write(BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
+			streamWriter.Write(usersel.c_str(), len);
 
 			HANDLE hnd = client->SendServData(streamWriter, streamWriter.GetSize());
 			WaitAndCloseHandle(hnd);
