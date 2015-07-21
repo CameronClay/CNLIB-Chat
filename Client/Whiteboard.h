@@ -31,6 +31,7 @@ public:
 	USHORT GetHeight() const;
 	HANDLE GetTimer() const;
 	BYTE GetDefaultColor() const;
+	float GetBrushThickness() const;
 private:
 	void InitD3D();
 	void Draw(const RECT &rect, const BYTE *pixelData);
@@ -48,6 +49,7 @@ private:
 	HWND hWnd;
 
 	USHORT width, height, pitch;
+	float brushThickness;
 
 	const float interval;
 	HANDLE timer, thread;

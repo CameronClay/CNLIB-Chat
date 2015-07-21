@@ -128,6 +128,9 @@ Whiteboard *pWhiteboard = nullptr;
 static HWND textDisp, textInput, listClients;
 static HMENU main, file, options;
 
+HANDLE wbPThread;
+DWORD wbPThreadID;
+
 std::tstring user;
 #pragma endregion
 
@@ -324,7 +327,33 @@ std::tstring user;
 //
 //	return 0;
 //}
+HWND CreateWBWindow(USHORT width, USHORT height);
 
+
+DWORD CALLBACK WBPThread(LPVOID param)
+{
+	WBParams* wbp = (WBParams*)param;
+	CreateWBWindow(wbp->width, wbp->height);
+
+	pWhiteboard->Initialize(wbHandle);
+	pWhiteboard->StartThread(client);
+
+	destruct(wbp);
+
+	HACCEL hndAccel = LoadAccelerators(hInst, MAKEINTRESOURCE(WBHKS));
+
+	MSG msg = {};
+	while(GetMessage(&msg, NULL, 0, 0))
+	{
+		if(!TranslateAccelerator(wbHandle, hndAccel, &msg))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+	}
+
+	return (int)msg.wParam;
+}
 
 HWND CreateWBWindow(USHORT width, USHORT height)
 {
@@ -940,13 +969,14 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		NULL
 		);
 
+
 	if (!hMainWind)
 	{
 		MessageBox(NULL, _T("Call to CreateWindow failed!"), windowName, NULL);
 		return 1;
 	}
 
-	HACCEL hndAccel = LoadAccelerators(hInst, MAKEINTRESOURCE(HOTKEYS));
+	HACCEL hndAccel = LoadAccelerators(hInst, MAKEINTRESOURCE(MAINHKS));
 
 	ShowWindow(hMainWind, nCmdShow);
 	UpdateWindow(hMainWind);
@@ -1284,42 +1314,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		}
 
-		case HK_BRUSH:
-		{
-			if(pWhiteboard)
-			{
-				const BYTE defColor = pWhiteboard->GetDefaultColor();
-				BYTE clr;
-				do
-				{
-					clr = rand() % 32;
-				} while(clr == defColor);
-				pWhiteboard->ChangeTool(Tool::PaintBrush, 0.0f, clr);
-			}
-			break;
-		}
-
-		case HK_ERASER:
-		{
-			if(pWhiteboard)
-				pWhiteboard->ChangeTool(Tool::PaintBrush, 0.0f, pWhiteboard->GetDefaultColor());
-			break;
-		}
-
-		case HK_BRUSHSIZE_DOWN:
-		{
-			if(pWhiteboard)
-				pWhiteboard->ChangeTool(Tool::PaintBrush, -1.0f, WBClientData::UNCHANGEDCOLOR);
-			break;
-		}
-
-		case HK_BRUSHSIZE_UP:
-		{
-			if(pWhiteboard)
-				pWhiteboard->ChangeTool(Tool::PaintBrush, 1.0f, WBClientData::UNCHANGEDCOLOR);
-			break;
-		}
-
 		case ID_SEND_FILE:
 		{
 			const UINT i = SendMessage(listClients, LB_GETCURSEL, 0, 0);
@@ -1502,8 +1496,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 		case ID_WB:
 		{
-			WBParams *wbp = (WBParams*)lParam;
-			CreateWBWindow( wbp->width, wbp->height );
+			HANDLE wbPThread = CreateThread(NULL, 0, WBPThread, construct<WBParams>(WBParams(*(WBParams*)lParam)), NULL, &wbPThreadID);
 		}	break;
 		}
 	}	break;
@@ -1591,8 +1584,8 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	//static HANDLE mouseThread;
 	//static DWORD mouseThreadID;
-	static USHORT prevX, prevY;
-	static bool leftPressed = true;
+	static USHORT prevX = 0, prevY = 0;
+	static bool leftPressed = false;
 
 	switch (message)
 	{
@@ -1663,6 +1656,49 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	}*/
 
+	case WM_COMMAND:
+	{
+		switch(LOWORD(wParam))
+		{
+		case HK_BRUSH:
+		{
+			if(pWhiteboard)
+			{
+				const BYTE defColor = pWhiteboard->GetDefaultColor();
+				BYTE clr;
+				do
+				{
+					clr = rand() % 32;
+				} while(clr == defColor);
+				pWhiteboard->ChangeTool(Tool::PaintBrush, 0.0f, clr);
+			}
+			break;
+		}
+
+		case HK_ERASER:
+		{
+			if(pWhiteboard)
+				pWhiteboard->ChangeTool(Tool::PaintBrush, 0.0f, pWhiteboard->GetDefaultColor());
+			break;
+		}
+
+		case HK_BRUSHSIZE_DOWN:
+		{
+			if(pWhiteboard)
+				pWhiteboard->ChangeTool(Tool::PaintBrush, -1.0f, WBClientData::UNCHANGEDCOLOR);
+			break;
+		}
+
+		case HK_BRUSHSIZE_UP:
+		{
+			if(pWhiteboard)
+				pWhiteboard->ChangeTool(Tool::PaintBrush, 1.0f, WBClientData::UNCHANGEDCOLOR);
+			break;
+		}
+		}
+		break;
+	}
+
 	case WM_MOUSEMOVE:
 	{
 		if(leftPressed)
@@ -1673,39 +1709,50 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			Whiteboard& wb = *pWhiteboard;
 			if(x < wb.GetWidth() && y < wb.GetHeight())
+			{
 				wb.GetMServ().OnMouseMove(x, y);
+				prevX = x;
+				prevY = y;
+			}
+		}
+		break;
+	}
+	case WM_LBUTTONDOWN:
+	{
+		SetCapture(hWnd);
+		const USHORT x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
+
+		Whiteboard& wb = *pWhiteboard;
+		if(x < wb.GetWidth() && y < wb.GetHeight())
+		{
+			wb.GetMServ().OnLeftPressed(x, y);
+			leftPressed = true;
 
 			prevX = x;
 			prevY = y;
 		}
 		break;
 	}
-	case WM_LBUTTONDOWN:
-	{
-		const USHORT x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
-
-		Whiteboard& wb = *pWhiteboard;
-		if(x < wb.GetWidth() && y < wb.GetHeight())
-			wb.GetMServ().OnLeftPressed(x, y);
-
-		leftPressed = true;
-
-		prevX = x;
-		prevY = y;
-		break;
-	}
 
 	case WM_LBUTTONUP:
 	{
-		const USHORT x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
-		Whiteboard& wb = *pWhiteboard;
-		if(x < wb.GetWidth() && y < wb.GetHeight())
-			wb.GetMServ().OnLeftReleased(x, y);
-
-		leftPressed = false;
-
-		prevX = x;
-		prevY = y;
+		if(leftPressed)
+		{
+			const USHORT x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
+			Whiteboard& wb = *pWhiteboard;
+			if(x < wb.GetWidth() && y < wb.GetHeight())
+			{
+				wb.GetMServ().OnLeftReleased(x, y);
+				leftPressed = false;
+				prevX = x;
+				prevY = y;
+			}
+			else
+			{
+				wb.GetMServ().OnLeftReleased(prevX, prevY);
+			}
+		}
+		ReleaseCapture();
 		break;
 	}
 	//case WM_RBUTTONDOWN:
@@ -1771,8 +1818,7 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	//}
 
 	case WM_CREATE:
-		pWhiteboard->Initialize(hWnd);
-		pWhiteboard->StartThread(client);
+
 		break;
 
 	case WM_ACTIVATE:
@@ -1782,6 +1828,11 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_CLOSE:
 		client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_LEFT);
+		PostThreadMessage(wbPThreadID, WM_QUIT, NULL, NULL);
+		WaitForSingleObject(wbPThread, INFINITE);
+
+		CloseHandle(wbPThread);
+		DWORD wbPThreadID;
 		DestroyWindow(hWnd);
 		break;
 	case WM_DESTROY:

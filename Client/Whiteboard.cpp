@@ -76,6 +76,7 @@ hWnd(NULL),
 width(Width),
 height(Height),
 pitch(0),
+brushThickness(1.0f),
 interval(1.0f / (float)FPS),
 timer(CreateWaitableTimer(NULL, FALSE, NULL)),
 thread(NULL),
@@ -97,6 +98,7 @@ Whiteboard::Whiteboard(Whiteboard&& wb)
 	width(wb.width),
 	height(wb.height),
 	pitch(wb.pitch),
+	brushThickness(wb.brushThickness),
 	interval(wb.interval),
 	timer(wb.timer),
 	thread(wb.thread),
@@ -250,6 +252,8 @@ void Whiteboard::InitD3D()
 
 void Whiteboard::ChangeTool(Tool tool, float brushSize, BYTE palIndex)
 {
+	brushThickness = brushSize;
+
 	const DWORD nBytes = sizeof(Tool) + sizeof(float) + sizeof(BYTE);
 	MsgStreamWriter streamWriter(TYPE_TOOL, MSG_TOOL_CHANGE, nBytes);
 	streamWriter.Write(tool);
@@ -263,6 +267,11 @@ const Palette const &Whiteboard::GetPalette(BYTE& count)
 {
 	count = 32;
 	return palette;
+}
+
+float Whiteboard::GetBrushThickness() const
+{
+	return brushThickness;
 }
 
 

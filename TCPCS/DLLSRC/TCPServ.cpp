@@ -312,17 +312,21 @@ static DWORD CALLBACK SendAllData( LPVOID info )
 		}
 	}
 
-	EnterCriticalSection(serv.GetSendSect());
+	if(nHnds != 0)
+	{
+		EnterCriticalSection(serv.GetSendSect());
 
-	for(USHORT i = 0; i < nHnds; i++)
-		ResumeThread(hnds[i]);
+		for(USHORT i = 0; i < nHnds; i++)
+			ResumeThread(hnds[i]);
 
-	WaitForMultipleObjects(nHnds, hnds, true, INFINITE);
+		WaitForMultipleObjects(nHnds, hnds, true, INFINITE);
 
-	LeaveCriticalSection(serv.GetSendSect());
+		LeaveCriticalSection(serv.GetSendSect());
 
-	for(USHORT i = 0; i < nHnds; i++)
-		CloseHandle(hnds[i]);
+		for(USHORT i = 0; i < nHnds; i++)
+			CloseHandle(hnds[i]);
+	}
+
 
 	dealloc(hnds);
 	dealloc(dataComp);
@@ -353,17 +357,20 @@ static DWORD CALLBACK SendAllDataEx( LPVOID info )
 			hnds[nHnds++] = CreateThread(NULL, 0, SendDataEx, construct<SDataEx>(SDataEx(data, pcs[i])), CREATE_SUSPENDED, NULL);
 	}
 
-	EnterCriticalSection(serv.GetSendSect());
+	if(nHnds != 0)
+	{
+		EnterCriticalSection(serv.GetSendSect());
 
-	for(USHORT i = 0; i < nHnds; i++)
-		ResumeThread(hnds[i]);
+		for(USHORT i = 0; i < nHnds; i++)
+			ResumeThread(hnds[i]);
 
-	WaitForMultipleObjects(nHnds, hnds, true, INFINITE);
+		WaitForMultipleObjects(nHnds, hnds, true, INFINITE);
 
-	LeaveCriticalSection(serv.GetSendSect());
+		LeaveCriticalSection(serv.GetSendSect());
 
-	for(USHORT i = 0; i < nHnds; i++)
-		CloseHandle(hnds[i]);
+		for(USHORT i = 0; i < nHnds; i++)
+			CloseHandle(hnds[i]);
+	}
 
 	dealloc(hnds);
 	dealloc(dataComp);

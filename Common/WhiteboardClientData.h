@@ -240,7 +240,6 @@ struct WBClientData
 		:
 		mServ(50, 17),
 		nVertices(0),
-		rect(),
 		tool(Tool::PaintBrush),
 		clrIndex(0),
 		thickness(1.0f),
@@ -254,7 +253,6 @@ struct WBClientData
 		:
 		mServ((FPS < 60 ? 3000 / FPS : 50), (USHORT)((1000.0f / (float)FPS) + 0.5f)),
 		nVertices(0),
-		rect(),
 		tool(Tool::PaintBrush),
 		clrIndex(0),
 		thickness(1.0f),
@@ -273,7 +271,6 @@ struct WBClientData
 		:
 		mServ(std::move(clientData.mServ)),
 		nVertices(clientData.nVertices),
-		rect(clientData.rect),
 		tool(clientData.tool),
 		clrIndex(clientData.clrIndex),
 		thickness(clientData.thickness),
@@ -290,8 +287,6 @@ struct WBClientData
 	MouseServer mServ;
 	Vec2 vertices[3];
 	size_t nVertices;
-
-	RectU rect;
 
 	Tool tool;								// Enums are sizeof(int) 4 bytes
 	BYTE clrIndex;							// Palette color is 1 bytes

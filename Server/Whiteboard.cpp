@@ -138,6 +138,14 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 
 	bool send = false;
 
+	RectU rect;
+	if(clientData.nVertices == 3)
+		rect = RectU::Create(clientData.vertices[1], clientData.vertices[2]);
+	else if(clientData.nVertices == 1 || clientData.nVertices == -1)//-1 for single line identifer
+		rect = RectU::Create(clientData.vertices[0]);
+
+	static MouseEvent prevEvent;
+
 	for(size_t i = 0; i < evCount; i++)
 	{
 		const MouseEvent ev = mouse.GetEvent(i);
@@ -156,7 +164,7 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 				if(clientData.thickness == 1.0f)
 				{
 					PutPixel(clientData.vertices[0].x, clientData.vertices[0].y, clientData.clrIndex);
-					clientData.rect = RectU::Create(vect);
+					rect = RectU::Create(vect);
 				}
 				else
 				{
@@ -172,7 +180,7 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 					};
 
 					DrawQuadrilateral(points, clientData.clrIndex);
-					clientData.rect = RectU::Create(points[0], points[2]);
+					rect = RectU::Create(points[0], points[2]);
 				}
 			}
 
@@ -203,7 +211,7 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 						{
 							points[0] = ModifyPoint(clientData.vertices[0] + normOffset);
 							points[1] = ModifyPoint(clientData.vertices[0] - normOffset);
-							clientData.rect = RectU::Create(points[0], points[1]);
+							rect.Modify(points[0], points[1]);
 							clientData.prevThickness = clientData.thickness;
 						}
 					}
@@ -211,41 +219,41 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 					{
 						points[0] = ModifyPoint(clientData.vertices[0] + normOffset);
 						points[1] = ModifyPoint(clientData.vertices[0] - normOffset);
-						clientData.rect = RectU::Create(points[0], points[1]);
+						rect.Modify(points[0], points[1]);
 					}
 
 					points[2] = ModifyPoint(vect - normOffset);
 					points[3] = ModifyPoint(vect + normOffset);
 
-					clientData.rect.Modify(points[2], points[3]);
+					rect.Modify(points[2], points[3]);
 
 					DrawQuadrilateral(points, clientData.clrIndex);
 
 					clientData.vertices[1] = points[3];
 					clientData.vertices[2] = points[2];
+					clientData.nVertices = 3;
 				}
 				else
 				{
-					if(clientData.nVertices != 3)
-						clientData.rect = RectU::Create(vect);
-
 					DrawLine(clientData.vertices[0].x, clientData.vertices[0].y, vect.x, vect.y, clientData.clrIndex);
-					clientData.rect.Modify(vect);
+					rect.Modify(vect);
+					//-1 for single line identifer
+					clientData.nVertices = -1;
 				}
 
 				clientData.vertices[0] = vect;
-				clientData.nVertices = 3;
 				send = true;
 			}
 			break;
 		}
 		}
+		prevEvent = ev;
 	}
 
 	mouse.Erase(evCount);
 
 	if(send)
-		QueueSendBitmap(clientData.rect, Socket());
+		QueueSendBitmap(rect, Socket());
 }
 
 void Whiteboard::Draw()
