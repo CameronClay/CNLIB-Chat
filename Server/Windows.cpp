@@ -298,7 +298,18 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 		case MSG_REQUEST_WHITEBOARD:
 		{
 			if(IsAdmin(clint->user) || wb->IsCreator(clint->user))
-				TransferMessageWithName(serv, clint->user, streamReader);
+			{
+				const bool canDraw = streamReader.Read<bool>();
+				LIB_TCHAR* name = streamReader.ReadEnd<LIB_TCHAR>();
+				auto fClint = serv.FindClient(std::tstring(name));
+				if(!fClint)
+					break;
+				MsgStreamWriter streamWriter(streamReader.GetType(), streamReader.GetMsg(), sizeof(bool) + ((clint->user.size() + 1) * sizeof(TCHAR)));
+				streamWriter.Write(canDraw);
+				streamWriter.WriteEnd(clint->user.c_str());
+				HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), fClint->pc, true);
+				WaitAndCloseHandle(hnd);
+			}
 			else
 				serv.SendMsg(clint->user, TYPE_ADMIN, MSG_ADMIN_NOT);
 			break;
