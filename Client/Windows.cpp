@@ -335,10 +335,6 @@ DWORD CALLBACK WBPThread(LPVOID param)
 {
 	WBParams* wbp = (WBParams*)param;
 	CreateWBWindow(wbp->width, wbp->height);
-
-	pWhiteboard->Initialize(wbHandle);
-	pWhiteboard->StartThread(client);
-
 	destruct(wbp);
 
 	HACCEL hndAccel = LoadAccelerators(hInst, MAKEINTRESOURCE(WBHKS));
@@ -1837,6 +1833,8 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	//}
 
 	case WM_CREATE:
+		pWhiteboard->Initialize(hWnd);
+		pWhiteboard->StartThread(client);
 		break;
 
 	case WM_ACTIVATE:
