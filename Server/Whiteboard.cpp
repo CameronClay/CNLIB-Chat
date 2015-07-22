@@ -427,7 +427,7 @@ void Whiteboard::MakeRectPixels(RectU& rect, char* ptr)
 	ptr += offset;
 
 	const size_t height = rect.bottom - rect.top;
-	const size_t width = rect.right - rect.bottom;
+	const size_t width = rect.right - rect.left;
 	for(size_t iy = 0; iy < height; iy++)
 	{
 		for(size_t ix = 0; ix < width; ix++)
