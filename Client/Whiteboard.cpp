@@ -171,8 +171,8 @@ void Whiteboard::BeginFrame()
 
 void Whiteboard::Draw(const RECT &rect, const BYTE *pixelData)
 {
-	const size_t rHeight = min(1 + rect.bottom - rect.top, height);
-	const size_t rWidth = min(1 + rect.right - rect.left, width);
+	const size_t rHeight = rect.bottom - rect.top;
+	const size_t rWidth = rect.right - rect.left;
 	for(size_t y = 0; y < rHeight; y++)
 	{
 		for(size_t x = 0; x < rWidth; x++)

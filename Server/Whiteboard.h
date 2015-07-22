@@ -17,8 +17,8 @@ public:
 
 	void StartThread();
 
-	void SendBitmap(const RectU& rect);
-	void SendBitmap(const RectU& rect, const Socket& sock, bool single);
+	void SendBitmap(RectU& rect);
+	void SendBitmap(RectU& rect, const Socket& sock, bool single);
 	void QueueSendBitmap(const RectU& rect, const Socket& sock);
 
 	void Draw();
@@ -108,7 +108,7 @@ public:
 			sock = socket;
 		}
 
-		const RectU& GetRect() const
+		RectU& GetRect()
 		{
 			return rect;
 		}
@@ -155,7 +155,7 @@ private:
 	Vec2 ModifyPoint(Vec2 vect);
 
 	UINT GetBufferLen(const RectU& rec) const;
-	void MakeRectPixels(const RectU& rect, char* ptr);
+	void MakeRectPixels(RectU& rect, char* ptr);
 private:
 	BYTE *pixels;
 	WBParams params;

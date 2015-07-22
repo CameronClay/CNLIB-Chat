@@ -415,14 +415,19 @@ UINT Whiteboard::GetBufferLen(const RectU& rec) const
 	return sizeof(RectU) + ((1 + rec.right - rec.left) * (1 + rec.bottom - rec.top));
 }
 
-void Whiteboard::MakeRectPixels(const RectU& rect, char* ptr)
+void Whiteboard::MakeRectPixels(RectU& rect, char* ptr)
 {
+	if(rect.bottom + 1 < params.height)
+		rect.bottom += 1;
+	if(rect.right + 1 < params.width)
+		rect.right += 1;
+
 	const USHORT offset = sizeof(RectU);
 	memcpy(ptr, &rect, offset);
 	ptr += offset;
 
-	const size_t height = min(1 + rect.bottom - rect.top, params.height);
-	const size_t width = min(1 + rect.right - rect.left, params.width);
+	const size_t height = rect.bottom - rect.top;
+	const size_t width = rect.right - rect.bottom;
 	for(size_t iy = 0; iy < height; iy++)
 	{
 		for(size_t ix = 0; ix < width; ix++)
@@ -480,7 +485,7 @@ const Palette& Whiteboard::GetPalette() const
 	return palette;
 }
 
-void Whiteboard::SendBitmap(const RectU& rect)
+void Whiteboard::SendBitmap(RectU& rect)
 {
 	const DWORD nBytes = GetBufferLen(rect) + MSG_OFFSET ;
 	char* msg = alloc<char>(nBytes);
@@ -495,7 +500,7 @@ void Whiteboard::SendBitmap(const RectU& rect)
 	dealloc(msg);
 }
 
-void Whiteboard::SendBitmap(const RectU& rect, const Socket& sock, bool single)
+void Whiteboard::SendBitmap(RectU& rect, const Socket& sock, bool single)
 {
 	const DWORD nBytes = GetBufferLen(rect) + MSG_OFFSET;
 	char* msg = alloc<char>(nBytes);
