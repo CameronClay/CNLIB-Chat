@@ -378,28 +378,38 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 		}
 		case MSG_RESPONSE_WHITEBOARD_CONFIRMED:
 		{
-			wb->AddClient(clint->pc);
 			const WBParams& wbParams = wb->GetParams();
 
+			//Send activate message to new client
+			MsgStreamWriter streamWriter(TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE, sizeof(WBParams));
+			streamWriter.Write<WBParams>(wbParams);
+			HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, true);
+			WaitAndCloseHandle(hnd);
+			break;
+		}
+		case MSG_RESPONSE_WHITEBOARD_INITED:
+		{
+			if(!wb->IsCreator(clint->user))
 			{
-				MsgStreamWriter streamWriter(TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE, sizeof(WBParams));
-				streamWriter.Write<WBParams>(wbParams);
-				HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, true);
-				WaitAndCloseHandle(hnd);
-			}
-			RectU rect(0, 0, wbParams.width, wbParams.height);
-			wb->QueueSendBitmap(rect, clint->pc);
-
-			{
+				//Tell current whiteboard members someone joined
 				const DWORD nameLen = clint->user.size() + 1;
 				MsgStreamWriter streamWriter(TYPE_RESPONSE, MSG_RESPONSE_WHITEBOARD_CONFIRMED, nameLen * sizeof(LIB_TCHAR));
 				streamWriter.Write(clint->user.c_str(), nameLen);
 				HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), wb->GetPcs());
 				WaitAndCloseHandle(hnd);
+
+				//Add client after so it doesnt send message to joiner
+				wb->AddClient(clint->pc);
+
+				//Send out initial bitmap
+				const WBParams& wbParams = wb->GetParams();
+				RectU rect(0, 0, wbParams.width, wbParams.height);
+				wb->QueueSendBitmap(rect, clint->pc);
 			}
-		}
-		case MSG_RESPONSE_WHITEBOARD_DECLINED:
-		{
+			else
+			{
+				wb->AddClient(clint->pc);
+			}
 			break;
 		}
 		}
@@ -490,7 +500,6 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 				WaitAndCloseHandle(hnd);
 
 				wb = construct<Whiteboard>(Whiteboard(serv, *params, clint->user));
-				wb->AddClient(clint->pc);
 
 				wb->StartThread();
 			}
