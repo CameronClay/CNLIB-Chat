@@ -1834,7 +1834,9 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_CREATE:
 		pWhiteboard->Initialize(hWnd);
-		pWhiteboard->StartThread(client);
+
+		if(wbCanDraw)
+			pWhiteboard->StartThread(client);
 		break;
 
 	case WM_ACTIVATE:
