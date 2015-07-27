@@ -3,7 +3,8 @@
 
 Options::Options(std::tstring& filePath, float currentVers)
 	:
-	filePath(filePath)
+	filePath(),
+	logs()
 {
 	Reset(currentVers);
 }
@@ -17,7 +18,8 @@ Options::Options(Options&& opts)
 	startUp(opts.startUp),
 	flashTaskbar(opts.flashTaskbar),
 	flashCount(opts.flashCount),
-	info(opts.info)
+	info(opts.info),
+	logs(opts.logs)
 {}
 
 Options::~Options()
@@ -52,6 +54,17 @@ void Options::Load(const LIB_TCHAR* windowName)
 		Save(windowName);
 	}
 
+
+	const size_t pathSize = filePath.size();
+	LIB_TCHAR* buffer = alloc<LIB_TCHAR>(pathSize);
+	for(int i = 0; i < pathSize; i++)
+		buffer[i] = filePath[i];
+
+	PathRemoveFileSpec(buffer);
+
+	logs.Load(buffer);
+
+	dealloc(buffer);
 }
 
 void Options::Save(const LIB_TCHAR* windowName)
@@ -163,4 +176,9 @@ UINT Options::GetFlashCount()
 std::tstring& Options::GetDownloadPath()
 {
 	return downloadPath;
+}
+
+Logs& Options::GetLogs()
+{
+	return logs;
 }

@@ -182,6 +182,7 @@
     <ClInclude Include="..\Common\Vec2.h" />
     <ClInclude Include="..\Common\WhiteboardClientData.h" />
     <ClInclude Include="FileTransfer.h" />
+    <ClInclude Include="Logs.h" />
     <ClInclude Include="Options.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Whiteboard.h" />

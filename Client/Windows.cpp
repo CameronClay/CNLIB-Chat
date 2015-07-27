@@ -69,6 +69,7 @@ const USHORT DEFAULTPORT = 565;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK WbProc(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK LogsProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK ConnectProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK ManageProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK AuthenticateProc(HWND, UINT, WPARAM, LPARAM);
@@ -1281,7 +1282,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 		case ID_VIEW_LOGS:
-
+			DialogBox(hInst, MAKEINTRESOURCE(VIEW_LOGS), hWnd, LogsProc);
 			break;
 
 		case ID_BUTTON_ENTER:
@@ -1571,6 +1572,42 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		DestroyClient(client);
 		CleanupNetworking();
 		PostQuitMessage(0);
+		break;
+
+	default:
+		return DefWindowProc(hWnd, message, wParam, lParam);
+	}
+
+	return 0;
+}
+
+INT_PTR CALLBACK LogsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch(message)
+	{
+	case WM_COMMAND:
+	{
+		switch(LOWORD(wParam))
+		{
+		case IDOK:
+		{
+			break;
+		}
+		case IDCANCEL:
+		{
+			break;
+		}
+		}
+		break;
+	}
+
+	case WM_CREATE:
+		break;
+	case WM_ACTIVATE:
+		break;
+	case WM_CLOSE:
+		break;
+	case WM_DESTROY:
 		break;
 
 	default:

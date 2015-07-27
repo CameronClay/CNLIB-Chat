@@ -1,6 +1,7 @@
 #pragma once
 #include <Windows.h>
 #include "Format.h"
+#include "Logs.h"
 
 class Options
 {
@@ -22,6 +23,7 @@ public:
 	bool FlashTaskbar(HWND hWnd);
 	UINT GetFlashCount();
 	std::tstring& GetDownloadPath();
+	Logs& GetLogs();
 private:
 	std::tstring filePath;
 	FLASHWINFO info;
@@ -29,4 +31,6 @@ private:
 	float version;
 	bool timeStamps, startUp, flashTaskbar;
 	UCHAR flashCount;
+
+	Logs logs;
 };
