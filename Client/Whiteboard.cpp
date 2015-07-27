@@ -265,7 +265,7 @@ void Whiteboard::ChangeTool(Tool tool, float brushSize, BYTE palIndex)
 	WaitAndCloseHandle(hnd);	
 }
 
-const Palette const &Whiteboard::GetPalette(BYTE& count)
+const Palette &Whiteboard::GetPalette(BYTE& count)
 {
 	count = 32;
 	return palette;

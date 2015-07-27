@@ -1889,7 +1889,6 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		WaitForSingleObject(wbPThread, INFINITE);
 
 		CloseHandle(wbPThread);
-		DWORD wbPThreadID;
 		DestroyWindow(hWnd);
 		break;
 	case WM_DESTROY:
