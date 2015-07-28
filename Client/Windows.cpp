@@ -28,7 +28,7 @@
 
 
 const float APPVERSION = .002f;
-const float CONFIGVERSION = .002f;
+const float CONFIGVERSION = .0025f;
 const USHORT DEFAULTPORT = 565;
 
 #pragma region WindowClassIDs
@@ -70,6 +70,7 @@ const USHORT DEFAULTPORT = 565;
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK WbProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK LogsProc(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK LogReaderProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK ConnectProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK ManageProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK AuthenticateProc(HWND, UINT, WPARAM, LPARAM);
@@ -1568,46 +1569,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 
 	case WM_DESTROY:
+		if(opts->SaveLogs())
+		{
+			const UINT len = SendMessage(textDisp, WM_GETTEXTLENGTH, 0, 0) + 1;
+			if(len > 1)
+			{
+				LIB_TCHAR* buffer = (LIB_TCHAR*)alloc<char>(((len + 2) * sizeof(LIB_TCHAR)));
+				SendMessage(textDisp, WM_GETTEXT, len, (LPARAM)buffer);
+				opts->AddLog((char*)buffer, len * sizeof(LIB_TCHAR));
+			}
+		}
 		CoUninitialize();
 		DestroyClient(client);
 		CleanupNetworking();
 		PostQuitMessage(0);
-		break;
-
-	default:
-		return DefWindowProc(hWnd, message, wParam, lParam);
-	}
-
-	return 0;
-}
-
-INT_PTR CALLBACK LogsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	switch(message)
-	{
-	case WM_COMMAND:
-	{
-		switch(LOWORD(wParam))
-		{
-		case IDOK:
-		{
-			break;
-		}
-		case IDCANCEL:
-		{
-			break;
-		}
-		}
-		break;
-	}
-
-	case WM_CREATE:
-		break;
-	case WM_ACTIVATE:
-		break;
-	case WM_CLOSE:
-		break;
-	case WM_DESTROY:
 		break;
 
 	default:
@@ -1973,6 +1948,111 @@ INT_PTR CALLBACK ConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 	return 0;
 }
 
+INT_PTR CALLBACK LogsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	static HWND nameList;
+
+	auto RefreshLogList = [hWnd]()
+	{
+		SendMessage(nameList, LB_RESETCONTENT, 0, 0);
+		nameList = GetDlgItem(hWnd, LOGS_LB_NAME);
+		auto& logs = opts->GetLogList();
+
+		for(auto& it : logs)
+		{
+			TCHAR buffer[64];
+			_stprintf(buffer, _T("%.12s - %d/%d/%d - %.2f"), it.fileName.c_str(), it.dateModified.wMonth, it.dateModified.wDay, it.dateModified.wYear, (float)it.size / 1024.0f);
+			SendMessage(nameList, LB_ADDSTRING, 0, (LPARAM)buffer);
+		}
+	};
+
+	switch(message)
+	{
+	case WM_COMMAND:
+	{
+		const short id = LOWORD(wParam);
+		switch(id)
+		{
+		case IDOPEN:
+		{
+			const int index = SendMessage(nameList, LB_GETCURSEL, 0, 0);
+			if(index != LB_ERR)
+				DialogBoxParam(hInst, MAKEINTRESOURCE(ID_LOGREADER), hWnd, LogReaderProc, (LPARAM)index);
+			break;
+		}
+		case IDREMOVE:
+		{
+			const int index = SendMessage(nameList, LB_GETCURSEL, 0, 0);
+			if(index != LB_ERR)
+				opts->RemoveLog(index);
+			RefreshLogList();
+			break;
+		}
+		case IDCLEARALL:
+		{
+			SendMessage(nameList, LB_RESETCONTENT, 0, 0);
+			opts->ClearLogs();
+			break;
+		}
+
+		case IDCANCEL:
+		case IDOK:
+		{
+			EndDialog(hWnd, id);
+			break;
+		}
+		}
+		break;
+	}
+	case WM_INITDIALOG:
+	{
+		RefreshLogList();
+
+		return 1;
+	}
+	}
+	return 0;
+}
+
+INT_PTR CALLBACK LogReaderProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	static HWND text;
+	switch(message)
+	{
+	case WM_COMMAND:
+	{
+		const short id = LOWORD(wParam);
+		switch(id)
+		{
+		case IDOK:
+		{
+			EndDialog(hWnd, id);
+			break;
+		}
+		case IDCANCEL:
+		{
+			EndDialog(hWnd, id);
+			break;
+		}
+		}
+		break;
+	}
+	case WM_INITDIALOG:
+	{
+		text = GetDlgItem(hWnd, LOGREADER_TEXT);
+		const int index = (int)lParam;
+		DWORD nBytes;
+		opts->ReadLog(index, nullptr, &nBytes);
+		char* buffer = alloc<char>(nBytes);
+		opts->ReadLog(index, buffer, &nBytes);
+		SendMessage(text, WM_SETTEXT, NULL, (LPARAM)buffer);
+		dealloc(buffer);
+		return 1;
+	}
+	}
+	return 0;
+}
+
 INT_PTR CALLBACK ManageProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	static HWND list, ipInput, portInput, add, remove;
@@ -2167,6 +2247,7 @@ INT_PTR CALLBACK Opt_GeneralProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 			CheckDlgButton(hWnd, ID_TIMESTAMPS, opts->TimeStamps() ? BST_CHECKED : BST_UNCHECKED);
 			CheckDlgButton(hWnd, ID_STARTUP, opts->AutoStartup() ? BST_CHECKED : BST_UNCHECKED);
 			CheckDlgButton(hWnd, ID_FLASH_TASKBAR, opts->FlashTaskbar(hMainWind) ? BST_CHECKED : BST_UNCHECKED);
+			CheckDlgButton(hWnd, ID_SAVELOGS, opts->SaveLogs() ? BST_CHECKED : BST_UNCHECKED);
 			
 			SendMessage(flashCount, WM_SETTEXT, 0, (LPARAM)To_String(opts->GetFlashCount()).c_str());
 			EnableWindow(flashCount, opts->FlashTaskbar(hMainWind));
@@ -2183,6 +2264,7 @@ INT_PTR CALLBACK Opt_GeneralProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 				(BST_CHECKED == IsDlgButtonChecked(hWnd, ID_TIMESTAMPS)), 
 				(BST_CHECKED == IsDlgButtonChecked(hWnd, ID_STARTUP)), 
 				(BST_CHECKED == IsDlgButtonChecked(hWnd, ID_FLASH_TASKBAR)), 
+				(BST_CHECKED == IsDlgButtonChecked(hWnd, ID_SAVELOGS)),
 				(UCHAR)abs(_tstoi(buffer)));
 			
 			opts->Save(windowName);

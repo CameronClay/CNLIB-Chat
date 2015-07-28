@@ -3,23 +3,23 @@
 
 Options::Options(std::tstring& filePath, float currentVers)
 	:
-	filePath(),
-	logs()
+	Logs()
 {
-	Reset(currentVers);
+	Reset(filePath, currentVers);
 }
 
 Options::Options(Options&& opts)
 	:
+	Logs(std::forward<Logs>(opts)),
 	filePath(opts.filePath),
 	downloadPath(opts.downloadPath),
 	version(opts.version),
 	timeStamps(opts.timeStamps),
 	startUp(opts.startUp),
 	flashTaskbar(opts.flashTaskbar),
+	saveLogs(opts.saveLogs),
 	flashCount(opts.flashCount),
-	info(opts.info),
-	logs(opts.logs)
+	info(opts.info)
 {}
 
 Options::~Options()
@@ -41,28 +41,31 @@ void Options::Load(const LIB_TCHAR* windowName)
 			file.Read(&startUp, sizeof(bool)) &&
 			file.Read(&flashTaskbar, sizeof(bool)) &&
 			file.Read(&timeStamps, sizeof(bool)) &&
+			file.Read(&saveLogs, sizeof(bool)) &&
 			file.Read(&flashCount, sizeof(UCHAR))
 			);
-
-		file.Close();
 	}
 	else
 	{
-		file.Close();
 		file.Open(filePath.c_str(), FILE_GENERIC_READ, FILE_ATTRIBUTE_HIDDEN, CREATE_ALWAYS);
-		Reset(prevVers);
+		Reset(filePath, prevVers);
 		Save(windowName);
 	}
 
 
 	const size_t pathSize = filePath.size();
-	LIB_TCHAR* buffer = alloc<LIB_TCHAR>(pathSize);
+	LIB_TCHAR* buffer = alloc<LIB_TCHAR>(pathSize + 64);
 	for(int i = 0; i < pathSize; i++)
 		buffer[i] = filePath[i];
 
 	PathRemoveFileSpec(buffer);
 
-	logs.Load(buffer);
+	_tcscat(buffer, _T("\\Logs"));
+
+	if(!FileMisc::Exists(buffer))
+		FileMisc::CreateFolder(buffer);
+
+	LoadLogList(std::tstring(buffer));
 
 	dealloc(buffer);
 }
@@ -79,11 +82,8 @@ void Options::Save(const LIB_TCHAR* windowName)
 	file.Write(&startUp, sizeof(bool));
 	file.Write(&flashTaskbar, sizeof(bool));
 	file.Write(&timeStamps, sizeof(bool));
+	file.Write(&saveLogs, sizeof(bool));
 	file.Write(&flashCount, sizeof(UCHAR));
-
-
-	file.Close();
-
 
 	if(startUp)
 	{
@@ -113,11 +113,12 @@ void Options::Save(const LIB_TCHAR* windowName)
 	}
 }
 
-void Options::SetGeneral(bool timeStamps, bool startUp, bool flashTaskbar, UINT flashCount)
+void Options::SetGeneral(bool timeStamps, bool startUp, bool flashTaskbar, bool saveLogs, UINT flashCount)
 {
 	this->timeStamps = timeStamps;
 	this->startUp = startUp;
 	this->flashTaskbar = flashTaskbar;
+	this->saveLogs = saveLogs;
 	this->flashCount = flashCount;
 }
 
@@ -126,12 +127,13 @@ void Options::SetDownloadPath(std::tstring& path)
 	downloadPath = path;
 }
 
-void Options::Reset(float currentVers)
+void Options::Reset(std::tstring& filePath, float currentVers)
 {
-	filePath = filePath;
+	this->filePath = filePath;
 	timeStamps = true;
 	startUp = false;
 	flashTaskbar = true;
+	saveLogs = true;
 	flashCount = 3;
 	version = currentVers;
 
@@ -145,14 +147,19 @@ void Options::Reset(float currentVers)
 	info.dwTimeout = 0;
 }
 
-bool Options::TimeStamps()
+bool Options::TimeStamps() const
 {
 	return timeStamps;
 }
 
-bool Options::AutoStartup()
+bool Options::AutoStartup() const
 {
 	return startUp;
+}
+
+bool Options::SaveLogs() const
+{
+	return saveLogs;
 }
 
 bool Options::FlashTaskbar(HWND hWnd)
@@ -168,7 +175,7 @@ bool Options::FlashTaskbar(HWND hWnd)
 	return flashTaskbar;
 }
 
-UINT Options::GetFlashCount()
+UINT Options::GetFlashCount() const
 {
 	return flashCount;
 }
@@ -176,9 +183,4 @@ UINT Options::GetFlashCount()
 std::tstring& Options::GetDownloadPath()
 {
 	return downloadPath;
-}
-
-Logs& Options::GetLogs()
-{
-	return logs;
 }

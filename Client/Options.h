@@ -3,7 +3,7 @@
 #include "Format.h"
 #include "Logs.h"
 
-class Options
+class Options : public Logs
 {
 public:
 	Options(std::tstring& filePath, float currentVers);
@@ -13,24 +13,22 @@ public:
 	void Load(const LIB_TCHAR* windowName);
 	void Save(const LIB_TCHAR* windowName);
 
-	void SetGeneral(bool timeStamps, bool startUp, bool flashTaskbar, UINT flashCount);
+	void SetGeneral(bool timeStamps, bool startUp, bool flashTaskbar, bool saveLogs, UINT flashCount);
 	void SetDownloadPath(std::tstring& path);
 
-	void Reset(float currentVers);
+	void Reset(std::tstring& filePath, float currentVers);
 
-	bool TimeStamps();
-	bool AutoStartup();
+	bool TimeStamps() const;
+	bool AutoStartup() const;
+	bool SaveLogs() const;
+	UINT GetFlashCount() const;
 	bool FlashTaskbar(HWND hWnd);
-	UINT GetFlashCount();
 	std::tstring& GetDownloadPath();
-	Logs& GetLogs();
 private:
 	std::tstring filePath;
 	FLASHWINFO info;
 	std::tstring downloadPath;
 	float version;
-	bool timeStamps, startUp, flashTaskbar;
+	bool timeStamps, startUp, flashTaskbar, saveLogs;
 	UCHAR flashCount;
-
-	Logs logs;
 };
