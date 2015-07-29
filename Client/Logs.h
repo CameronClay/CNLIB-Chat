@@ -76,8 +76,8 @@ public:
 			std::tstring curName = path + _T("\\") + logList[index].fileName;
 			std::tstring newName = curName;
 			TCHAR buffer[12];
-			_stprintf(buffer, _T("%.2d.txt"), index - 1);
-			newName.replace(newName.size() - 6, 6, buffer);
+			_stprintf(buffer, _T("%.2d"), index - 1);
+			newName.replace(newName.find(_T(".txt")) + 4, 2, buffer);
 
 			FileMisc::MoveOrRename(curName.c_str(), newName.c_str());
 		}

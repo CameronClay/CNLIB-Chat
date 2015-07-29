@@ -1999,7 +1999,7 @@ INT_PTR CALLBACK LogsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 
 		case IDCANCEL:
-		case IDOK:
+		case IDCLOSE:
 		{
 			EndDialog(hWnd, id);
 			break;
