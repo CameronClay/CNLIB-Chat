@@ -2,12 +2,11 @@
 #include "TCPClientInterface.h"
 #include "HeapAlloc.h"
 
-
 class TCPClient : public TCPClientInterface
 {
 public:
 	//cfunc is a message handler, compression 1-9
-	TCPClient(cfunc func, void(*const disconFunc)(), int compression = 9, void* obj = nullptr);
+	TCPClient(cfunc func, dcfunc disconFunc, int compression = 9, void* obj = nullptr);
 	TCPClient(TCPClient&& client);
 	~TCPClient();
 
@@ -33,21 +32,25 @@ public:
 	void SetFunction(cfunc function);
 	void CloseRecvHandle();
 
+	void RunDisconFunc();
+	void SetShutdownReason(bool unexpected);
+
 	void* GetObj() const;
 	cfuncP GetFunction();
 	Socket& GetHost();
 	int GetCompression() const;
 	CRITICAL_SECTION* GetSendSect();
 
-	void(*GetDisfunc()) ();
+	dcfunc GetDisfunc() const;
 	bool IsConnected() const;
 
 private:
 	Socket host; //server/host you are connected to
 	cfunc function; //function/msgHandler
-	void(*const disconFunc)(); //function called when disconnect occurs
+	dcfunc disconFunc; //function called when disconnect occurs
 	void* obj; //passed to function/msgHandler for oop programming
 	HANDLE recv; //thread to receving packets from server
 	CRITICAL_SECTION sendSect; //used for synchonization
 	const int compression; //compression client sends packets at
+	bool unexpectedShutdown; //passed to disconnect handler
 };

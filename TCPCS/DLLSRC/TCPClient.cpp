@@ -4,7 +4,7 @@
 #include "File.h"
 #include "MsgStream.h"
 
-TCPClientInterface* CreateClient(cfunc func, void(*const disconFunc)(), int compression, void* obj)
+TCPClientInterface* CreateClient(cfunc func, dcfunc disconFunc, int compression, void* obj)
 {
 	return construct<TCPClient>({ func, disconFunc, compression, obj });
 }
@@ -40,14 +40,15 @@ struct SendInfo
 };
 
 
-TCPClient::TCPClient(cfunc func, void(*const disconFunc)(), int compression, void* obj)
+TCPClient::TCPClient(cfunc func, dcfunc disconFunc, int compression, void* obj)
 	:
 	function(func),
 	disconFunc(disconFunc),
 	obj(obj),
 	compression(compression),
 	host(INVALID_SOCKET),
-	recv(NULL)
+	recv(NULL),
+	unexpectedShutdown(true)
 {}
 
 TCPClient::TCPClient(TCPClient&& client)
@@ -58,7 +59,8 @@ TCPClient::TCPClient(TCPClient&& client)
 	obj(client.obj),
 	recv(client.recv),
 	sendSect(client.sendSect),
-	compression(client.compression)
+	compression(client.compression),
+	unexpectedShutdown(client.unexpectedShutdown)
 {
 	ZeroMemory(&client, sizeof(TCPClient));
 }
@@ -71,7 +73,7 @@ TCPClient& TCPClient::operator=(TCPClient&& client)
 
 		host = client.host;
 		function = client.function;
-		const_cast<void(*&)()>(disconFunc) = client.disconFunc;
+		const_cast<void(*&)(bool unexpected)>(disconFunc) = client.disconFunc;
 		obj = client.obj;
 		recv = client.recv;
 		sendSect = client.sendSect;
@@ -128,7 +130,7 @@ static DWORD CALLBACK ReceiveData(LPVOID param)
 	Socket& host = client.GetHost();
 	void* obj = client.GetObj();
 
-	while (host.IsConnected())
+	while (host.IsConnected())//break out if you disconnected from server(intentionaly)
 	{
 		if (host.ReadData(&nBytesDecomp, sizeof(DWORD)) > 0)
 		{
@@ -149,12 +151,14 @@ static DWORD CALLBACK ReceiveData(LPVOID param)
 					break;
 				}
 			}
-			else break;
+			else
+				break;
 		}
-		else break;
+		else
+			break;
 	}
 
-	client.GetDisfunc()();
+	client.RunDisconFunc();
 
 	//Cleanup
 	client.Disconnect();
@@ -170,6 +174,9 @@ bool TCPClient::Connect( const LIB_TCHAR* dest, const LIB_TCHAR* port, float tim
 	if(host.IsConnected())
 		return false;
 
+	//reset so it will send correct message
+	SetShutdownReason(true);
+
 	host.Connect( dest, port, timeOut );
 
 	if(!host.IsConnected())
@@ -180,6 +187,7 @@ bool TCPClient::Connect( const LIB_TCHAR* dest, const LIB_TCHAR* port, float tim
 
 void TCPClient::Disconnect()
 {
+	SetShutdownReason(false);
 	host.Disconnect(); //causes recvThread to close
 }
 
@@ -234,6 +242,16 @@ void TCPClient::SetFunction(cfunc function)
 	this->function = function;
 }
 
+void TCPClient::RunDisconFunc()
+{
+	disconFunc(unexpectedShutdown);
+}
+
+void TCPClient::SetShutdownReason(bool unexpected)
+{
+	unexpectedShutdown = unexpected;
+}
+
 void TCPClient::CloseRecvHandle()
 {
 	if(recv)
@@ -268,7 +286,7 @@ CRITICAL_SECTION* TCPClient::GetSendSect()
 	return &sendSect;
 }
 
-void(*TCPClient::GetDisfunc()) ()
+dcfunc TCPClient::GetDisfunc() const
 {
 	return disconFunc;
 }

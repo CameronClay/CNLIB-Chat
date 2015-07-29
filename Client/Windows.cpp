@@ -441,8 +441,8 @@ void Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, float timeOut)
 void ClearAll()
 {
 	//SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)_T(""));
-	SendMessage(textInput, WM_SETTEXT, 0, (LPARAM)_T(""));
-	SendMessage(listClients, LB_RESETCONTENT, 0, (LPARAM)_T(""));
+	PostMessage(textInput, WM_SETTEXT, 0, (LPARAM)_T(""));
+	PostMessage(listClients, LB_RESETCONTENT, 0, (LPARAM)_T(""));
 }
 
 void Disconnect()
@@ -853,14 +853,17 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 	/*CoUninitialize();*/
 }
 
-void DisconnectHandler() // for disconnection
+void DisconnectHandler(bool unexpected) // for disconnection
 {
+	if(unexpected)
+	{
+		Flash();
+		MessageBox(hMainWind, _T("You have been disconnected from server!"), _T("ERROR"), MB_ICONERROR);
+	}
+
 	ClearAll();
 	EnableMenuItem(file, ID_SERV_CONNECT, MF_ENABLED);
 	EnableMenuItem(file, ID_SERV_DISCONNECT, MF_GRAYED);
-
-	Flash();
-	MessageBox(hMainWind, _T("You have been disconnected from server!"), _T("ERROR"), MB_ICONERROR);
 }
 
 void SaveServList()
@@ -1579,9 +1582,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				opts->AddLog((char*)buffer, len * sizeof(LIB_TCHAR));
 			}
 		}
-		CoUninitialize();
 		DestroyClient(client);
 		CleanupNetworking();
+		CoUninitialize();
 		PostQuitMessage(0);
 		break;
 
