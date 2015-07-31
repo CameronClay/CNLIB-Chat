@@ -70,18 +70,21 @@ public:
 
 	void RemoveLog(int index)
 	{
+		FileMisc::Remove((path + _T("\\") + logList[index].fileName).c_str());
+
 		//change all log's index above the removed log -1
-		for(int i = index, size = logList.size(); i < size; i++)
+		for(int i = index + 1, size = logList.size(); i < size; i++)
 		{
-			std::tstring curName = path + _T("\\") + logList[index].fileName;
+			std::tstring curName = path + _T("\\") + logList[i].fileName;
 			std::tstring newName = curName;
 			TCHAR buffer[12];
-			_stprintf(buffer, _T("%.2d"), index - 1);
-			newName.replace(newName.find(_T(".txt")) + 4, 2, buffer);
+			_stprintf(buffer, _T("%.2d"), i - 1);
+			newName.replace(newName.find(_T(".txt")) - 2, 2, buffer);
 
 			FileMisc::MoveOrRename(curName.c_str(), newName.c_str());
+			logList[i].fileName = newName.substr(newName.find_last_of(_T("\\")) + 1);
 		}
-		FileMisc::Remove((path + _T("\\") + logList[index].fileName).c_str());
+
 		logList.erase(logList.begin() + index);
 	}
 
