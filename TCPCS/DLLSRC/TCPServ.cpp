@@ -6,7 +6,7 @@
 
 TCPServInterface* CreateServer(sfunc func, customFunc conFunc, customFunc disFunc, USHORT maxCon, int compression, float pingInterval, void* obj)
 {
-	return construct<TCPServ>({ func, conFunc, disFunc, maxCon, compression, pingInterval, obj });
+	return construct<TCPServ>(func, conFunc, disFunc, maxCon, compression, pingInterval, obj);
 }
 
 void DestroyServer(TCPServInterface*& server)
@@ -291,7 +291,7 @@ static DWORD CALLBACK SendAllData( LPVOID info )
 	{
 		hnds = alloc<HANDLE>();
 		if(data->exAddr.IsConnected())
-			hnds[nHnds++] = CreateThread(NULL, 0, SendData, construct<SData>(SData(data, data->exAddr)), CREATE_SUSPENDED, NULL);
+			hnds[nHnds++] = CreateThread(NULL, 0, SendData, construct<SData>(data, data->exAddr), CREATE_SUSPENDED, NULL);
 	}
 
 	else
@@ -302,13 +302,13 @@ static DWORD CALLBACK SendAllData( LPVOID info )
 			hnds = alloc<HANDLE>(nClients - 1);
 			for(USHORT i = 0; i < nClients; i++)
 				if(clients[i]->pc != data->exAddr)
-					hnds[nHnds++] = CreateThread(NULL, 0, SendData, construct<SData>(SData(data, clients[i]->pc)), CREATE_SUSPENDED, NULL);
+					hnds[nHnds++] = CreateThread(NULL, 0, SendData, construct<SData>(data, clients[i]->pc), CREATE_SUSPENDED, NULL);
 		}
 		else
 		{
 			hnds = alloc<HANDLE>(nClients);
 			for(USHORT i = 0; i < nClients; i++)
-				hnds[nHnds++] = CreateThread(NULL, 0, SendData, construct<SData>(SData(data, clients[i]->pc)), CREATE_SUSPENDED, NULL);
+				hnds[nHnds++] = CreateThread(NULL, 0, SendData, construct<SData>(data, clients[i]->pc), CREATE_SUSPENDED, NULL);
 		}
 	}
 
@@ -354,7 +354,7 @@ static DWORD CALLBACK SendAllDataEx( LPVOID info )
 	for(USHORT i = 0; i < count; i++)
 	{
 		if (pcs[i].IsConnected())
-			hnds[nHnds++] = CreateThread(NULL, 0, SendDataEx, construct<SDataEx>(SDataEx(data, pcs[i])), CREATE_SUSPENDED, NULL);
+			hnds[nHnds++] = CreateThread(NULL, 0, SendDataEx, construct<SDataEx>(data, pcs[i]), CREATE_SUSPENDED, NULL);
 	}
 
 	if(nHnds != 0)
@@ -382,12 +382,12 @@ static DWORD CALLBACK SendAllDataEx( LPVOID info )
 
 HANDLE TCPServ::SendClientData(const char* data, DWORD nBytes, Socket exAddr, bool single)
 {
-	return CreateThread(NULL, 0, &SendAllData, (LPVOID)construct<SAData>(SAData(*this, data, nBytes, exAddr, single)), NULL, NULL);
+	return CreateThread(NULL, 0, &SendAllData, (LPVOID)construct<SAData>(*this, data, nBytes, exAddr, single), NULL, NULL);
 }
 
 HANDLE TCPServ::SendClientData(const char* data, DWORD nBytes, Socket* pcs, USHORT nPcs)
 {
-	return CreateThread(NULL, 0, &SendAllDataEx, (LPVOID)construct<SADataEx>(SADataEx(*this, data, nBytes, pcs, nPcs)), NULL, NULL);
+	return CreateThread(NULL, 0, &SendAllDataEx, (LPVOID)construct<SADataEx>(*this, data, nBytes, pcs, nPcs), NULL, NULL);
 }
 
 HANDLE TCPServ::SendClientData(const char* data, DWORD nBytes, std::vector<Socket>& pcs)
@@ -515,8 +515,8 @@ void TCPServ::AddClient(Socket pc)
 {
 	EnterCriticalSection(&clientSect);
 
-	Data* data = construct<Data>(Data(*this, nClients));
-	clients[nClients] = construct<ClientData>({ data->serv, pc, function, data->pos });
+	Data* data = construct<Data>(*this, nClients);
+	clients[nClients] = construct<ClientData>(data->serv, pc, function, data->pos);
 	clients[nClients]->recvThread = CreateThread(NULL, 0, RecvData, data, NULL, NULL);
 
 	RunConFunc(clients[nClients]);

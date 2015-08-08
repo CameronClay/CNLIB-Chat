@@ -804,15 +804,13 @@ void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
 
 				WBParams *pParams =	&streamReader.Read<WBParams>();
 
-				pWhiteboard = construct(
-					Whiteboard(
+				pWhiteboard = construct<Whiteboard>(
 					*client,
 					palette,
 					pParams->width,
 					pParams->height,
 					pParams->fps,
-					pParams->clrIndex)
-					);
+					pParams->clrIndex);
 
 				SendMessage(hMainWind, WM_CREATEWIN, ID_WB, (LPARAM)pParams);
 				break;
@@ -920,9 +918,9 @@ void WinMainInit()
 	InitializeNetworking();
 
 	client = CreateClient(&MsgHandler, &DisconnectHandler);
-	fileSend = uqpc<FileSend>(construct<FileSend>(FileSend(*client, hMainWind, &SendFinishedHandler, &SendCanceledHandler)));
-	fileReceive = uqpc<FileReceive>(construct<FileReceive>(FileReceive(*client, hMainWind, &ReceiveFinishedHandler, &ReceiveCanceledHandler)));
-	opts = uqpc<Options>(construct<Options>(Options(std::tstring(optionsFilePath), CONFIGVERSION)));
+	fileSend = uqpc<FileSend>(construct<FileSend>(*client, hMainWind, &SendFinishedHandler, &SendCanceledHandler));
+	fileReceive = uqpc<FileReceive>(construct<FileReceive>(*client, hMainWind, &ReceiveFinishedHandler, &ReceiveCanceledHandler));
+	opts = uqpc<Options>(construct<Options>(std::tstring(optionsFilePath), CONFIGVERSION));
 
 	opts->Load(windowName);
 }
@@ -1957,8 +1955,8 @@ INT_PTR CALLBACK LogsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	auto RefreshLogList = [hWnd]()
 	{
-		SendMessage(nameList, LB_RESETCONTENT, 0, 0);
 		nameList = GetDlgItem(hWnd, LOGS_LB_NAME);
+		SendMessage(nameList, LB_RESETCONTENT, 0, 0);
 		auto& logs = opts->GetLogList();
 
 		for(auto& it : logs)

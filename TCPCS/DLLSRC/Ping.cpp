@@ -67,7 +67,7 @@ PingHandler::PingHandler(TCPServ& serv, Socket socket)
 	pingTimer(CreateWaitableTimer(NULL, FALSE, NULL)),
 	pingThread(NULL),
 	pingID(NULL),
-	pingData(construct<PingData>({ serv, this, socket }))
+	pingData(construct<PingData>(serv, this, socket))
 {}
 
 PingHandler::PingHandler(PingHandler&& ping)

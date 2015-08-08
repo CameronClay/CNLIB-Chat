@@ -13,11 +13,11 @@ template<typename T> inline T* alloc()
 {
 	return (T*)HeapAlloc(GetProcessHeap(), NULL, sizeof( T ));
 }
-template<typename T> inline T* alloc(size_t count)
+template<typename T> inline T* alloc( size_t count )
 {
 	return (T*)(count != 0 ? HeapAlloc(GetProcessHeap(), NULL, sizeof(T) * count) : nullptr);
 }
-template<typename T> inline void dealloc(T& p)
+template<typename T> inline void dealloc( T& p )
 {
 	if( p )
 	{
@@ -25,11 +25,11 @@ template<typename T> inline void dealloc(T& p)
 		p = nullptr;
 	}
 }
-template<typename T> inline T* construct(T&& t)
+template<typename T, typename... Args> inline T* construct(Args&&... vals)
 {
-	return new(alloc<T>()) T( std::forward<T>( t ) );
+	return new(alloc<T>()) T(vals...);
 }
-template<typename T> inline void destruct(T*& p)
+template<typename T> inline void destruct( T*& p )
 {
 	if( p )
 	{
@@ -38,7 +38,7 @@ template<typename T> inline void destruct(T*& p)
 		p = nullptr;
 	}
 }
-template<typename T, typename... A> T* constructa(A&&... vals)
+template<typename T, typename... Args> T* constructa(Args&&... vals )
 {
 	const size_t count = sizeof...(vals);
 	if( count != 0 )
@@ -54,7 +54,7 @@ template<typename T, typename... A> T* constructa(A&&... vals)
 	}
 	return nullptr;
 }
-template<typename T> void destructa(T*& p)
+template<typename T> void destructa( T*& p )
 {
 	if( p )
 	{
@@ -161,15 +161,76 @@ template<typename T> using uqp = std::unique_ptr < T, deleter<T> >;
 template<typename T> using uqpc = std::unique_ptr < T, deleterc<T> >;
 template<typename T> using uqpca = std::unique_ptr < T, deleterca<T> >;
 
-template<typename T> std::shared_ptr<T> m_sp(T* p)
+template<typename T> std::shared_ptr<T> m_sp( T* p )
 {
 	return{ p, deleter<T>() };
 }
-template<typename T> std::shared_ptr<T> m_csp(T* p)
+template<typename T> std::shared_ptr<T> m_csp( T* p )
 {
 	return{ p, deleterc<T>() };
 }
-template<typename T> std::shared_ptr<T> m_casp(T* p)
+template<typename T> std::shared_ptr<T> m_casp( T* p )
 {
 	return{ p, deleterca<T>() };
 }
+
+//template< typename T > class pool
+//{
+//public:
+//	pool(size_t maxElements, size_t initialElements)
+//		:
+//		maxE(maxElements),
+//		curE(initialElements),
+//		tSize(sizeof(T))
+//	{
+//		data = (T*)HeapAlloc(GetProcessHeap(), NUll, initialElements * tSize)
+//	}
+//	~pool()
+//	{}
+//	void ReSize(size_t nElements)
+//	{
+//		curSize = sizeof(T)* nElements;
+//		data = (TCHAR*)HeapReAlloc(GetProcessHeap(), NULL, data, curSize);
+//	}
+//	void Add()
+//	{
+//		ReSize(1);
+//	}
+//	T* GetPointer()
+//	{
+//		if (Growable(tSize))
+//		{
+//			T* p = (T*)data;
+//			++data;
+//			return p;
+//		}
+//		return nullptr;
+//	}
+//	T* GetPointer(size_t nElements)
+//	{
+//		if (Growable(nElements))
+//		{
+//			T* p = (T*)data;
+//			data += nElements;
+//			return p;
+//		}
+//		return nullptr;
+//	}
+//	inline bool Growable(size_t nElements)
+//	{
+//		return curE + nElements < maxE;
+//	}
+//	inline bool Empty()
+//	{
+//		return curE == 0;
+//	}
+//	void Clear()
+//	{
+//		if (data)
+//			HeapFree(GetProcessHeap(), NULL, data)
+//	}
+//private:
+//	T* data;
+//	const size_t maxE, tSize;
+//	size_t curE;
+//};

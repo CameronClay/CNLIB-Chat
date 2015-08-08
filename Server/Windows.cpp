@@ -499,7 +499,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 				HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, true);
 				WaitAndCloseHandle(hnd);
 
-				wb = construct<Whiteboard>(Whiteboard(serv, *params, clint->user));
+				wb = construct<Whiteboard>(serv, *params, clint->user);
 
 				wb->StartThread();
 			}

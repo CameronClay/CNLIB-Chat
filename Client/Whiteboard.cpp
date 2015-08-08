@@ -294,7 +294,7 @@ void Whiteboard::StartThread(TCPClientInterface* client)
 	LI.QuadPart = (LONGLONG)(interval * -10000000.0f);
 	SetWaitableTimer(timer, &LI, (LONG)(interval * 1000.0f), NULL, NULL, FALSE);
 
-	thread = CreateThread(NULL, 0, WBThread, construct<WBThreadParams>({this, client}), NULL, &threadID);
+	thread = CreateThread(NULL, 0, WBThread, construct<WBThreadParams>(this, client), NULL, &threadID);
 }
 
 

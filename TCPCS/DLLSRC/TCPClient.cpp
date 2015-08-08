@@ -6,7 +6,7 @@
 
 TCPClientInterface* CreateClient(cfunc func, dcfunc disconFunc, int compression, void* obj)
 {
-	return construct<TCPClient>({ func, disconFunc, compression, obj });
+	return construct<TCPClient>(func, disconFunc, compression, obj);
 }
 
 void DestroyClient(TCPClientInterface*& client)
@@ -202,7 +202,7 @@ void TCPClient::Shutdown()
 
 HANDLE TCPClient::SendServData(const char* data, DWORD nBytes)
 {
-	return CreateThread(NULL, 0, SendData, (LPVOID)construct<SendInfo>(SendInfo(*this, (char*)data, nBytes)), NULL, NULL);
+	return CreateThread(NULL, 0, SendData, (LPVOID)construct<SendInfo>(*this, (char*)data, nBytes), NULL, NULL);
 }
 
 bool TCPClient::RecvServData()
