@@ -6,8 +6,9 @@
 
 //---------------------------------------------DOCUMENTATION---------------------------------------------
 //alloc and dealloc are together, for blank memory : new type var or new type[count] : alloc<type>() or alloc<type>(count) : uqp/m_sp
-//construct and destruct are together, for a single constructed element : new type var(value) : construct(type()) or construct<type>(value) : uqpc/m_csp
-//constructa and destructa are together. for a constructed array : new type[count] var{v1,v2,v3} : constructa<type>(value, value) or constructa<type>(type(), type()) : uqpca/m_casp
+//construct and destruct are together, for a single constructed element : new type var(value) : construct<type>(...) or construct<type>(value) : uqpc/m_csp
+//constructa and destructa are together, for a constructed array : new type[count] var{v1,v2,v3} : constructa<type>(value, value) or constructa<type>(type(), type()) : uqpca/m_casp
+//pmconstruct and pmdestruct are together, for constructing at a specified memory region : new (ptr) T() : pmconstruct<type>(ptr, ...) or pmconstruct <type>(ptr, value) : pmuqp/m_pmsp
 
 template<typename T> inline T* alloc()
 {
@@ -25,20 +26,40 @@ template<typename T> inline void dealloc( T& p )
 		p = nullptr;
 	}
 }
-template<typename T, typename... Args> inline T* construct(Args&&... vals)
+
+template<typename T, typename... Args> inline T* construct( Args&&... vals )
 {
-	return new(alloc<T>()) T(vals...);
+	return new(alloc<T>()) T(std::forward<Args>(args)...);
+}
+template<typename T> inline T* construct( T&& obj )
+{
+	return new(alloc<T>()) T(std::forward<T>(obj));
 }
 template<typename T> inline void destruct( T*& p )
 {
-	if( p )
+	if (p)
 	{
 		p->~T();
-		HeapFree( GetProcessHeap(), NULL, p );
+		HeapFree(GetProcessHeap(), NULL, p);
 		p = nullptr;
 	}
 }
-template<typename T, typename... Args> T* constructa(Args&&... vals )
+
+template<typename T, typename P, typename... Args> inline T* pmconstruct( P* ptr, Args&&... vals )
+{
+	return new(ptr) T(std::forward<Args>(args)...);
+}
+template<typename T, typename P> inline void pmconstruct( P* ptr, T&& obj )
+{
+	return new(ptr) T(std::forward<T>(obj));
+}
+template<typename T> inline void pmdestruct( T*& p )
+{
+	if (p)
+		p->~T();
+}
+
+template<typename T, typename... Args> T* constructa( Args&&... vals )
 {
 	const size_t count = sizeof...(vals);
 	if( count != 0 )
@@ -110,18 +131,23 @@ public:
 	}
 	static inline void construct( pointer p, const_reference v )
 	{
-		new(p)T( v );
+		new(p) T( v );
+	}
+	template<typename T, typename... Args> static inline void construct( T* p, Args&&... args )
+	{
+		new(p) T(std::forward<Args>(args)...);
 	}
 	static inline void destroy( pointer p )
 	{
 		p->~T();
 	}
 };
-template<class T1, class T2> bool operator==(const allocator<T1>&, const allocator<T2>&)
+
+template<class T1, class T2> bool operator==( const allocator<T1>&, const allocator<T2>& )
 {
 	return true;
 }
-template<class T1, class T2> bool operator!=(const allocator<T1>&, const allocator<T2>&)
+template<class T1, class T2> bool operator!=( const allocator<T1>&, const allocator<T2>& )
 {
 	return false;
 }
@@ -146,10 +172,20 @@ template<typename T> struct deleterc
 		destruct( t );
 	}
 };
+template<typename T> struct pmdeleter
+{
+	pmdeleter() throw() {}
+	template<typename T2> pmdeleter(const pmdeleter<T2>&, typename std::enable_if<std::is_convertible<T2*, T*>::value>::type** = 0) throw() {}
+	void operator()(T* t) throw()
+	{
+		static_assert(sizeof(T), "can't delete an incomplete type");
+		pmdestruct(t);
+	}
+};
 template<typename T> struct deleterca
 {
 	deleterca() throw() {}
-	template<typename T2> deleterca( const deleterc<T2>&, typename std::enable_if<std::is_convertible<T2*, T*>::value>::type** = 0 ) throw() {}
+	template<typename T2> deleterca( const deleterca<T2>&, typename std::enable_if<std::is_convertible<T2*, T*>::value>::type** = 0 ) throw() {}
 	void operator()( T* t ) throw()
 	{
 		static_assert(sizeof( T ), "can't delete an incomplete type");
@@ -160,6 +196,7 @@ template<typename T> struct deleterca
 template<typename T> using uqp = std::unique_ptr < T, deleter<T> >;
 template<typename T> using uqpc = std::unique_ptr < T, deleterc<T> >;
 template<typename T> using uqpca = std::unique_ptr < T, deleterca<T> >;
+template<typename T> using pmuqp = std::unique_ptr < T, pmdeleter<T> >;
 
 template<typename T> std::shared_ptr<T> m_sp( T* p )
 {
@@ -173,64 +210,7 @@ template<typename T> std::shared_ptr<T> m_casp( T* p )
 {
 	return{ p, deleterca<T>() };
 }
-
-//template< typename T > class pool
-//{
-//public:
-//	pool(size_t maxElements, size_t initialElements)
-//		:
-//		maxE(maxElements),
-//		curE(initialElements),
-//		tSize(sizeof(T))
-//	{
-//		data = (T*)HeapAlloc(GetProcessHeap(), NUll, initialElements * tSize)
-//	}
-//	~pool()
-//	{}
-//	void ReSize(size_t nElements)
-//	{
-//		curSize = sizeof(T)* nElements;
-//		data = (TCHAR*)HeapReAlloc(GetProcessHeap(), NULL, data, curSize);
-//	}
-//	void Add()
-//	{
-//		ReSize(1);
-//	}
-//	T* GetPointer()
-//	{
-//		if (Growable(tSize))
-//		{
-//			T* p = (T*)data;
-//			++data;
-//			return p;
-//		}
-//		return nullptr;
-//	}
-//	T* GetPointer(size_t nElements)
-//	{
-//		if (Growable(nElements))
-//		{
-//			T* p = (T*)data;
-//			data += nElements;
-//			return p;
-//		}
-//		return nullptr;
-//	}
-//	inline bool Growable(size_t nElements)
-//	{
-//		return curE + nElements < maxE;
-//	}
-//	inline bool Empty()
-//	{
-//		return curE == 0;
-//	}
-//	void Clear()
-//	{
-//		if (data)
-//			HeapFree(GetProcessHeap(), NULL, data)
-//	}
-//private:
-//	T* data;
-//	const size_t maxE, tSize;
-//	size_t curE;
-//};
+template<typename T> std::shared_ptr<T> m_pmsp( T* p )
+{
+	return{ p, pmdeleter<T>() };
+}
