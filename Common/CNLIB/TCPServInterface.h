@@ -21,6 +21,9 @@ public:
 		//DO NOT TOUCH
 		USHORT recvIndex;
 		HANDLE recvThread;
+
+		//User defined object to store extra data in the struct
+		void* obj;
 	};
 
 	virtual bool AllowConnections(const LIB_TCHAR* port) = 0;

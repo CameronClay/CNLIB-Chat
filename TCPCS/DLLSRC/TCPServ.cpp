@@ -136,7 +136,8 @@ TCPServ::ClientData::ClientData(TCPServ& serv, Socket pc, sfunc func, USHORT rec
 	func(func),
 	pingHandler(serv, pc),
 	recvIndex(recvIndex),
-	recvThread(INVALID_HANDLE_VALUE)
+	recvThread(INVALID_HANDLE_VALUE),
+	obj(nullptr)
 {}
 
 TCPServ::ClientData::ClientData(ClientData&& clint)
@@ -146,7 +147,8 @@ TCPServ::ClientData::ClientData(ClientData&& clint)
 	pingHandler(std::move(clint.pingHandler)),
 	user(std::move(clint.user)),
 	recvIndex(clint.recvIndex),
-	recvThread(clint.recvThread)
+	recvThread(clint.recvThread),
+	obj(clint.obj)
 {
 	ZeroMemory(&clint, sizeof(ClientData));
 }
@@ -161,6 +163,7 @@ TCPServ::ClientData& TCPServ::ClientData::operator=(ClientData&& data)
 		user = std::move(data.user);
 		recvIndex = data.recvIndex;
 		recvThread = data.recvThread;
+		obj = data.obj;
 
 		ZeroMemory(&data, sizeof(ClientData));
 	}
