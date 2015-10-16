@@ -168,11 +168,14 @@ long Socket::ReadData(void* dest, DWORD nBytes)
 	return recv(pc, (char*)dest, nBytes, MSG_WAITALL);
 #else
 	long received = 0, temp = SOCKET_ERROR;
-	do
+	while (true)
 	{
 		received += temp = recv(pc, &(((char*)dest)[received]), nBytes - received, 0);
-	} while( !((temp == 0) || (temp == SOCKET_ERROR)) && (received != nBytes) );
-	return received;
+		if ((temp == 0) || (temp == SOCKET_ERROR))
+			return temp;
+		else if (received == nBytes)
+			return received;
+	}
 #endif
 }
 

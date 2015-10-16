@@ -49,8 +49,8 @@ protected:
 class FileSend : public FileTransfer
 {
 public:
-	FileSend(TCPClientInterface& client, HWND wnd, AlertFunc finished, AlertFunc canceled, std::vector<FileMisc::FileData>&& list, DWORD nBytesPerLoop = 100000);
-	FileSend(TCPClientInterface& client, HWND wnd, AlertFunc finished, AlertFunc canceled, DWORD nBytesPerLoop = 100000);
+	FileSend(TCPClientInterface& client, HWND wnd, AlertFunc finished, AlertFunc canceled, std::vector<FileMisc::FileData>&& list, DWORD nBytesPerLoop = 10000);
+	FileSend(TCPClientInterface& client, HWND wnd, AlertFunc finished, AlertFunc canceled, DWORD nBytesPerLoop = 10000);
 	FileSend(FileSend&& ft);
 	~FileSend();
 

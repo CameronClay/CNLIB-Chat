@@ -255,7 +255,7 @@ void FileSend::SendCurrentFile()
 
 		DWORD bytesRead = file.Read(&msg[pos], nBytesPerLoop);
 		progress += ((double)bytesRead) / (double)(1024 * 1024);
-		dialog.SetProgress((DWORD)((progress / size) * 100));
+		dialog.SetProgress((DWORD)((progress / size) * 1000));
 		HANDLE hnd = client.SendServData(msg, bytesRead + extraBytesData);
 		WaitAndCloseHandle(hnd);
 		it->size -= bytesRead;
@@ -285,7 +285,7 @@ DWORD CALLBACK SendAllFiles(LPVOID data)
 
 	send.SendFileNameList();
 
-	const bool result = send.GetDialog().Start(send.GetWnd(), 100, _T("File transfer"), _T("Sending..."), _T("Canceling"));
+	const bool result = send.GetDialog().Start(send.GetWnd(), 1000, _T("File transfer"), _T("Sending..."), _T("Canceling"));
 	assert(result);
 
 	while(true)
@@ -385,7 +385,7 @@ void FileReceive::RecvFileNameList(MsgStreamReader& streamReader, std::tstring& 
 
 	CoInitialize(NULL);
 
-	dialog.Start(wnd, 100, _T("File transfer"), _T("Receiving..."), _T("Canceling"));
+	dialog.Start(wnd, 1000, _T("File transfer"), _T("Receiving..."), _T("Canceling"));
 }
 
 void FileReceive::RecvFile(BYTE* data, DWORD nBytes)
@@ -438,7 +438,7 @@ void FileReceive::RecvFile(BYTE* data, DWORD nBytes)
 	assert(bytesWritten <= it->size);
 
 	progress += ((double)written) / (double)(1024 * 1024);
-	dialog.SetProgress((DWORD)((progress / size) * 100.0));
+	dialog.SetProgress((DWORD)((progress / size) * 1000.0));
 
 	if(bytesWritten == it->size && it == --list.end())
 	{
