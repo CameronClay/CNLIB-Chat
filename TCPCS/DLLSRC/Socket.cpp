@@ -168,14 +168,13 @@ long Socket::ReadData(void* dest, DWORD nBytes)
 	return recv(pc, (char*)dest, nBytes, MSG_WAITALL);
 #else
 	long received = 0, temp = SOCKET_ERROR;
-	while (true)
+	do
 	{
 		received += temp = recv(pc, &(((char*)dest)[received]), nBytes - received, 0);
 		if ((temp == 0) || (temp == SOCKET_ERROR))
 			return temp;
-		else if (received == nBytes)
-			return received;
-	}
+	} while (received != nBytes);
+	return received;
 #endif
 }
 
@@ -185,7 +184,9 @@ long Socket::SendData(const void* data, DWORD nBytes)
 	do
 	{
 		sent += temp = send(pc, &(((char*)data)[sent]), nBytes - sent, 0);
-	} while((temp != SOCKET_ERROR) && (sent != nBytes));
+		if (temp == SOCKET_ERROR)
+			return temp;
+	} while(sent != nBytes);
 	return sent;
 }
 
