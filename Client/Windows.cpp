@@ -932,8 +932,8 @@ int WINAPI WinMain(HINSTANCE hInstance,
 {
 	WinMainInit();
 
-	HRESULT res = CoInitialize(NULL);
-	assert(SUCCEEDED(res));
+	/*HRESULT res = CoInitialize(NULL);
+	assert(SUCCEEDED(res));*/
 
 	WNDCLASSEX wcex;
 
