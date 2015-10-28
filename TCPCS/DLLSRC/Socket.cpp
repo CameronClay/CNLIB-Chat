@@ -99,11 +99,9 @@ Socket Socket::AcceptConnection()
 {
 	if(IsConnected())
 	{
-		SOCKET temp = accept(pc, NULL, NULL);
+		Socket temp(accept(pc, NULL, NULL));
 		if(temp != INVALID_SOCKET)
-		{
-			return Socket(temp);
-		}
+			return temp;
 	}
 	return Socket();
 }
