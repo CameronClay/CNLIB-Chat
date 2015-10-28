@@ -450,8 +450,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 					{
 						if (clients[i]->user.compare(user) == 0)
 						{
-							DisconnectHandler(clients[i]);
-							clients[i]->pc.Disconnect();
+							serv.DisconnectClient(clients[i]);
 						}
 					}
 					break;

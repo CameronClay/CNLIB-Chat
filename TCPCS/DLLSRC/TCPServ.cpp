@@ -534,7 +534,8 @@ void TCPServ::RemoveClient(USHORT& pos)
 
 	ClientData& data = *clients[index];
 
-	if(host.IsConnected())
+	//If user wasn't removed intentionaly
+	if (clients[index]->pc.IsConnected())
 		RunDisFunc(clients[index]);
 
 	std::tstring user = std::move(data.user);
@@ -574,9 +575,8 @@ TCPServ::ClientData* TCPServ::FindClient(const std::tstring& user) const
 
 void TCPServ::DisconnectClient(ClientData* client)
 {
-	//Disconnect zero's socket and may need to be displayed in disconnect handler
-	Socket temp = client->pc;
-	temp.Disconnect();
+	RunDisFunc(client);
+	client->pc.Disconnect();
 }
 
 void TCPServ::Shutdown()
