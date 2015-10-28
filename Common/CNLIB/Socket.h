@@ -38,7 +38,7 @@ public:
 	operator SOCKET&();
 	operator HANDLE&();
 
-	void Bind(const LIB_TCHAR* port);
+	bool Bind(const LIB_TCHAR* port);
 	Socket AcceptConnection();
 
 	void Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, float timeout);

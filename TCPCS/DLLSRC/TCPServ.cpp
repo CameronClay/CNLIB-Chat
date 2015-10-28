@@ -489,12 +489,7 @@ TCPServ::~TCPServ()
 
 bool TCPServ::AllowConnections(const LIB_TCHAR* port)
 {
-	if(host.IsConnected())
-		return false;
-
-	host.Bind(port);
-
-	if(!host.IsConnected())
+	if(host.IsConnected() || !host.Bind(port))
 		return false;
 
 	if(!clients)
@@ -581,7 +576,7 @@ void TCPServ::DisconnectClient(ClientData* client)
 
 void TCPServ::Shutdown()
 {
-	if(clients)
+	if (openCon)
 	{
 		host.Disconnect();//causes opencon thread to close
 		WaitAndCloseHandle(openCon);

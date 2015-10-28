@@ -84,15 +84,26 @@ Socket::operator HANDLE&()
 	return (HANDLE&)pc;
 }
 
-void Socket::Bind(const LIB_TCHAR* port)
+bool Socket::Bind(const LIB_TCHAR* port)
 {
 	ADDRINFOT info = { AI_PASSIVE, AF_INET, SOCK_STREAM, IPPROTO_TCP };
 	ADDRINFOT* addr = 0;
 	GetAddrInfo(NULL, port, &info, &addr);
+
+	bool result = false;
 	pc = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
-	bind(pc, addr->ai_addr, addr->ai_addrlen);
-	listen(pc, SOMAXCONN);
+	if (pc != INVALID_SOCKET)
+	{
+		if (bind(pc, addr->ai_addr, addr->ai_addrlen) == 0)
+		{
+			if (listen(pc, SOMAXCONN) == 0)
+				result = true;
+		}
+	}
+
 	FreeAddrInfo(addr);
+
+	return result;
 }
 
 Socket Socket::AcceptConnection()
