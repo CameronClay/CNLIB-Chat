@@ -194,6 +194,7 @@ void TCPClient::Shutdown()
 {
 	if(recv)
 	{
+		SetShutdownReason(false);
 		Disconnect();
 		WaitForSingleObject(recv, INFINITE);//Handle closed in thread
 	}
@@ -206,10 +207,14 @@ HANDLE TCPClient::SendServData(const char* data, DWORD nBytes)
 
 bool TCPClient::RecvServData()
 {
-	if(!host.IsConnected())
+	if (!host.IsConnected())
 		return false;
 
 	recv = CreateThread(NULL, 0, ReceiveData, this, NULL, NULL);
+
+	if (!recv)
+		return false;
+
 	InitializeCriticalSection(&sendSect);
 
 	return true;

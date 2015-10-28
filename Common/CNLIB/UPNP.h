@@ -1,3 +1,5 @@
+//Copyright (c) <2015> <Cameron Clay>
+
 #pragma once
 #include "Typedefs.h"
 #include <Natupnp.h>

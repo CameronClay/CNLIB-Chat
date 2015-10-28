@@ -1,3 +1,5 @@
+//Copyright (c) <2015> <Cameron Clay>
+
 #pragma once
 #include <assert.h>
 #include "HeapAlloc.h"
