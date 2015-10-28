@@ -4,9 +4,9 @@
 #include "Messages.h"
 #include "MsgStream.h"
 
-TCPServInterface* CreateServer(sfunc func, customFunc conFunc, customFunc disFunc, USHORT maxCon, int compression, float pingInterval, void* obj)
+TCPServInterface* CreateServer(sfunc msgHandler, customFunc conFunc, customFunc disFunc, USHORT maxCon, int compression, float pingInterval, void* obj)
 {
-	return construct<TCPServ>(func, conFunc, disFunc, maxCon, compression, pingInterval, obj);
+	return construct<TCPServ>(msgHandler, conFunc, disFunc, maxCon, compression, pingInterval, obj);
 }
 
 void DestroyServer(TCPServInterface*& server)
@@ -213,16 +213,13 @@ static DWORD CALLBACK RecvData(LPVOID info)
 		{
 			if(pc.ReadData(&nBytesComp, sizeof(DWORD)) > 0)
 			{
-				BYTE* compBuffer = alloc<BYTE>(nBytesComp);
+				BYTE* compBuffer = alloc<BYTE>(nBytesComp + nBytesComp);
 				if(pc.ReadData(compBuffer, nBytesComp) > 0)
 				{
-					BYTE* deCompBuffer = alloc<BYTE>(nBytesDecomp);
-					FileMisc::Decompress(deCompBuffer, nBytesDecomp, compBuffer, nBytesComp);
+					BYTE* dest = &compBuffer[nBytesComp];
+					FileMisc::Decompress(dest, nBytesDecomp, compBuffer, nBytesComp);
+					(clint->func)(serv, clint, dest, nBytesDecomp, obj);
 					dealloc(compBuffer);
-
-					(clint->func)(&serv, clint, deCompBuffer, nBytesDecomp, obj);
-					dealloc(deCompBuffer);
-
 					clint->pingHandler.SetPingTimer(serv.GetPingInterval());
 				}
 				else
@@ -573,6 +570,13 @@ TCPServ::ClientData* TCPServ::FindClient(const std::tstring& user) const
 			return clients[i];
 	}
 	return nullptr;
+}
+
+void TCPServ::DisconnectClient(ClientData* client)
+{
+	//Disconnect zero's socket and may need to be displayed in disconnect handler
+	Socket temp = client->pc;
+	temp.Disconnect();
 }
 
 void TCPServ::Shutdown()

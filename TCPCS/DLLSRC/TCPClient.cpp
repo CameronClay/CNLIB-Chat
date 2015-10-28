@@ -4,9 +4,9 @@
 #include "File.h"
 #include "MsgStream.h"
 
-TCPClientInterface* CreateClient(cfunc func, dcfunc disconFunc, int compression, void* obj)
+TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, int compression, void* obj)
 {
-	return construct<TCPClient>(func, disconFunc, compression, obj);
+	return construct<TCPClient>(msgHandler, disconFunc, compression, obj);
 }
 
 void DestroyClient(TCPClientInterface*& client)
@@ -136,14 +136,13 @@ static DWORD CALLBACK ReceiveData(LPVOID param)
 		{
 			if (host.ReadData(&nBytesComp, sizeof(DWORD)) > 0)
 			{
-				BYTE* compBuffer = alloc<BYTE>(nBytesComp);
+				BYTE* compBuffer = alloc<BYTE>(nBytesComp + nBytesDecomp);
 				if (host.ReadData(compBuffer, nBytesComp) > 0)
 				{
-					BYTE* deCompBuffer = alloc<BYTE>(nBytesDecomp);
-					FileMisc::Decompress(deCompBuffer, nBytesDecomp, compBuffer, nBytesComp);
+					BYTE* dest = &compBuffer[nBytesComp];
+					FileMisc::Decompress(dest, nBytesDecomp, compBuffer, nBytesComp);
+					(*client.GetFunction())(client, dest, nBytesDecomp, obj);
 					dealloc(compBuffer);
-					(*client.GetFunction())(param, deCompBuffer, nBytesDecomp, obj);
-					dealloc(deCompBuffer);
 				}
 				else
 				{

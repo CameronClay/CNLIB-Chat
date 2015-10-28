@@ -477,12 +477,8 @@ int FindClient(std::tstring& name)
 	return found;
 }
 
-void MsgHandler(void* clientObj, BYTE* data, DWORD nBytes, void* obj)
+void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void* obj)
 {
-	//HRESULT res = CoInitialize(NULL);
-	//assert(SUCCEEDED(res));
-
-	TCPClientInterface& clint = *(TCPClientInterface*)clientObj;
 	char* dat = (char*)(&data[MSG_OFFSET]);
 	nBytes -= MSG_OFFSET;
 	MsgStreamReader streamReader((char*)data, nBytes);

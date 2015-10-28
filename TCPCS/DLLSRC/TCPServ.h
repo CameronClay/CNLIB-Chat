@@ -29,6 +29,7 @@ public:
 	void SendMsg(const std::tstring& user, char type, char message);
 
 	ClientData* FindClient(const std::tstring& user) const;
+	void DisconnectClient(ClientData* client);
 
 	void Shutdown();
 

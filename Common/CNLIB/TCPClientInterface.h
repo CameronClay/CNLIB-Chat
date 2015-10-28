@@ -2,7 +2,10 @@
 #include "Socket.h"
 #include <tchar.h>
 
+class TCPClientInterface;
 typedef void(*const dcfunc)(bool unexpected);
+typedef void(*cfunc)(TCPClientInterface& client, const BYTE* data, DWORD nBytes, void* obj);
+typedef void(**const cfuncP)(TCPClientInterface& client, const BYTE* data, DWORD nBytes, void* obj);
 
 class CAMSNETLIB TCPClientInterface
 {
@@ -29,5 +32,5 @@ public:
 	virtual void* GetObj() const = 0;
 };
 
-CAMSNETLIB TCPClientInterface* CreateClient(cfunc func, dcfunc disconFunc, int compression = 9, void* obj = nullptr);
+CAMSNETLIB TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, int compression = 9, void* obj = nullptr);
 CAMSNETLIB void DestroyClient(TCPClientInterface*& client);

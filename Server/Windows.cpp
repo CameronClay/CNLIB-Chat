@@ -195,12 +195,10 @@ void ConnectHandler(ClientData* data)
 }
 
 //Handles all incoming packets
-void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
+void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* data, DWORD nBytes, void* obj)
 {
-	TCPServInterface& serv = *(TCPServInterface*)server;
 	auto clients = serv.GetClients();
 	const USHORT nClients = serv.ClientCount();
-	ClientData* clint = (ClientData*)client;
 	
 	char* dat = (char*)(&data[MSG_OFFSET]);
 	nBytes -= MSG_OFFSET;
@@ -438,8 +436,7 @@ void MsgHandler(void* server, void* client, BYTE* data, DWORD nBytes, void* obj)
 					{
 						if (clients[i]->user.compare(user) == 0)
 						{
-							DisconnectHandler(clients[i]);
-							clients[i]->pc.Disconnect();
+							serv.DisconnectClient(clients[i]);
 						}
 					}
 

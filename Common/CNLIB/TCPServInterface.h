@@ -4,9 +4,14 @@
 #include "Socket.h"
 #include "Ping.h"
 
+
 class CAMSNETLIB TCPServInterface
 {
 public:
+	class ClientData;
+	typedef void(*sfunc)(TCPServInterface& serv, ClientData* const client, const BYTE* data, DWORD nBytes, void* obj);
+	typedef void(**const sfuncP)(TCPServInterface& serv, ClientData* const client, const BYTE* data, DWORD nBytes, void* obj);
+
 	struct CAMSNETLIB ClientData
 	{
 		ClientData(class TCPServ& serv, Socket pc, sfunc func, USHORT recvIndex);
@@ -39,6 +44,7 @@ public:
 	virtual void SendMsg(const std::tstring& user, char type, char message) = 0;
 
 	virtual ClientData* FindClient(const std::tstring& user) const = 0;
+	virtual void DisconnectClient(ClientData* client) = 0;
 
 	virtual void Shutdown() = 0;
 
@@ -57,6 +63,9 @@ public:
 typedef TCPServInterface::ClientData ClientData;
 typedef void(*const customFunc)(ClientData* data);
 
+typedef TCPServInterface::sfunc sfunc;
+typedef TCPServInterface::sfuncP sfuncP;
 
-CAMSNETLIB TCPServInterface* CreateServer(sfunc func, customFunc conFunc, customFunc disFunc, USHORT maxCon = 20, int compression = 9, float pingInterval = 30.0f, void* obj = nullptr);
+
+CAMSNETLIB TCPServInterface* CreateServer(sfunc msgHandler, customFunc conFunc, customFunc disFunc, USHORT maxCon = 20, int compression = 9, float pingInterval = 30.0f, void* obj = nullptr);
 CAMSNETLIB void DestroyServer(TCPServInterface*& server);
