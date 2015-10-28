@@ -213,7 +213,7 @@ static DWORD CALLBACK RecvData(LPVOID info)
 		{
 			if(pc.ReadData(&nBytesComp, sizeof(DWORD)) > 0)
 			{
-				BYTE* compBuffer = alloc<BYTE>(nBytesComp + nBytesComp);
+				BYTE* compBuffer = alloc<BYTE>(nBytesComp + nBytesDecomp);
 				if(pc.ReadData(compBuffer, nBytesComp) > 0)
 				{
 					BYTE* dest = &compBuffer[nBytesComp];
