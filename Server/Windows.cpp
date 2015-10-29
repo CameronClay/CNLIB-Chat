@@ -645,7 +645,9 @@ void WinMainInit()
 
 	InitializeNetworking();
 
+	CoInitialize(NULL);
 	MapPort(port, _T("TCP"), _T("Cam's Serv"));
+	CoUninitialize();
 
 	serv = CreateServer(&MsgHandler, &ConnectHandler, &DisconnectHandler);
 

@@ -14,18 +14,19 @@ UPNP::~UPNP()
 {
 	if (spmc != nullptr)
 	{
-		spmc->Release();
+		spmc->Release(); //Ref count verified 0
 		spmc = nullptr;
 	}
-	CoUninitialize();
+	CoUninitialize(); //Causes crash, ummm.... why?
 }
 
 bool UPNP::Initialize()
 {
 	bool upnpS = false, collectionS = false;
 	IUPnPNAT *upnp = nullptr;
-	if ((upnpS = SUCCEEDED(CoCreateInstance(CLSID_UPnPNAT, NULL, CLSCTX_INPROC_SERVER, IID_IUPnPNAT, (void**)&upnp)) && upnp != nullptr))
-		collectionS = SUCCEEDED(upnp->get_StaticPortMappingCollection(&spmc)) && spmc != nullptr;
+	if (upnpS = (SUCCEEDED(CoCreateInstance(CLSID_UPnPNAT, NULL, CLSCTX_INPROC_SERVER, IID_IUPnPNAT, (void**)&upnp)) && (upnp != nullptr)))
+		collectionS = (SUCCEEDED(upnp->get_StaticPortMappingCollection(&spmc)) && (spmc != nullptr)); //Calling CoUnitialize after spmc->release() causes crash
+
 	if (upnpS)
 	{
 		upnp->Release();
@@ -38,7 +39,7 @@ bool UPNP::PortMapExists(USHORT port, const LIB_TCHAR* protocal) const
 {
 	IStaticPortMapping* spm = nullptr;
 	bool result = false;
-	if ((result = SUCCEEDED(spmc->get_Item(port, bstr_t(protocal), &spm)) && spm != nullptr))
+	if (result = (SUCCEEDED(spmc->get_Item(port, bstr_t(protocal), &spm)) && spm != nullptr))
 	{
 		spm->Release();
 		spm = nullptr;
@@ -56,7 +57,7 @@ bool UPNP::AddPortMap(USHORT port, const LIB_TCHAR* protocal, const LIB_TCHAR* i
 	IStaticPortMapping* spm = nullptr;
 	VARIANT_BOOL b = (state ? VARIANT_TRUE : VARIANT_FALSE);
 	bool result = false;
-	if ((result = SUCCEEDED(spmc->Add(port, bstr_t(protocal), port, bstr_t(ip), b, bstr_t(description), &spm)) && spm != nullptr))
+	if (result = (SUCCEEDED(spmc->Add(port, bstr_t(protocal), port, bstr_t(ip), b, bstr_t(description), &spm)) && spm != nullptr))
 	{
 		spm->Release();
 		spm = nullptr;
@@ -76,7 +77,8 @@ bool MapPort(USHORT port, const LIB_TCHAR* protocal, const LIB_TCHAR* name)
 {
 	UPNP upnp;
 	bool result = false;
-	if (upnp.Initialize())
+
+	if (upnp.Initialize()) //Initialize call causes crash when you lose internet connection
 	{
 		LIB_TCHAR IP[16] = {};
 		Socket::GetLocalIP(IP);
