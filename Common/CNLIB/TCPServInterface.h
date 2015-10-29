@@ -10,7 +10,7 @@
 class CAMSNETLIB TCPServInterface
 {
 public:
-	class ClientData;
+	struct ClientData;
 	typedef void(*sfunc)(TCPServInterface& serv, ClientData* const client, const BYTE* data, DWORD nBytes, void* obj);
 	typedef void(**const sfuncP)(TCPServInterface& serv, ClientData* const client, const BYTE* data, DWORD nBytes, void* obj);
 
