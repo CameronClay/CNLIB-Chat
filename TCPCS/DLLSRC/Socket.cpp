@@ -111,7 +111,7 @@ Socket Socket::AcceptConnection()
 	if(IsConnected())
 	{
 		Socket temp(accept(pc, NULL, NULL));
-		if(temp != INVALID_SOCKET)
+		if(temp.IsConnected())
 			return temp;
 	}
 	return Socket();
