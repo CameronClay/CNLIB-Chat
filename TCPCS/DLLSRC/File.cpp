@@ -493,7 +493,7 @@ ProgDlg::ProgDlg()
 	pd(nullptr),
 	hasCanceled(false)
 {
-	CoInitialize(NULL);
+	
 }
 
 ProgDlg::ProgDlg(ProgDlg&& progdlg)
@@ -509,7 +509,6 @@ ProgDlg::ProgDlg(ProgDlg&& progdlg)
 ProgDlg::~ProgDlg()
 {
 	Stop();
-	CoUninitialize();
 }
 
 bool ProgDlg::Start(HWND hwnd, const DWORD maxVal, const LIB_TCHAR* title, const LIB_TCHAR* line0, const LIB_TCHAR* cancelMsg)

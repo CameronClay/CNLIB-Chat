@@ -5,9 +5,7 @@ WinFirewall::WinFirewall()
 :
 	nfrs(nullptr),
 	curProfs(0)
-{
-	CoInitialize(NULL);
-}
+{}
 
 WinFirewall::~WinFirewall()
 {
@@ -16,7 +14,6 @@ WinFirewall::~WinFirewall()
 		nfrs->Release();
 		nfrs = nullptr;
 	}
-	CoUninitialize();
 }
 
 bool WinFirewall::Initialize()

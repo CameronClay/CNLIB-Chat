@@ -6,18 +6,15 @@
 UPNP::UPNP()
 	:
 	spmc(nullptr)
-{
-	CoInitialize(NULL);
-}
+{}
 
 UPNP::~UPNP()
 {
 	if (spmc != nullptr)
 	{
-		spmc->Release(); //Ref count verified 0
+		spmc->Release();
 		spmc = nullptr;
 	}
-	CoUninitialize(); //Causes crash, ummm.... why?
 }
 
 bool UPNP::Initialize()
@@ -25,7 +22,7 @@ bool UPNP::Initialize()
 	bool upnpS = false, collectionS = false;
 	IUPnPNAT *upnp = nullptr;
 	if (upnpS = (SUCCEEDED(CoCreateInstance(CLSID_UPnPNAT, NULL, CLSCTX_INPROC_SERVER, IID_IUPnPNAT, (void**)&upnp)) && (upnp != nullptr)))
-		collectionS = (SUCCEEDED(upnp->get_StaticPortMappingCollection(&spmc)) && (spmc != nullptr)); //Calling CoUnitialize after spmc->release() causes crash
+		collectionS = (SUCCEEDED(upnp->get_StaticPortMappingCollection(&spmc)) && (spmc != nullptr));
 
 	if (upnpS)
 	{
@@ -78,7 +75,7 @@ bool MapPort(USHORT port, const LIB_TCHAR* protocal, const LIB_TCHAR* name)
 	UPNP upnp;
 	bool result = false;
 
-	if (upnp.Initialize()) //Initialize call causes crash when you lose internet connection
+	if (upnp.Initialize())
 	{
 		LIB_TCHAR IP[16] = {};
 		Socket::GetLocalIP(IP);

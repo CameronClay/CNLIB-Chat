@@ -645,9 +645,7 @@ void WinMainInit()
 
 	InitializeNetworking();
 
-	CoInitialize(NULL);
 	MapPort(port, _T("TCP"), _T("Cam's Serv"));
-	CoUninitialize();
 
 	serv = CreateServer(&MsgHandler, &ConnectHandler, &DisconnectHandler);
 
@@ -746,6 +744,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_CREATE:
 	{
+		CoInitialize(NULL);
 		textDisp = CreateWindow(WC_EDIT, NULL, WS_CHILD | WS_VISIBLE | ES_MULTILINE | WS_BORDER | ES_READONLY | WS_VSCROLL, 0, 0, screenWidth, screenHeight, hWnd, (HMENU)ID_TEXTBOX_DISPLAY, hInst, 0);
 
 		main = CreateMenu();
@@ -779,6 +778,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		DeleteCriticalSection(&wbSect);
 		DestroyServer(serv);
 		CleanupNetworking();
+		CoUninitialize();
 		PostQuitMessage(0);
 		break;
 
