@@ -17,7 +17,7 @@
 #pragma comment(lib, "TCPCS.lib")
 
 
-const float APPVERSION = .0030f;
+const float APPVERSION = 0.01f;
 
 
 #define ID_TEXTBOX_DISPLAY 0
