@@ -3,10 +3,11 @@
 #include "Messages.h"
 #include "File.h"
 #include "MsgStream.h"
+#include "VerifyPing.h"
 
-TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, int compression, void* obj)
+TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, int compression, float serverDropTime, void* obj)
 {
-	return construct<TCPClient>(msgHandler, disconFunc, compression, obj);
+	return construct<TCPClient>(msgHandler, disconFunc, compression, serverDropTime, obj);
 }
 
 void DestroyClient(TCPClientInterface*& client)
@@ -18,18 +19,20 @@ void DestroyClient(TCPClientInterface*& client)
 
 struct SendInfo
 {
-	SendInfo(TCPClient& client, char* data, const DWORD nBytes)
+	SendInfo(TCPClient& client, char* data, const DWORD nBytes, CompressionType compType)
 		:
 		client(client),
 		data(data),
-		nBytes(nBytes)
+		nBytes(nBytes),
+		compType(compType)
 	{}
 
 	SendInfo(SendInfo&& info)
 		:
 		client(info.client),
 		data(info.data),
-		nBytes(info.nBytes)
+		nBytes(info.nBytes),
+		compType(info.compType)
 	{
 		ZeroMemory(&info, sizeof(SendInfo));
 	}
@@ -37,18 +40,21 @@ struct SendInfo
 	TCPClient& client;
 	char* data;
 	const DWORD nBytes;
+	CompressionType compType;
 };
 
 
-TCPClient::TCPClient(cfunc func, dcfunc disconFunc, int compression, void* obj)
+TCPClient::TCPClient(cfunc func, dcfunc disconFunc, int compression, float serverDropTime, void* obj)
 	:
+	host(INVALID_SOCKET),
 	function(func),
 	disconFunc(disconFunc),
 	obj(obj),
-	compression(compression),
-	host(INVALID_SOCKET),
 	recv(NULL),
-	unexpectedShutdown(true)
+	compression(compression),
+	unexpectedShutdown(true),
+	serverDropTime(serverDropTime),
+	verifyPing(nullptr)
 {}
 
 TCPClient::TCPClient(TCPClient&& client)
@@ -60,7 +66,9 @@ TCPClient::TCPClient(TCPClient&& client)
 	recv(client.recv),
 	sendSect(client.sendSect),
 	compression(client.compression),
-	unexpectedShutdown(client.unexpectedShutdown)
+	unexpectedShutdown(client.unexpectedShutdown),
+	serverDropTime(client.serverDropTime),
+	verifyPing(client.verifyPing)
 {
 	ZeroMemory(&client, sizeof(TCPClient));
 }
@@ -78,6 +86,9 @@ TCPClient& TCPClient::operator=(TCPClient&& client)
 		recv = client.recv;
 		sendSect = client.sendSect;
 		const_cast<int&>(compression) = client.compression;
+		unexpectedShutdown = client.unexpectedShutdown;
+		serverDropTime = client.serverDropTime;
+		verifyPing = client.verifyPing;
 
 		ZeroMemory(&client, sizeof(TCPClient));
 	}
@@ -89,6 +100,18 @@ TCPClient::~TCPClient()
 	Shutdown();
 }
 
+void TCPClient::Cleanup()
+{
+	destruct(verifyPing);
+	host.Disconnect();
+	DeleteCriticalSection(&sendSect);
+	if (recv)
+	{
+		CloseHandle(recv);
+		recv = NULL;
+	}
+}
+
 static DWORD CALLBACK SendData(LPVOID param)
 {
 	SendInfo* data = (SendInfo*)param;
@@ -96,62 +119,74 @@ static DWORD CALLBACK SendData(LPVOID param)
 	Socket& pc = client.GetHost();
 	CRITICAL_SECTION* sendSect = client.GetSendSect();
 
-	EnterCriticalSection(sendSect);
+	const BYTE* dataDecomp = (const BYTE*)data->data;
+	DWORD nBytesComp = 0;
+	DWORD nBytesDecomp = data->nBytes;
+	BYTE* dataComp = nullptr;
 
-	if (pc.SendData(&data->nBytes, sizeof(DWORD)) > 0)
+	if (data->compType == SETCOMPRESSION)
 	{
-		DWORD nBytesComp = FileMisc::GetCompressedBufferSize(data->nBytes);
-		BYTE* dataComp = alloc<BYTE>(nBytesComp);
-		nBytesComp = FileMisc::Compress(dataComp, nBytesComp, (const BYTE*)data->data, data->nBytes, client.GetCompression());
-		if (pc.SendData(&nBytesComp, sizeof(DWORD)) > 0)
-		{
-			if (pc.SendData(dataComp, nBytesComp) > 0)
-			{
-				dealloc(dataComp);
-				destruct(data);
-				LeaveCriticalSection(sendSect);
-				return 0;
-			}
-			else dealloc(dataComp);
-		}
-		else dealloc(dataComp);
+		nBytesComp = FileMisc::GetCompressedBufferSize(nBytesDecomp);
+		dataComp = alloc<BYTE>(nBytesComp);
+		nBytesComp = FileMisc::Compress(dataComp, nBytesComp, dataDecomp, nBytesDecomp, client.GetCompression());
+	}
+	else
+	{
+		dataComp = (BYTE*)dataDecomp;
 	}
 
-	destruct(data);
-	client.Disconnect();
+	const DWORD64 nBytes = ((DWORD64)nBytesDecomp) << 32 | nBytesComp;
+
+	EnterCriticalSection(sendSect);
+
+	if (pc.SendData(&nBytes, sizeof(DWORD64)) > 0)
+	{
+		if (pc.SendData(dataComp, (nBytesComp != 0) ? nBytesComp : nBytesDecomp) <= 0)
+			client.Disconnect();
+	}
+	else
+		client.Disconnect();
+
 	LeaveCriticalSection(sendSect);
+
+	dealloc(dataComp);
+	destruct(data);
 	return 0;
 }
 
 static DWORD CALLBACK ReceiveData(LPVOID param)
 {
 	TCPClient& client = *(TCPClient*)param;
-	DWORD nBytesComp = 0, nBytesDecomp = 0;
 	Socket& host = client.GetHost();
+	//VerifyPing& verifyPing = *client.GetVerifyPing();
 	void* obj = client.GetObj();
+	DWORD64 nBytes = 0;
 
-	while (host.IsConnected())//break out if you disconnected from server(intentionaly)
+	while (host.IsConnected())//break out if you disconnected from server
 	{
-		if (host.ReadData(&nBytesDecomp, sizeof(DWORD)) > 0)
+		if (host.ReadData(&nBytes, sizeof(DWORD64)) > 0)
 		{
-			if (host.ReadData(&nBytesComp, sizeof(DWORD)) > 0)
+			const DWORD nBytesDecomp = nBytes >> 32;
+			const DWORD nBytesComp = nBytes & 0xffffffff;
+			BYTE* buffer = alloc<BYTE>(nBytesDecomp + nBytesComp);
+			nBytes = (nBytesComp != 0) ? nBytesComp : nBytesDecomp;
+
+			if (host.ReadData(buffer, nBytes) > 0)
 			{
-				BYTE* compBuffer = alloc<BYTE>(nBytesComp + nBytesDecomp);
-				if (host.ReadData(compBuffer, nBytesComp) > 0)
-				{
-					BYTE* dest = &compBuffer[nBytesComp];
-					FileMisc::Decompress(dest, nBytesDecomp, compBuffer, nBytesComp);
-					(*client.GetFunction())(client, dest, nBytesDecomp, obj);
-					dealloc(compBuffer);
-				}
-				else
-				{
-					dealloc(compBuffer);
-					break;
-				}
+				BYTE* dest = &buffer[nBytesComp];
+				if (nBytesComp != 0)
+					FileMisc::Decompress(dest, nBytesDecomp, buffer, nBytesComp);
+
+				(*client.GetFunction())(client, dest, nBytes, obj);
+				dealloc(buffer);
+					
+				//verifyPing.SetTimer(client.GetServerDropTime());
 			}
 			else
+			{
+				dealloc(buffer);
 				break;
+			}
 		}
 		else
 			break;
@@ -160,9 +195,7 @@ static DWORD CALLBACK ReceiveData(LPVOID param)
 	client.RunDisconFunc();
 
 	//Cleanup
-	client.Disconnect();
-	DeleteCriticalSection(client.GetSendSect());
-	client.CloseRecvHandle();
+	client.Cleanup();
 
 	return 0;
 }
@@ -200,15 +233,27 @@ void TCPClient::Shutdown()
 	}
 }
 
-HANDLE TCPClient::SendServData(const char* data, DWORD nBytes)
+HANDLE TCPClient::SendServData(const char* data, DWORD nBytes, CompressionType compType)
 {
-	return CreateThread(NULL, 0, SendData, (LPVOID)construct<SendInfo>(*this, (char*)data, nBytes), NULL, NULL);
+	if (compType == BESTFIT)
+	{
+		if (nBytes >= 128)
+			compType = SETCOMPRESSION;
+		else
+			compType = NOCOMPRESSION;
+	}
+	return CreateThread(NULL, 0, SendData, (LPVOID)construct<SendInfo>(*this, (char*)data, nBytes, compType), NULL, NULL);
 }
 
 bool TCPClient::RecvServData()
 {
 	if (!host.IsConnected())
 		return false;
+
+	//verifyPing = construct<VerifyPing>(*this);
+
+	//if (!verifyPing)
+		//return false;
 
 	recv = CreateThread(NULL, 0, ReceiveData, this, NULL, NULL);
 
@@ -224,7 +269,7 @@ void TCPClient::SendMsg(char type, char message)
 {
 	char msg[] = { type, message };
 
-	HANDLE hnd = SendServData(msg, MSG_OFFSET);
+	HANDLE hnd = SendServData(msg, MSG_OFFSET, NOCOMPRESSION);
 	WaitAndCloseHandle(hnd);
 }
 
@@ -232,7 +277,7 @@ void TCPClient::SendMsg(const std::tstring& name, char type, char message)
 {
 	MsgStreamWriter streamWriter(type, message, (name.size() + 1) * sizeof(LIB_TCHAR));
 	streamWriter.WriteEnd(name.c_str());
-	HANDLE hnd = SendServData(streamWriter, streamWriter.GetSize());
+	HANDLE hnd = SendServData(streamWriter, streamWriter.GetSize(), NOCOMPRESSION);
 	WaitAndCloseHandle(hnd);
 }
 
@@ -254,15 +299,6 @@ void TCPClient::RunDisconFunc()
 void TCPClient::SetShutdownReason(bool unexpected)
 {
 	unexpectedShutdown = unexpected;
-}
-
-void TCPClient::CloseRecvHandle()
-{
-	if(recv)
-	{
-		CloseHandle(recv);
-		recv = NULL;
-	}
 }
 
 cfuncP TCPClient::GetFunction()
@@ -298,4 +334,19 @@ dcfunc TCPClient::GetDisfunc() const
 bool TCPClient::IsConnected() const
 {
 	return host.IsConnected();
+}
+
+void TCPClient::SetServerDropTime(float time)
+{
+	serverDropTime = time;
+}
+
+float TCPClient::GetServerDropTime() const
+{
+	return serverDropTime;
+}
+
+VerifyPing* TCPClient::GetVerifyPing() const
+{
+	return verifyPing;
 }

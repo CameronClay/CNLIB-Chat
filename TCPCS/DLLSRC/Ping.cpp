@@ -78,7 +78,7 @@ PingHandler::PingHandler(PingHandler&& ping)
 	pingData(ping.pingData)
 {
 	pingData->pingHandler = this;
-	ZeroMemory(&ping, sizeof(PingHandler)); //this line messes up this->pingData->pingHandler
+	ZeroMemory(&ping, sizeof(PingHandler));
 }
 
 PingHandler& PingHandler::operator=(PingHandler&& data)

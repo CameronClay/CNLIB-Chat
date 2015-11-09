@@ -5,6 +5,7 @@
 #include <vector>
 #include "Socket.h"
 #include "Ping.h"
+#include "CompressionTypes.h"
 
 
 class CAMSNETLIB TCPServInterface
@@ -36,9 +37,9 @@ public:
 	virtual bool AllowConnections(const LIB_TCHAR* port) = 0;
 
 
-	virtual HANDLE SendClientData(const char* data, DWORD nBytes, Socket addr, bool single) = 0;
-	virtual HANDLE SendClientData(const char* data, DWORD nBytes, Socket* pcs, USHORT nPcs) = 0;
-	virtual HANDLE SendClientData(const char* data, DWORD nBytes, std::vector<Socket>& pcs) = 0;
+	virtual HANDLE SendClientData(const char* data, DWORD nBytes, Socket addr, bool single, CompressionType compType = BESTFIT) = 0;
+	virtual HANDLE SendClientData(const char* data, DWORD nBytes, Socket* pcs, USHORT nPcs, CompressionType compType = BESTFIT) = 0;
+	virtual HANDLE SendClientData(const char* data, DWORD nBytes, std::vector<Socket>& pcs, CompressionType compType = BESTFIT) = 0;
 
 	virtual void SendMsg(Socket pc, bool single, char type, char message) = 0;
 	virtual void SendMsg(Socket* pcs, USHORT nPcs, char type, char message) = 0;

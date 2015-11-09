@@ -166,6 +166,7 @@
   <ItemGroup>
     <ClInclude Include="..\Common\CircularBuffer.h" />
     <ClInclude Include="..\Common\CNLIB\File.h" />
+    <ClInclude Include="..\Common\CNLIB\CompressionTypes.h" />
     <ClInclude Include="..\Common\CNLIB\HeapAlloc.h" />
     <ClInclude Include="..\Common\CNLIB\Messages.h" />
     <ClInclude Include="..\Common\CNLIB\MsgStream.h" />

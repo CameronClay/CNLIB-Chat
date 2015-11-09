@@ -3,6 +3,7 @@
 #pragma once
 #include "Socket.h"
 #include <tchar.h>
+#include "CompressionTypes.h"
 
 class TCPClientInterface;
 typedef void(*const dcfunc)(bool unexpected);
@@ -19,7 +20,7 @@ public:
 
 	virtual bool RecvServData() = 0;
 
-	virtual HANDLE SendServData(const char* data, DWORD nBytes) = 0;
+	virtual HANDLE SendServData(const char* data, DWORD nBytes, CompressionType compType = BESTFIT) = 0;
 
 	virtual void SendMsg(char type, char message) = 0;
 	virtual void SendMsg(const std::tstring& user, char type, char message) = 0;
@@ -30,9 +31,12 @@ public:
 
 	virtual bool IsConnected() const = 0;
 
+	virtual void SetServerDropTime(float time) = 0;
+	virtual float GetServerDropTime() const = 0;
+
 	virtual Socket& GetHost() = 0;
 	virtual void* GetObj() const = 0;
 };
 
-CAMSNETLIB TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, int compression = 9, void* obj = nullptr);
+CAMSNETLIB TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, int compression = 9, float serverDropTime = 60.0f, void* obj = nullptr);
 CAMSNETLIB void DestroyClient(TCPClientInterface*& client);

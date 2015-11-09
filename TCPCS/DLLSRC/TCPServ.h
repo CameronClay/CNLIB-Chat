@@ -20,9 +20,9 @@ public:
 	//Used to send data to clients
 	//addr parameter functions as both the excluded address, and as a single address, 
 	//depending on the value of single
-	HANDLE SendClientData(const char* data, DWORD nBytes, Socket addr, bool single);
-	HANDLE SendClientData(const char* data, DWORD nBytes, Socket* pcs, USHORT nPcs);
-	HANDLE SendClientData(const char* data, DWORD nBytes, std::vector<Socket>& pcs);
+	HANDLE SendClientData(const char* data, DWORD nBytes, Socket addr, bool single, CompressionType compType = BESTFIT);
+	HANDLE SendClientData(const char* data, DWORD nBytes, Socket* pcs, USHORT nPcs, CompressionType compType = BESTFIT);
+	HANDLE SendClientData(const char* data, DWORD nBytes, std::vector<Socket>& pcs, CompressionType compType = BESTFIT);
 
 	//Send msg funtions used for requests, replies ect. they do not send data
 	void SendMsg(Socket pc, bool single, char type, char message);
