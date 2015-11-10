@@ -140,7 +140,6 @@ TCPServ::ClientData::ClientData(TCPServ& serv, Socket pc, sfunc func, USHORT rec
 	:
 	pc(pc),
 	func(func),
-	pingHandler(serv, pc),
 	recvIndex(recvIndex),
 	recvThread(INVALID_HANDLE_VALUE),
 	obj(nullptr)
@@ -150,7 +149,6 @@ TCPServ::ClientData::ClientData(ClientData&& clint)
 	:
 	pc(std::move(clint.pc)),
 	func(clint.func),
-	pingHandler(std::move(clint.pingHandler)),
 	user(std::move(clint.user)),
 	recvIndex(clint.recvIndex),
 	recvThread(clint.recvThread),
@@ -165,7 +163,6 @@ TCPServ::ClientData& TCPServ::ClientData::operator=(ClientData&& data)
 	{
 		pc = std::move(data.pc);
 		func = data.func;
-		pingHandler = std::move(data.pingHandler);
 		user = std::move(data.user);
 		recvIndex = data.recvIndex;
 		recvThread = data.recvThread;
@@ -230,7 +227,6 @@ static DWORD CALLBACK RecvData(LPVOID info)
 
 				(clint->func)(serv, clint, dest, nBytes, obj);
 				dealloc(buffer);
-				clint->pingHandler.SetPingTimer(serv.GetPingInterval());
 			}
 			else
 			{
@@ -470,8 +466,10 @@ TCPServ::TCPServ(sfunc func, customFunc conFunc, customFunc disFunc, USHORT maxC
 	openCon(NULL),
 	compression(compression),
 	maxCon(maxCon),
-	pingInterval(pingInterval)
-{}
+	pingHandler(*this)
+{
+	pingHandler.SetPingTimer(pingInterval);
+}
 
 TCPServ::TCPServ(TCPServ&& serv)
 	:
@@ -487,7 +485,7 @@ TCPServ::TCPServ(TCPServ&& serv)
 	openCon(serv.openCon),
 	compression(serv.compression),
 	maxCon(serv.maxCon),
-	pingInterval(serv.pingInterval)
+	pingHandler(serv.pingHandler)
 {
 	ZeroMemory(&serv, sizeof(TCPServ));
 }
@@ -510,7 +508,7 @@ TCPServ& TCPServ::operator=(TCPServ&& serv)
 		openCon = serv.openCon;
 		const_cast<int&>(compression) = serv.compression;
 		const_cast<USHORT&>(maxCon) = serv.maxCon;
-		pingInterval = serv.pingInterval;
+		pingHandler = std::move(serv.pingHandler);
 
 		ZeroMemory(&serv, sizeof(TCPServ));
 	}
@@ -637,6 +635,11 @@ void TCPServ::Ping(Socket client)
 	SendMsg(client, true, TYPE_PING, MSG_PING);
 }
 
+void TCPServ::PingAll()
+{
+	SendMsg(Socket(), false, TYPE_PING, MSG_PING);
+}
+
 Socket& TCPServ::GetHost()
 {
 	return host;
@@ -659,7 +662,7 @@ USHORT TCPServ::ClientCount() const
 
 void TCPServ::SetPingInterval(float interval)
 {
-	this->pingInterval = interval;
+	pingHandler.SetPingTimer(interval);
 }
 
 void TCPServ::RunConFunc(ClientData* client)
@@ -692,7 +695,3 @@ CRITICAL_SECTION* TCPServ::GetSendSect()
 	return &sendSect;
 }
 
-float TCPServ::GetPingInterval() const
-{
-	return pingInterval;
-}

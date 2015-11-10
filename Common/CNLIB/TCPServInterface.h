@@ -23,7 +23,6 @@ public:
 
 		Socket pc;
 		sfunc func;
-		PingHandler pingHandler;
 		std::tstring user;
 
 		//DO NOT TOUCH

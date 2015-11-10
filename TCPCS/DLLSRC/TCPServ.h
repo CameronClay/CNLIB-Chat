@@ -38,6 +38,7 @@ public:
 	void AddClient(Socket pc);
 	void RemoveClient(USHORT& pos);
 
+	void PingAll();
 	void Ping(Socket client);
 
 	void RunConFunc(ClientData* client);
@@ -54,7 +55,6 @@ public:
 	void* GetObj() const;
 	int GetCompression() const;
 	bool IsConnected() const;
-	float GetPingInterval() const;
 private:
 	Socket host; //host/listener socket
 	ClientData** clients; //array of clients
@@ -66,6 +66,6 @@ private:
 	HANDLE openCon; //wait for connections thread
 	const int compression; //compression server sends packets at
 	const USHORT maxCon; //max clients
-	float pingInterval; //interval at which server pings inactive clients to prevent disconnect
+	PingHandler pingHandler; //handles all pings to client, to prevent timeout
 };
 

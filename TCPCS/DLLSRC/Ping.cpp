@@ -11,8 +11,8 @@ DWORD CALLBACK PingThread(LPVOID info)
 	while(true)
 	{
 		const DWORD ret = MsgWaitForMultipleObjects(1, &timer, FALSE, INFINITE, QS_ALLINPUT);
-		if(ret == WAIT_OBJECT_0)
-			datRef.serv.Ping(datRef.socket);
+		if (ret == WAIT_OBJECT_0)
+			datRef.serv.PingAll();
 
 		else if(ret == WAIT_OBJECT_0 + 1)
 		{
@@ -31,18 +31,16 @@ DWORD CALLBACK PingThread(LPVOID info)
 	return 0;
 }
 
-PingHandler::PingData::PingData(TCPServ& serv, PingHandler* pingHandler, Socket socket)
+PingHandler::PingData::PingData(TCPServ& serv, PingHandler* pingHandler)
 	:
 	serv(serv),
-	pingHandler(pingHandler),
-	socket(socket)
+	pingHandler(pingHandler)
 {}
 
 PingHandler::PingData::PingData(PingData&& pingData)
 	:
 	serv(pingData.serv),
-	pingHandler(pingData.pingHandler),
-	socket(pingData.socket)
+	pingHandler(pingData.pingHandler)
 {
 	ZeroMemory(&pingData, sizeof(PingData));
 }
@@ -54,7 +52,6 @@ auto PingHandler::PingData::operator=(PingData&& data) -> PingData&
 	{
 		serv = std::move(data.serv);
 		pingHandler = std::move(data.pingHandler);
-		socket = std::move(data.socket);
 
 		ZeroMemory(&data, sizeof(PingData));
 	}
@@ -62,12 +59,12 @@ auto PingHandler::PingData::operator=(PingData&& data) -> PingData&
 }
 
 
-PingHandler::PingHandler(TCPServ& serv, Socket socket)
+PingHandler::PingHandler(TCPServ& serv)
 	:
 	pingTimer(CreateWaitableTimer(NULL, FALSE, NULL)),
 	pingThread(NULL),
 	pingID(NULL),
-	pingData(construct<PingData>(serv, this, socket))
+	pingData(construct<PingData>(serv, this))
 {}
 
 PingHandler::PingHandler(PingHandler&& ping)

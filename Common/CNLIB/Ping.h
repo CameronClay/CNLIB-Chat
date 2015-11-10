@@ -10,19 +10,18 @@ class CAMSNETLIB PingHandler
 public:
 	struct CAMSNETLIB PingData
 	{
-		PingData(TCPServ& serv, PingHandler* pingHandler, Socket socket);
+		PingData(TCPServ& serv, PingHandler* pingHandler);
 		PingData(PingData&& pingData);
 		PingData& operator=(PingData&& data);
 
 		TCPServ& serv;
 		PingHandler* pingHandler;
-		Socket socket;
 	};
 
 	PingHandler& operator=(PingHandler&& data);
 	PingHandler& operator=(const PingHandler& data);
 
-	PingHandler(TCPServ& serv, Socket socket);
+	PingHandler(TCPServ& serv);
 	PingHandler(PingHandler&& ping);
 	~PingHandler();
 
