@@ -43,7 +43,6 @@ struct SendInfo
 	CompressionType compType;
 };
 
-
 TCPClient::TCPClient(cfunc func, dcfunc disconFunc, int compression, float serverDropTime, void* obj)
 	:
 	host(INVALID_SOCKET),
@@ -112,17 +111,25 @@ void TCPClient::Cleanup()
 	}
 }
 
+static void SendDataComp(Socket pc, const char* data, DWORD nBytesDecomp, DWORD nBytesComp)
+{
+	const DWORD64 nBytes = ((DWORD64)nBytesDecomp) << 32 | nBytesComp;
+
+	//No need to remove client, that is handled in recv thread
+	if (pc.SendData(&nBytes, sizeof(DWORD64)) > 0)
+		pc.SendData(data, (nBytesComp != 0) ? nBytesComp : nBytesDecomp);
+}
+
 static DWORD CALLBACK SendData(LPVOID param)
 {
 	SendInfo* data = (SendInfo*)param;
 	TCPClient& client = data->client;
 	Socket& pc = client.GetHost();
 	CRITICAL_SECTION* sendSect = client.GetSendSect();
-
 	const BYTE* dataDecomp = (const BYTE*)data->data;
+	BYTE* dataComp = (BYTE*)dataDecomp;
 	DWORD nBytesComp = 0;
 	DWORD nBytesDecomp = data->nBytes;
-	BYTE* dataComp = nullptr;
 
 	if (data->compType == SETCOMPRESSION)
 	{
@@ -130,22 +137,10 @@ static DWORD CALLBACK SendData(LPVOID param)
 		dataComp = alloc<BYTE>(nBytesComp);
 		nBytesComp = FileMisc::Compress(dataComp, nBytesComp, dataDecomp, nBytesDecomp, client.GetCompression());
 	}
-	else
-	{
-		dataComp = (BYTE*)dataDecomp;
-	}
-
-	const DWORD64 nBytes = ((DWORD64)nBytesDecomp) << 32 | nBytesComp;
 
 	EnterCriticalSection(sendSect);
 
-	if (pc.SendData(&nBytes, sizeof(DWORD64)) > 0)
-	{
-		if (pc.SendData(dataComp, (nBytesComp != 0) ? nBytesComp : nBytesDecomp) <= 0)
-			client.Disconnect();
-	}
-	else
-		client.Disconnect();
+	SendDataComp(pc, (const char*)dataComp, nBytesDecomp, nBytesComp);
 
 	LeaveCriticalSection(sendSect);
 
@@ -233,7 +228,19 @@ void TCPClient::Shutdown()
 	}
 }
 
-HANDLE TCPClient::SendServData(const char* data, DWORD nBytes, CompressionType compType)
+void TCPClient::SendServData(const char* data, DWORD nBytes, CompressionType compType)
+{
+	if (compType == BESTFIT)
+	{
+		if (nBytes >= 128)
+			compType = SETCOMPRESSION;
+		else
+			compType = NOCOMPRESSION;
+	}
+	SendData(construct<SendInfo>(*this, (char*)data, nBytes, compType));
+}
+
+HANDLE TCPClient::SendServDataThread(const char* data, DWORD nBytes, CompressionType compType)
 {
 	if (compType == BESTFIT)
 	{
@@ -269,16 +276,14 @@ void TCPClient::SendMsg(char type, char message)
 {
 	char msg[] = { type, message };
 
-	HANDLE hnd = SendServData(msg, MSG_OFFSET, NOCOMPRESSION);
-	WaitAndCloseHandle(hnd);
+	SendServData(msg, MSG_OFFSET, NOCOMPRESSION);
 }
 
 void TCPClient::SendMsg(const std::tstring& name, char type, char message)
 {
 	MsgStreamWriter streamWriter(type, message, (name.size() + 1) * sizeof(LIB_TCHAR));
 	streamWriter.WriteEnd(name.c_str());
-	HANDLE hnd = SendServData(streamWriter, streamWriter.GetSize(), NOCOMPRESSION);
-	WaitAndCloseHandle(hnd);
+	SendServData(streamWriter, streamWriter.GetSize(), NOCOMPRESSION);
 }
 
 void TCPClient::Ping()

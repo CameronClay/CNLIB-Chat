@@ -38,7 +38,6 @@ struct SAData
 	SAData(TCPServ& serv, const char* data, DWORD nBytesDecomp, Socket exAddr, const bool single, CompressionType compType)
 		:
 		serv(serv),
-		nBytesComp(0),
 		data(data),
 		nBytesDecomp(nBytesDecomp),
 		exAddr(exAddr),
@@ -48,7 +47,6 @@ struct SAData
 	SAData(SAData&& data)
 		:
 		serv(data.serv),
-		nBytesComp(data.nBytesComp),
 		data(data.data),
 		nBytesDecomp(data.nBytesDecomp),
 		exAddr(data.exAddr),
@@ -59,7 +57,7 @@ struct SAData
 	}
 
 	TCPServ& serv;
-	DWORD nBytesComp, nBytesDecomp;
+	DWORD nBytesDecomp;
 	const char* data;
 	Socket exAddr;
 	bool single;
@@ -71,7 +69,6 @@ struct SADataEx
 	SADataEx(TCPServ& serv, const char* data, DWORD nBytesDecomp, Socket* pcs, USHORT nPcs, CompressionType compType)
 		:
 		serv(serv),
-		nBytesComp(0),
 		data(data),
 		nBytesDecomp(nBytesDecomp),
 		pcs(pcs),
@@ -81,7 +78,6 @@ struct SADataEx
 	SADataEx(SADataEx&& data)
 		:
 		serv(data.serv),
-		nBytesComp(data.nBytesComp),
 		data(data.data),
 		nBytesDecomp(data.nBytesDecomp),
 		pcs(data.pcs),
@@ -92,49 +88,12 @@ struct SADataEx
 	}
 
 	TCPServ& serv;
-	DWORD nBytesComp, nBytesDecomp;
+	DWORD nBytesDecomp;
 	const char* data;
 	Socket* pcs;
 	USHORT nPcs;
 	CompressionType compType;
 };
-
-struct SData
-{
-	SData(SAData* saData, Socket pc)
-		:
-		saData(saData),
-		pc(pc)
-	{}
-	SData(SData&& data)
-		:
-		saData(data.saData),
-		pc(data.pc)
-	{
-		ZeroMemory(&data, sizeof(SData));
-	}
-	SAData* const saData;
-	Socket pc;
-};
-
-struct SDataEx
-{
-	SDataEx(SADataEx* saData, Socket pc)
-		:
-		saData(saData),
-		pc(pc)
-	{}
-	SDataEx(SDataEx&& data)
-		:
-		saData(data.saData),
-		pc(data.pc)
-	{
-		ZeroMemory(&data, sizeof(SDataEx));
-	}
-	SADataEx* const saData;
-	Socket pc;
-};
-
 
 TCPServ::ClientData::ClientData(TCPServ& serv, Socket pc, sfunc func, USHORT recvIndex)
 	:
@@ -174,6 +133,102 @@ TCPServ::ClientData& TCPServ::ClientData::operator=(ClientData&& data)
 }
 
 
+static void SendDataComp(Socket pc, const char* data, DWORD nBytesDecomp, DWORD nBytesComp)
+{
+	const DWORD64 nBytes = ((DWORD64)nBytesDecomp) << 32 | nBytesComp;
+
+	//No need to remove client, that is handled in recv thread
+	if (pc.SendData(&nBytes, sizeof(DWORD64)) > 0)
+		pc.SendData(data, (nBytesComp != 0) ? nBytesComp : nBytesDecomp);
+}
+
+static DWORD CALLBACK SendAllData(LPVOID info)
+{
+	SAData* data = (SAData*)info;
+	TCPServ& serv = data->serv;
+	auto clients = serv.GetClients();
+	CRITICAL_SECTION* sect = serv.GetSendSect();
+	Socket exAddr = data->exAddr;
+	BYTE* dataComp = (BYTE*)data->data;
+	const DWORD nBytesDecomp = data->nBytesDecomp;
+	DWORD nBytesComp = 0;
+
+	if (data->compType == SETCOMPRESSION)
+	{
+		const BYTE* dataDeComp = dataComp;
+		nBytesComp = FileMisc::GetCompressedBufferSize(nBytesDecomp);
+		dataComp = alloc<BYTE>(nBytesComp);
+		nBytesComp = FileMisc::Compress(dataComp, nBytesComp, dataDeComp, nBytesDecomp, serv.GetCompression());
+		data->data = (char*)dataComp;
+	}
+
+	EnterCriticalSection(sect);
+
+	if (data->single)
+	{
+		if (exAddr.IsConnected())
+			SendDataComp(exAddr, (const char*)dataComp, nBytesDecomp, nBytesComp);
+	}
+
+	else
+	{
+		const USHORT nClients = serv.ClientCount();
+		if (data->exAddr.IsConnected())
+		{
+			for (USHORT i = 0; i < nClients; i++)
+				if (clients[i]->pc != exAddr)
+					SendDataComp(clients[i]->pc, (const char*)dataComp, nBytesDecomp, nBytesComp);
+		}
+		else
+		{
+			for (USHORT i = 0; i < nClients; i++)
+				SendDataComp(clients[i]->pc, (const char*)dataComp, nBytesDecomp, nBytesComp);
+		}
+	}
+
+	LeaveCriticalSection(sect);
+
+	dealloc(dataComp);
+	destruct(data);
+
+	return 0;
+}
+
+static DWORD CALLBACK SendAllDataEx(LPVOID info)
+{
+	SADataEx* data = (SADataEx*)info;
+	TCPServ& serv = data->serv;
+	Socket* pcs = data->pcs;
+	const USHORT pcCount = data->nPcs;
+	CRITICAL_SECTION* sect = serv.GetSendSect();
+	BYTE* dataComp = (BYTE*)data->data;
+	const DWORD nBytesDecomp = data->nBytesDecomp;
+	DWORD nBytesComp = 0;
+
+	if (data->compType == SETCOMPRESSION)
+	{
+		const BYTE* dataDeComp = dataComp;
+		nBytesComp = FileMisc::GetCompressedBufferSize(nBytesDecomp);
+		dataComp = alloc<BYTE>(nBytesComp);
+		nBytesComp = FileMisc::Compress(dataComp, nBytesComp, dataDeComp, nBytesDecomp, serv.GetCompression());
+		data->data = (char*)dataComp;
+	}
+
+	EnterCriticalSection(sect);
+
+	for (USHORT i = 0; i < pcCount; i++)
+	{
+		if (pcs[i].IsConnected())
+			SendDataComp(pcs[i], (const char*)dataComp, nBytesDecomp, nBytesComp);
+	}
+	LeaveCriticalSection(sect);
+
+	dealloc(dataComp);
+	destruct(data);
+
+	return 0;
+}
+
 DWORD CALLBACK WaitForConnections(LPVOID tcpServ)
 {
 	TCPServ& serv = *(TCPServ*)tcpServ;
@@ -197,7 +252,6 @@ DWORD CALLBACK WaitForConnections(LPVOID tcpServ)
 	}
 	return 0;
 }
-
 
 static DWORD CALLBACK RecvData(LPVOID info)
 {
@@ -243,161 +297,37 @@ static DWORD CALLBACK RecvData(LPVOID info)
 }
 
 
-static DWORD CALLBACK SendData( LPVOID info )
+void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket exAddr, bool single, CompressionType compType)
 {
-	SData* data = (SData*)info;
-	SAData* saData = data->saData;
-	Socket pc = data->pc;
-
-	const DWORD nBytesComp = saData->nBytesComp;
-	const DWORD nBytesDecomp = saData->nBytesDecomp;
-	const DWORD64 nBytes = ((DWORD64)nBytesDecomp) << 32 | nBytesComp;
-
-	if (pc.SendData(&nBytes, sizeof(DWORD64)) > 0)
-		pc.SendData(saData->data, (nBytesComp != 0) ? nBytesComp : nBytesDecomp);
-
-	//No need to remove client, that is handled in recv thread
-	destruct(data);
-
-	return 0;
-}
-
-static DWORD CALLBACK SendDataEx(LPVOID info)
-{
-	SDataEx* data = (SDataEx*)info;
-	SADataEx* saData = data->saData;
-	Socket pc = data->pc;
-
-	const DWORD nBytesComp = saData->nBytesComp;
-	const DWORD nBytesDecomp = saData->nBytesDecomp;
-	const DWORD64 nBytes = ((DWORD64)nBytesDecomp) << 32 | nBytesComp;
-
-	if (pc.SendData(&nBytes, sizeof(DWORD64)) > 0)
-		pc.SendData(saData->data, (nBytesComp != 0) ? nBytesComp : nBytesDecomp);
-
-	//No need to remove client, that is handled in recv thread
-	destruct(data);
-
-	return 0;
-}
-
-
-static DWORD CALLBACK SendAllData( LPVOID info )
-{
-	SAData* data = (SAData*)info;
-	TCPServ& serv = data->serv;
-	auto clients = serv.GetClients();
-	HANDLE* hnds;
-	USHORT nHnds = 0;
-	BYTE* dataComp = nullptr;
-
-	if (data->compType == SETCOMPRESSION)
+	if (compType == BESTFIT)
 	{
-		const char* dataDeComp = data->data;
-		const DWORD nBytesComp = FileMisc::GetCompressedBufferSize(data->nBytesDecomp);
-		dataComp = alloc<BYTE>(nBytesComp);
-		data->nBytesComp = FileMisc::Compress(dataComp, nBytesComp, (const BYTE*)dataDeComp, data->nBytesDecomp, data->serv.GetCompression());
-		data->data = (char*)dataComp;
-	}
-
-	if(data->single)
-	{
-		hnds = alloc<HANDLE>();
-		if(data->exAddr.IsConnected())
-			hnds[nHnds++] = CreateThread(NULL, 0, SendData, construct<SData>(data, data->exAddr), CREATE_SUSPENDED, NULL);
-	}
-
-	else
-	{
-		const USHORT nClients = serv.ClientCount();
-		if(data->exAddr.IsConnected())
-		{
-			hnds = alloc<HANDLE>(nClients - 1);
-			for(USHORT i = 0; i < nClients; i++)
-				if(clients[i]->pc != data->exAddr)
-					hnds[nHnds++] = CreateThread(NULL, 0, SendData, construct<SData>(data, clients[i]->pc), CREATE_SUSPENDED, NULL);
-		}
+		if (nBytes >= 128)
+			compType = SETCOMPRESSION;
 		else
-		{
-			hnds = alloc<HANDLE>(nClients);
-			for(USHORT i = 0; i < nClients; i++)
-				hnds[nHnds++] = CreateThread(NULL, 0, SendData, construct<SData>(data, clients[i]->pc), CREATE_SUSPENDED, NULL);
-		}
+			compType = NOCOMPRESSION;
 	}
 
-	if(nHnds != 0)
-	{
-		EnterCriticalSection(serv.GetSendSect());
-
-		for(USHORT i = 0; i < nHnds; i++)
-			ResumeThread(hnds[i]);
-
-		WaitForMultipleObjects(nHnds, hnds, true, INFINITE);
-
-		LeaveCriticalSection(serv.GetSendSect());
-
-		for(USHORT i = 0; i < nHnds; i++)
-			CloseHandle(hnds[i]);
-	}
-
-
-	dealloc(hnds);
-	dealloc(dataComp);
-	destruct(data);
-
-	return 0;
+	SendAllData(construct<SAData>(*this, data, nBytes, exAddr, single, compType));
 }
 
-static DWORD CALLBACK SendAllDataEx( LPVOID info )
+void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket* pcs, USHORT nPcs, CompressionType compType)
 {
-	SADataEx* data = (SADataEx*)info;
-	TCPServ& serv = data->serv;
-	Socket* pcs = data->pcs;
-	BYTE* dataComp = nullptr;
-
-	if (data->compType == SETCOMPRESSION)
+	if (compType == BESTFIT)
 	{
-		const char* dataDeComp = data->data;
-		const DWORD nBytesComp = FileMisc::GetCompressedBufferSize(data->nBytesDecomp);
-		dataComp = alloc<BYTE>(nBytesComp);
-		data->nBytesComp = FileMisc::Compress(dataComp, nBytesComp, (const BYTE*)dataDeComp, data->nBytesDecomp, data->serv.GetCompression());
-		data->data = (char*)dataComp;
+		if (nBytes >= 128)
+			compType = SETCOMPRESSION;
+		else
+			compType = NOCOMPRESSION;
 	}
-
-	const USHORT count = data->nPcs;
-	HANDLE* hnds = alloc<HANDLE>(count);
-	USHORT nHnds = 0;
-
-	for(USHORT i = 0; i < count; i++)
-	{
-		if (pcs[i].IsConnected())
-			hnds[nHnds++] = CreateThread(NULL, 0, SendDataEx, construct<SDataEx>(data, pcs[i]), CREATE_SUSPENDED, NULL);
-	}
-
-	if(nHnds != 0)
-	{
-		EnterCriticalSection(serv.GetSendSect());
-
-		for(USHORT i = 0; i < nHnds; i++)
-			ResumeThread(hnds[i]);
-
-		WaitForMultipleObjects(nHnds, hnds, true, INFINITE);
-
-		LeaveCriticalSection(serv.GetSendSect());
-
-		for(USHORT i = 0; i < nHnds; i++)
-			CloseHandle(hnds[i]);
-	}
-
-	dealloc(hnds);
-	dealloc(dataComp);
-	destruct(data);
-
-	return 0;
+	SendAllDataEx(construct<SADataEx>(*this, data, nBytes, pcs, nPcs, compType));
 }
 
+void TCPServ::SendClientData(const char* data, DWORD nBytes, std::vector<Socket>& pcs, CompressionType compType)
+{
+	SendClientData(data, nBytes, pcs.data(), pcs.size(), compType);
+}
 
-HANDLE TCPServ::SendClientData(const char* data, DWORD nBytes, Socket exAddr, bool single, CompressionType compType)
+HANDLE TCPServ::SendClientDataThread(const char* data, DWORD nBytes, Socket exAddr, bool single, CompressionType compType)
 {
 	if (compType == BESTFIT)
 	{
@@ -409,7 +339,7 @@ HANDLE TCPServ::SendClientData(const char* data, DWORD nBytes, Socket exAddr, bo
 	return CreateThread(NULL, 0, &SendAllData, (LPVOID)construct<SAData>(*this, data, nBytes, exAddr, single, compType), NULL, NULL);
 }
 
-HANDLE TCPServ::SendClientData(const char* data, DWORD nBytes, Socket* pcs, USHORT nPcs, CompressionType compType)
+HANDLE TCPServ::SendClientDataThread(const char* data, DWORD nBytes, Socket* pcs, USHORT nPcs, CompressionType compType)
 {
 	if (compType == BESTFIT)
 	{
@@ -421,26 +351,23 @@ HANDLE TCPServ::SendClientData(const char* data, DWORD nBytes, Socket* pcs, USHO
 	return CreateThread(NULL, 0, &SendAllDataEx, (LPVOID)construct<SADataEx>(*this, data, nBytes, pcs, nPcs, compType), NULL, NULL);
 }
 
-HANDLE TCPServ::SendClientData(const char* data, DWORD nBytes, std::vector<Socket>& pcs, CompressionType compType)
+HANDLE TCPServ::SendClientDataThread(const char* data, DWORD nBytes, std::vector<Socket>& pcs, CompressionType compType)
 {
-	return SendClientData(data, nBytes, pcs.data(), pcs.size(), compType);
+	return SendClientDataThread(data, nBytes, pcs.data(), pcs.size(), compType);
 }
-
 
 void TCPServ::SendMsg(Socket pc, bool single, char type, char message)
 {
 	char msg[] = { type, message };
 
-	HANDLE hnd = SendClientData(msg, MSG_OFFSET, pc, single, NOCOMPRESSION);
-	WaitAndCloseHandle(hnd);
+	SendClientData(msg, MSG_OFFSET, pc, single, NOCOMPRESSION);
 }
 
 void TCPServ::SendMsg(Socket* pcs, USHORT nPcs, char type, char message)
 {
 	char msg[] = { type, message };
 
-	HANDLE hnd = SendClientData(msg, MSG_OFFSET, pcs, nPcs, NOCOMPRESSION);
-	WaitAndCloseHandle(hnd);
+	SendClientData(msg, MSG_OFFSET, pcs, nPcs, NOCOMPRESSION);
 }
 
 void TCPServ::SendMsg(std::vector<Socket>& pcs, char type, char message)
@@ -586,8 +513,7 @@ void TCPServ::RemoveClient(USHORT& pos)
 	{
 		MsgStreamWriter streamWriter(TYPE_CHANGE, MSG_CHANGE_DISCONNECT, (user.size() + 1) * sizeof(LIB_TCHAR));
 		streamWriter.WriteEnd(user.c_str());
-		HANDLE hnd = SendClientData(streamWriter, streamWriter.GetSize(), Socket(), false);
-		WaitAndCloseHandle(hnd);
+		SendClientData(streamWriter, streamWriter.GetSize(), Socket(), false);
 	}
 }
 

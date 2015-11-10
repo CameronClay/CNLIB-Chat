@@ -1307,8 +1307,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			DispText((BYTE*)dispMsg, nBy);
 			dealloc(dispMsg);
 
-			HANDLE hnd = client->SendServData(msg, nBytes);
-			WaitAndCloseHandle(hnd);
+			client->SendServData(msg, nBytes);
 			dealloc(msg);
 			break;
 		}
@@ -1917,8 +1916,7 @@ INT_PTR CALLBACK ConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 				MsgStreamWriter streamWriter(TYPE_VERSION, MSG_VERSION_CHECK, sizeof(float));
 				streamWriter.Write(APPVERSION);
 
-				HANDLE hnd = client->SendServData(streamWriter, streamWriter.GetSize());
-				WaitAndCloseHandle(hnd);
+				client->SendServData(streamWriter, streamWriter.GetSize());
 
 				EndDialog(hWnd, id);
 			}
@@ -2194,8 +2192,7 @@ INT_PTR CALLBACK AuthenticateProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 			MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_AUTHENTICATION, sendLen * sizeof(LIB_TCHAR));
 			streamWriter.Write(send.c_str(), sendLen);
 
-			HANDLE hnd = client->SendServData(streamWriter, streamWriter.GetSize());
-			WaitAndCloseHandle(hnd);
+			client->SendServData(streamWriter, streamWriter.GetSize());
 
 			EndDialog(hWnd, id);
 			break;
@@ -2493,8 +2490,7 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 				ComboBox_GetCurSel(Colors)));
 
 			//Problem in here client is invalid
-			HANDLE hnd = client->SendServData(streamWriter, streamWriter.GetSize());
-			WaitAndCloseHandle(hnd);
+			client->SendServData(streamWriter, streamWriter.GetSize());
 
 			EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_GRAYED);
 			EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_ENABLED);
@@ -2587,8 +2583,7 @@ INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 			streamWriter.Write(BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
 			streamWriter.Write(usersel.c_str(), len);
 
-			HANDLE hnd = client->SendServData(streamWriter, streamWriter.GetSize());
-			WaitAndCloseHandle(hnd);
+			client->SendServData(streamWriter, streamWriter.GetSize());
 
 			EndDialog(hWnd, id);
 			break;

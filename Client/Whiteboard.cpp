@@ -156,8 +156,7 @@ void Whiteboard::SendMouseData(TCPClientInterface* client)
 		msg[0] = TYPE_DATA;
 		msg[1] = MSG_DATA_MOUSE;
 		mouse.Extract((BYTE*)&msg[MSG_OFFSET], count);
-		HANDLE hnd = client->SendServData(msg, nBytes);
-		WaitAndCloseHandle(hnd);
+		client->SendServData(msg, nBytes);
 		dealloc(msg);
 	}
 }
@@ -261,8 +260,7 @@ void Whiteboard::ChangeTool(Tool tool, float brushSize, BYTE palIndex)
 	streamWriter.Write(tool);
 	streamWriter.Write(brushSize);
 	streamWriter.Write(palIndex);
-	HANDLE hnd = clint.SendServData(streamWriter, streamWriter.GetSize());
-	WaitAndCloseHandle(hnd);	
+	clint.SendServData(streamWriter, streamWriter.GetSize());
 }
 
 const Palette &Whiteboard::GetPalette(BYTE& count)

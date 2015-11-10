@@ -119,10 +119,8 @@ void SendSingleUserData(TCPServInterface& serv, char* dat, DWORD nBytes, char ty
 	msg[1] = message;
 	memcpy(&msg[MSG_OFFSET], &dat[offset], nBytes - offset);
 
-	HANDLE hnd = serv.SendClientData(msg, nBy, client->pc, true);
-	WaitAndCloseHandle(hnd);
+	serv.SendClientData(msg, nBy, client->pc, true);
 	dealloc(msg);
-
 }
 
 void TransferMessageWithName(TCPServInterface& serv, std::tstring& srcUserName, MsgStreamReader& streamReader)
@@ -137,8 +135,7 @@ void TransferMessageWithName(TCPServInterface& serv, std::tstring& srcUserName, 
 
 	streamWriter.Write(srcUserName.c_str(), nameLen);
 
-	HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), client->pc, true);
-	WaitAndCloseHandle(hnd);
+	serv.SendClientData(streamWriter, streamWriter.GetSize(), client->pc, true);
 }
 
 void TransferMessage(TCPServInterface& serv, MsgStreamReader& streamReader)
@@ -150,8 +147,7 @@ void TransferMessage(TCPServInterface& serv, MsgStreamReader& streamReader)
 
 	MsgStreamWriter mStreamOut(streamReader.GetType(), streamReader.GetMsg(), 0);
 
-	HANDLE hnd = serv.SendClientData(mStreamOut, mStreamOut.GetSize(), client->pc, true);
-	WaitAndCloseHandle(hnd);
+	serv.SendClientData(mStreamOut, mStreamOut.GetSize(), client->pc, true);
 }
 
 void RequestTransfer(TCPServInterface& serv, std::tstring& srcUserName, MsgStreamReader& streamReader)
@@ -169,8 +165,7 @@ void RequestTransfer(TCPServInterface& serv, std::tstring& srcUserName, MsgStrea
 	streamWriter.Write(srcUserName.c_str(), nameLen);
 	streamWriter.Write<double>(streamReader.Read<double>());
 
-	HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), client->pc, true);
-	WaitAndCloseHandle(hnd);
+	serv.SendClientData(streamWriter, streamWriter.GetSize(), client->pc, true);
 }
 
 void DispIPMsg(Socket& pc, const LIB_TCHAR* str)
@@ -266,16 +261,14 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 						MsgStreamWriter streamWriter(TYPE_CHANGE, MSG_CHANGE_CONNECTINIT, (clients[i]->user.size() + 1) * sizeof(LIB_TCHAR));
 						streamWriter.WriteEnd(clients[i]->user.c_str());
 
-						HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, true);
-						WaitAndCloseHandle(hnd);
+						serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, true);
 					}
 				}
 
 				MsgStreamWriter streamWriter(TYPE_CHANGE, MSG_CHANGE_CONNECT, (user.size() + 1) * sizeof(LIB_TCHAR));
 				streamWriter.WriteEnd(user.c_str());
 
-				HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, false);
-				WaitAndCloseHandle(hnd);
+				serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, false);
 			}
 			else
 			{
@@ -305,8 +298,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 				MsgStreamWriter streamWriter(streamReader.GetType(), streamReader.GetMsg(), sizeof(bool) + ((clint->user.size() + 1) * sizeof(TCHAR)));
 				streamWriter.Write(canDraw);
 				streamWriter.WriteEnd(clint->user.c_str());
-				HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), fClint->pc, true);
-				WaitAndCloseHandle(hnd);
+				serv.SendClientData(streamWriter, streamWriter.GetSize(), fClint->pc, true);
 			}
 			else
 				serv.SendMsg(clint->user, TYPE_ADMIN, MSG_ADMIN_NOT);
@@ -324,8 +316,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 			UINT nBy;
 			LIB_TCHAR* msg = FormatMsg(TYPE_DATA, MSG_DATA_TEXT, (BYTE*)dat, nBytes, clint->user, nBy);
 
-			HANDLE hnd = serv.SendClientData((char*)msg, nBy, clint->pc, false);
-			WaitAndCloseHandle(hnd);
+			serv.SendClientData((char*)msg, nBy, clint->pc, false);
 			dealloc(msg);
 			break;
 		}
@@ -381,8 +372,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 			//Send activate message to new client
 			MsgStreamWriter streamWriter(TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE, sizeof(WBParams));
 			streamWriter.Write<WBParams>(wbParams);
-			HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, true);
-			WaitAndCloseHandle(hnd);
+			serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, true);
 			break;
 		}
 		case MSG_RESPONSE_WHITEBOARD_INITED:
@@ -393,8 +383,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 				const DWORD nameLen = clint->user.size() + 1;
 				MsgStreamWriter streamWriter(TYPE_RESPONSE, MSG_RESPONSE_WHITEBOARD_CONFIRMED, nameLen * sizeof(LIB_TCHAR));
 				streamWriter.Write(clint->user.c_str(), nameLen);
-				HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), wb->GetPcs());
-				WaitAndCloseHandle(hnd);
+				serv.SendClientData(streamWriter, streamWriter.GetSize(), wb->GetPcs());
 
 				//Add client after so it doesnt send message to joiner
 				wb->AddClient(clint->pc);
@@ -492,8 +481,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 
 				MsgStreamWriter streamWriter(TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE, sizeof(WBParams));
 				streamWriter.Write(std::move(*params));
-				HANDLE hnd = serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, true);
-				WaitAndCloseHandle(hnd);
+				serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, true);
 
 				wb = construct<Whiteboard>(serv, *params, clint->user);
 
