@@ -159,7 +159,6 @@ static DWORD CALLBACK SendAllData(LPVOID info)
 		nBytesComp = FileMisc::GetCompressedBufferSize(nBytesDecomp);
 		dataComp = alloc<BYTE>(nBytesComp);
 		nBytesComp = FileMisc::Compress(dataComp, nBytesComp, dataDeComp, nBytesDecomp, serv.GetCompression());
-		data->data = (char*)dataComp;
 	}
 
 	EnterCriticalSection(sect);
@@ -173,7 +172,7 @@ static DWORD CALLBACK SendAllData(LPVOID info)
 	else
 	{
 		const USHORT nClients = serv.ClientCount();
-		if (data->exAddr.IsConnected())
+		if (exAddr.IsConnected())
 		{
 			for (USHORT i = 0; i < nClients; i++)
 				if (clients[i]->pc != exAddr)
@@ -211,7 +210,6 @@ static DWORD CALLBACK SendAllDataEx(LPVOID info)
 		nBytesComp = FileMisc::GetCompressedBufferSize(nBytesDecomp);
 		dataComp = alloc<BYTE>(nBytesComp);
 		nBytesComp = FileMisc::Compress(dataComp, nBytesComp, dataDeComp, nBytesDecomp, serv.GetCompression());
-		data->data = (char*)dataComp;
 	}
 
 	EnterCriticalSection(sect);
@@ -221,6 +219,7 @@ static DWORD CALLBACK SendAllDataEx(LPVOID info)
 		if (pcs[i].IsConnected())
 			SendDataComp(pcs[i], (const char*)dataComp, nBytesDecomp, nBytesComp);
 	}
+
 	LeaveCriticalSection(sect);
 
 	dealloc(dataComp);
