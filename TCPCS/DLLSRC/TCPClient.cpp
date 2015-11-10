@@ -138,9 +138,11 @@ static DWORD CALLBACK SendData(LPVOID param)
 		nBytesComp = FileMisc::Compress(dataComp, nBytesComp, dataDecomp, nBytesDecomp, client.GetCompression());
 	}
 
+	const char* dat = (const char*)(dataComp ? dataComp : dataDecomp);
+
 	EnterCriticalSection(sendSect);
 
-	SendDataComp(pc, (const char*)(dataComp ? dataComp : dataDecomp), nBytesDecomp, nBytesComp);
+	SendDataComp(pc, dat, nBytesDecomp, nBytesComp);
 
 	LeaveCriticalSection(sendSect);
 

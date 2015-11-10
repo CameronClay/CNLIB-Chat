@@ -149,24 +149,26 @@ static DWORD CALLBACK SendAllData(LPVOID info)
 	auto clients = serv.GetClients();
 	CRITICAL_SECTION* sect = serv.GetSendSect();
 	Socket exAddr = data->exAddr;
-	BYTE* dataComp = (BYTE*)data->data;
+	const BYTE* dataDecomp = (const BYTE*)data->data;
+	BYTE* dataComp = nullptr;
 	const DWORD nBytesDecomp = data->nBytesDecomp;
 	DWORD nBytesComp = 0;
 
 	if (data->compType == SETCOMPRESSION)
 	{
-		const BYTE* dataDeComp = dataComp;
 		nBytesComp = FileMisc::GetCompressedBufferSize(nBytesDecomp);
 		dataComp = alloc<BYTE>(nBytesComp);
-		nBytesComp = FileMisc::Compress(dataComp, nBytesComp, dataDeComp, nBytesDecomp, serv.GetCompression());
+		nBytesComp = FileMisc::Compress(dataComp, nBytesComp, dataDecomp, nBytesDecomp, serv.GetCompression());
 	}
+
+	const char* dat = (const char*)(dataComp ? dataComp : dataDecomp);
 
 	EnterCriticalSection(sect);
 
 	if (data->single)
 	{
 		if (exAddr.IsConnected())
-			SendDataComp(exAddr, (const char*)dataComp, nBytesDecomp, nBytesComp);
+			SendDataComp(exAddr, dat, nBytesDecomp, nBytesComp);
 	}
 
 	else
@@ -176,12 +178,12 @@ static DWORD CALLBACK SendAllData(LPVOID info)
 		{
 			for (USHORT i = 0; i < nClients; i++)
 				if (clients[i]->pc != exAddr)
-					SendDataComp(clients[i]->pc, (const char*)dataComp, nBytesDecomp, nBytesComp);
+					SendDataComp(clients[i]->pc, dat, nBytesDecomp, nBytesComp);
 		}
 		else
 		{
 			for (USHORT i = 0; i < nClients; i++)
-				SendDataComp(clients[i]->pc, (const char*)dataComp, nBytesDecomp, nBytesComp);
+				SendDataComp(clients[i]->pc, dat, nBytesDecomp, nBytesComp);
 		}
 	}
 
@@ -200,24 +202,26 @@ static DWORD CALLBACK SendAllDataEx(LPVOID info)
 	Socket* pcs = data->pcs;
 	const USHORT pcCount = data->nPcs;
 	CRITICAL_SECTION* sect = serv.GetSendSect();
-	BYTE* dataComp = (BYTE*)data->data;
+	const BYTE* dataDecomp = (const BYTE*)data->data;
+	BYTE* dataComp = nullptr;
 	const DWORD nBytesDecomp = data->nBytesDecomp;
 	DWORD nBytesComp = 0;
 
 	if (data->compType == SETCOMPRESSION)
 	{
-		const BYTE* dataDeComp = dataComp;
 		nBytesComp = FileMisc::GetCompressedBufferSize(nBytesDecomp);
 		dataComp = alloc<BYTE>(nBytesComp);
-		nBytesComp = FileMisc::Compress(dataComp, nBytesComp, dataDeComp, nBytesDecomp, serv.GetCompression());
+		nBytesComp = FileMisc::Compress(dataComp, nBytesComp, dataDecomp, nBytesDecomp, serv.GetCompression());
 	}
+
+	const char* dat = (const char*)(dataComp ? dataComp : dataDecomp);
 
 	EnterCriticalSection(sect);
 
 	for (USHORT i = 0; i < pcCount; i++)
 	{
 		if (pcs[i].IsConnected())
-			SendDataComp(pcs[i], (const char*)dataComp, nBytesDecomp, nBytesComp);
+			SendDataComp(pcs[i], dat, nBytesDecomp, nBytesComp);
 	}
 
 	LeaveCriticalSection(sect);
