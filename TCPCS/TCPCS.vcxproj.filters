@@ -54,6 +54,9 @@
     <ClInclude Include="DLLSRC\VerifyPing.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\CompressionTypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DLLSRC\Typedefs.cpp">

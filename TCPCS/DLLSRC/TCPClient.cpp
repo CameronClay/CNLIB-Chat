@@ -153,7 +153,7 @@ static DWORD CALLBACK ReceiveData(LPVOID param)
 {
 	TCPClient& client = *(TCPClient*)param;
 	Socket& host = client.GetHost();
-	//VerifyPing& verifyPing = *client.GetVerifyPing();
+	VerifyPing& verifyPing = *client.GetVerifyPing();
 	void* obj = client.GetObj();
 	DWORD64 nBytes = 0;
 
@@ -175,7 +175,7 @@ static DWORD CALLBACK ReceiveData(LPVOID param)
 				(*client.GetFunction())(client, dest, nBytes, obj);
 				dealloc(buffer);
 					
-				//verifyPing.SetTimer(client.GetServerDropTime());
+				verifyPing.SetTimer(client.GetServerDropTime());
 			}
 			else
 			{
@@ -257,10 +257,10 @@ bool TCPClient::RecvServData()
 	if (!host.IsConnected())
 		return false;
 
-	//verifyPing = construct<VerifyPing>(*this);
+	verifyPing = construct<VerifyPing>(*this);
 
-	//if (!verifyPing)
-		//return false;
+	if (!verifyPing)
+		return false;
 
 	recv = CreateThread(NULL, 0, ReceiveData, this, NULL, NULL);
 

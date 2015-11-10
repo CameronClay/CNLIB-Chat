@@ -597,6 +597,8 @@ void SaveAdminList()
 
 void WinMainInit()
 {
+	CoInitialize(NULL);
+
 	FileMisc::GetFolderPath(CSIDL_APPDATA, folderPath);
 	FileMisc::SetCurDirectory(folderPath);
 	FileMisc::CreateFolder(folderName, FILE_ATTRIBUTE_HIDDEN);
@@ -732,7 +734,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_CREATE:
 	{
-		CoInitialize(NULL);
 		textDisp = CreateWindow(WC_EDIT, NULL, WS_CHILD | WS_VISIBLE | ES_MULTILINE | WS_BORDER | ES_READONLY | WS_VSCROLL, 0, 0, screenWidth, screenHeight, hWnd, (HMENU)ID_TEXTBOX_DISPLAY, hInst, 0);
 
 		main = CreateMenu();
