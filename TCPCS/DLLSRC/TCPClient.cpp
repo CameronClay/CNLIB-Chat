@@ -127,7 +127,7 @@ static DWORD CALLBACK SendData(LPVOID param)
 	Socket& pc = client.GetHost();
 	CRITICAL_SECTION* sendSect = client.GetSendSect();
 	const BYTE* dataDecomp = (const BYTE*)data->data;
-	BYTE* dataComp = (BYTE*)dataDecomp;
+	BYTE* dataComp = nullptr;
 	DWORD nBytesComp = 0;
 	DWORD nBytesDecomp = data->nBytes;
 
@@ -140,7 +140,7 @@ static DWORD CALLBACK SendData(LPVOID param)
 
 	EnterCriticalSection(sendSect);
 
-	SendDataComp(pc, (const char*)dataComp, nBytesDecomp, nBytesComp);
+	SendDataComp(pc, (const char*)(dataComp ? dataComp : dataDecomp), nBytesDecomp, nBytesComp);
 
 	LeaveCriticalSection(sendSect);
 
