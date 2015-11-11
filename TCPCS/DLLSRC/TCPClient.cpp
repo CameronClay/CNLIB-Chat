@@ -174,10 +174,10 @@ static DWORD CALLBACK ReceiveData(LPVOID param)
 				if (nBytesComp != 0)
 					FileMisc::Decompress(dest, nBytesDecomp, buffer, nBytesComp);
 
-				(*client.GetFunction())(client, dest, nBytes, obj);
+				(*client.GetFunction())(client, dest, nBytesDecomp, obj);
 				dealloc(buffer);
 					
-				verifyPing.SetTimer(client.GetServerDropTime());
+				//verifyPing.SetTimer(client.GetServerDropTime());
 			}
 			else
 			{
@@ -259,10 +259,10 @@ bool TCPClient::RecvServData()
 	if (!host.IsConnected())
 		return false;
 
-	verifyPing = construct<VerifyPing>(*this);
+	//verifyPing = construct<VerifyPing>(*this);
 
-	if (!verifyPing)
-		return false;
+	//if (!verifyPing)
+		//return false;
 
 	recv = CreateThread(NULL, 0, ReceiveData, this, NULL, NULL);
 

@@ -282,7 +282,7 @@ static DWORD CALLBACK RecvData(LPVOID info)
 				if (nBytesComp != 0)
 					FileMisc::Decompress(dest, nBytesDecomp, buffer, nBytesComp);
 
-				(clint->func)(serv, clint, dest, nBytes, obj);
+				(clint->func)(serv, clint, dest, nBytesDecomp, obj);
 				dealloc(buffer);
 			}
 			else
@@ -591,7 +591,7 @@ USHORT TCPServ::ClientCount() const
 
 void TCPServ::SetPingInterval(float interval)
 {
-	pingHandler.SetPingTimer(interval);
+	//pingHandler.SetPingTimer(interval);
 }
 
 void TCPServ::RunConFunc(ClientData* client)
