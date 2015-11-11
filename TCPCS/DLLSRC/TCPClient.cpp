@@ -166,9 +166,8 @@ static DWORD CALLBACK ReceiveData(LPVOID param)
 			const DWORD nBytesDecomp = nBytes >> 32;
 			const DWORD nBytesComp = nBytes & 0xffffffff;
 			BYTE* buffer = alloc<BYTE>(nBytesDecomp + nBytesComp);
-			nBytes = (nBytesComp != 0) ? nBytesComp : nBytesDecomp;
 
-			if (host.ReadData(buffer, nBytes) > 0)
+			if (host.ReadData(buffer, (nBytesComp != 0) ? nBytesComp : nBytesDecomp) > 0)
 			{
 				BYTE* dest = &buffer[nBytesComp];
 				if (nBytesComp != 0)
@@ -177,7 +176,7 @@ static DWORD CALLBACK ReceiveData(LPVOID param)
 				(*client.GetFunction())(client, dest, nBytesDecomp, obj);
 				dealloc(buffer);
 					
-				//verifyPing.SetTimer(client.GetServerDropTime());
+				verifyPing.SetTimer(client.GetServerDropTime());
 			}
 			else
 			{
@@ -259,10 +258,10 @@ bool TCPClient::RecvServData()
 	if (!host.IsConnected())
 		return false;
 
-	//verifyPing = construct<VerifyPing>(*this);
+	verifyPing = construct<VerifyPing>(*this);
 
-	//if (!verifyPing)
-		//return false;
+	if (!verifyPing)
+		return false;
 
 	recv = CreateThread(NULL, 0, ReceiveData, this, NULL, NULL);
 

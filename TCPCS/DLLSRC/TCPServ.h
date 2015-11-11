@@ -52,7 +52,9 @@ public:
 
 	ClientData** GetClients() const;
 	USHORT ClientCount() const;
+
 	void SetPingInterval(float interval);
+	float GetPingInterval() const;
 
 	Socket& GetHost();
 	bool MaxClients() const;
@@ -70,6 +72,7 @@ private:
 	HANDLE openCon; //wait for connections thread
 	const int compression; //compression server sends packets at
 	const USHORT maxCon; //max clients
-	PingHandler pingHandler; //handles all pings to client, to prevent timeout
+	float pingInterval;
+	PingHandler* pingHandler; //handles all pings to client, to prevent timeout
 };
 

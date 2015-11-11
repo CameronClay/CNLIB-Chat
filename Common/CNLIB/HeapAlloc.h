@@ -14,23 +14,11 @@
 
 template<typename T> inline T* alloc()
 {
-	HANDLE heap = GetProcessHeap();
-	T* t = (T*)HeapAlloc(heap, HEAP_GENERATE_EXCEPTIONS, sizeof(T));
-	if ((int)t == HEAP_GENERATE_EXCEPTIONS || (int)t == HEAP_NO_SERIALIZE || (int)t == HEAP_ZERO_MEMORY)
-	{
-		int a = 0;
-	}
-	return t;
+	return (T*)HeapAlloc(GetProcessHeap(), NULL, sizeof(T));
 }
 template<typename T> inline T* alloc(size_t count)
 {
-	HANDLE heap = GetProcessHeap();
-	T* t = (T*)(count != 0 ? HeapAlloc(heap, HEAP_GENERATE_EXCEPTIONS, sizeof(T) * count) : nullptr);
-	if ((int)t == HEAP_GENERATE_EXCEPTIONS || (int)t == HEAP_NO_SERIALIZE || (int)t == HEAP_ZERO_MEMORY)
-	{
-		int a = 0;
-	}
-	return t;
+	return (T*)(count != 0 ? HeapAlloc(GetProcessHeap(), NULL, sizeof(T) * count) : nullptr);
 }
 template<typename T> inline void dealloc(T& p)
 {

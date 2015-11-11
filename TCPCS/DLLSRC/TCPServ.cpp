@@ -274,9 +274,8 @@ static DWORD CALLBACK RecvData(LPVOID info)
 			const DWORD nBytesDecomp = nBytes >> 32;
 			const DWORD nBytesComp = nBytes & 0xffffffff;
 			BYTE* buffer = alloc<BYTE>(nBytesDecomp + nBytesComp);
-			nBytes = (nBytesComp != 0) ? nBytesComp : nBytesDecomp;
 
-			if (pc.ReadData(buffer, nBytes) > 0)
+			if (pc.ReadData(buffer, (nBytesComp != 0) ? nBytesComp : nBytesDecomp) > 0)
 			{
 				BYTE* dest = &buffer[nBytesComp];
 				if (nBytesComp != 0)
@@ -396,9 +395,10 @@ TCPServ::TCPServ(sfunc func, customFunc conFunc, customFunc disFunc, USHORT maxC
 	openCon(NULL),
 	compression(compression),
 	maxCon(maxCon),
-	pingHandler(*this)
+	pingInterval(pingInterval),
+	pingHandler(nullptr)
 {
-	pingHandler.SetPingTimer(pingInterval);
+	
 }
 
 TCPServ::TCPServ(TCPServ&& serv)
@@ -462,6 +462,13 @@ bool TCPServ::AllowConnections(const LIB_TCHAR* port)
 
 	if(!openCon)
 		return false;
+
+	pingHandler = new PingHandler(*this);
+
+	if (!pingHandler)
+		return false;
+
+	pingHandler->SetPingTimer(pingInterval);
 
 	InitializeCriticalSection(&clientSect);
 	InitializeCriticalSection(&sendSect);
@@ -591,7 +598,14 @@ USHORT TCPServ::ClientCount() const
 
 void TCPServ::SetPingInterval(float interval)
 {
-	//pingHandler.SetPingTimer(interval);
+	pingInterval = interval;
+	pingHandler->SetPingTimer(pingInterval);
+	PingAll(); //If you reset time to a greater interval before before previous has finished you may cause client to disconnect, this fixes the problem
+}
+
+float TCPServ::GetPingInterval() const
+{
+	return pingInterval;
 }
 
 void TCPServ::RunConFunc(ClientData* client)

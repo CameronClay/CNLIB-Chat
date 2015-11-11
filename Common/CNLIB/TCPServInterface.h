@@ -56,7 +56,9 @@ public:
 
 	virtual ClientData** GetClients() const = 0;
 	virtual USHORT ClientCount() const = 0;
+
 	virtual void SetPingInterval(float interval) = 0;
+	virtual float GetPingInterval() const = 0;
 
 	virtual bool MaxClients() const = 0;
 	virtual bool IsConnected() const = 0;
