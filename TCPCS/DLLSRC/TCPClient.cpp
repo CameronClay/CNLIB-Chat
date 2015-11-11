@@ -156,6 +156,7 @@ static DWORD CALLBACK ReceiveData(LPVOID param)
 	TCPClient& client = *(TCPClient*)param;
 	Socket& host = client.GetHost();
 	VerifyPing& verifyPing = *client.GetVerifyPing();
+	cfuncP func = client.GetFunction();
 	void* obj = client.GetObj();
 	DWORD64 nBytes = 0;
 
@@ -173,7 +174,7 @@ static DWORD CALLBACK ReceiveData(LPVOID param)
 				if (nBytesComp != 0)
 					FileMisc::Decompress(dest, nBytesDecomp, buffer, nBytesComp);
 
-				(*client.GetFunction())(client, dest, nBytesDecomp, obj);
+				(*func)(client, dest, nBytesDecomp, obj);
 				dealloc(buffer);
 					
 				verifyPing.SetTimer(client.GetServerDropTime());
