@@ -463,7 +463,7 @@ bool TCPServ::AllowConnections(const LIB_TCHAR* port)
 	if(!openCon)
 		return false;
 
-	pingHandler = new PingHandler(*this);
+	pingHandler = new PingHandler(this);
 
 	if (!pingHandler)
 		return false;
@@ -571,7 +571,7 @@ void TCPServ::Ping(Socket client)
 	SendMsg(client, true, TYPE_PING, MSG_PING);
 }
 
-void TCPServ::PingAll()
+void TCPServ::Ping()
 {
 	SendMsg(Socket(), false, TYPE_PING, MSG_PING);
 }
@@ -600,7 +600,6 @@ void TCPServ::SetPingInterval(float interval)
 {
 	pingInterval = interval;
 	pingHandler->SetPingTimer(pingInterval);
-	PingAll(); //If you reset time to a greater interval before before previous has finished you may cause client to disconnect, this fixes the problem
 }
 
 float TCPServ::GetPingInterval() const

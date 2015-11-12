@@ -157,7 +157,6 @@
     <ClInclude Include="..\Common\CNLIB\UPNP.h" />
     <ClInclude Include="DLLSRC\TCPClient.h" />
     <ClInclude Include="DLLSRC\TCPServ.h" />
-    <ClInclude Include="DLLSRC\VerifyPing.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DLLSRC\File.cpp" />
@@ -167,7 +166,6 @@
     <ClCompile Include="DLLSRC\TCPServ.cpp" />
     <ClCompile Include="DLLSRC\Typedefs.cpp" />
     <ClCompile Include="DLLSRC\UPNP.cpp" />
-    <ClCompile Include="DLLSRC\VerifyPing.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

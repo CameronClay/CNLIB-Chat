@@ -9,7 +9,7 @@ class TCPClient : public TCPClientInterface
 {
 public:
 	//cfunc is a message handler, compression 1-9
-	TCPClient(cfunc func, dcfunc disconFunc, int compression = 9, float serverDropTime = 60.0f, void* obj = nullptr);
+	TCPClient(cfunc func, dcfunc disconFunc, int compression = 9, float pingInterval = 30.0f, void* obj = nullptr);
 	TCPClient(TCPClient&& client);
 	~TCPClient();
 
@@ -32,8 +32,10 @@ public:
 	void SendMsg(char type, char message);
 	void SendMsg(const std::tstring& user, char type, char message);
 
-	//Should be called in function/msgHandler when ping msg is received from server
 	void Ping();
+
+	void SetPingInterval(float interval);
+	float GetPingInterval() const;
 
 	void SetFunction(cfunc function);
 
@@ -45,11 +47,6 @@ public:
 	Socket& GetHost();
 	int GetCompression() const;
 	CRITICAL_SECTION* GetSendSect();
-
-	void SetServerDropTime(float time);
-	float GetServerDropTime() const;
-
-	VerifyPing* GetVerifyPing() const;
 
 	dcfunc GetDisfunc() const;
 	bool IsConnected() const;
@@ -63,6 +60,6 @@ private:
 	CRITICAL_SECTION sendSect; //used for synchonization
 	const int compression; //compression client sends packets at
 	bool unexpectedShutdown; //passed to disconnect handler
-	float serverDropTime; //time before last packet was received that is treated as server losing connection
-	VerifyPing* verifyPing; //used to detect if a server has lost connection
+	float pingInterval; //interval at which client pings server
+	PingHandler* pingHandler; //handles all pings(technically is a keep alive message that sends data) to server, to prevent timeout
 };

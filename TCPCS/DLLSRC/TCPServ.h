@@ -42,7 +42,7 @@ public:
 	void AddClient(Socket pc);
 	void RemoveClient(USHORT& pos);
 
-	void PingAll();
+	void Ping();
 	void Ping(Socket client);
 
 	void RunConFunc(ClientData* client);
@@ -72,7 +72,7 @@ private:
 	HANDLE openCon; //wait for connections thread
 	const int compression; //compression server sends packets at
 	const USHORT maxCon; //max clients
-	float pingInterval;
+	float pingInterval; //interval at which server pings(technically is a keep alive message that sends data) clients
 	PingHandler* pingHandler; //handles all pings to client, to prevent timeout
 };
 

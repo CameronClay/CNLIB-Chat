@@ -51,9 +51,6 @@
     <ClInclude Include="DLLSRC\TCPClient.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DLLSRC\VerifyPing.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\CNLIB\CompressionTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -78,9 +75,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DLLSRC\TCPServ.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DLLSRC\VerifyPing.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

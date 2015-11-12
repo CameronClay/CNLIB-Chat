@@ -3,11 +3,10 @@
 #include "Messages.h"
 #include "File.h"
 #include "MsgStream.h"
-#include "VerifyPing.h"
 
-TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, int compression, float serverDropTime, void* obj)
+TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, int compression, float pingInterval, void* obj)
 {
-	return construct<TCPClient>(msgHandler, disconFunc, compression, serverDropTime, obj);
+	return construct<TCPClient>(msgHandler, disconFunc, compression, pingInterval, obj);
 }
 
 void DestroyClient(TCPClientInterface*& client)
@@ -43,7 +42,7 @@ struct SendInfo
 	CompressionType compType;
 };
 
-TCPClient::TCPClient(cfunc func, dcfunc disconFunc, int compression, float serverDropTime, void* obj)
+TCPClient::TCPClient(cfunc func, dcfunc disconFunc, int compression, float pingInterval, void* obj)
 	:
 	host(INVALID_SOCKET),
 	function(func),
@@ -52,8 +51,8 @@ TCPClient::TCPClient(cfunc func, dcfunc disconFunc, int compression, float serve
 	recv(NULL),
 	compression(compression),
 	unexpectedShutdown(true),
-	serverDropTime(serverDropTime),
-	verifyPing(nullptr)
+	pingInterval(pingInterval),
+	pingHandler(nullptr)
 {}
 
 TCPClient::TCPClient(TCPClient&& client)
@@ -66,8 +65,8 @@ TCPClient::TCPClient(TCPClient&& client)
 	sendSect(client.sendSect),
 	compression(client.compression),
 	unexpectedShutdown(client.unexpectedShutdown),
-	serverDropTime(client.serverDropTime),
-	verifyPing(client.verifyPing)
+	pingInterval(client.pingInterval),
+	pingHandler(client.pingHandler)
 {
 	ZeroMemory(&client, sizeof(TCPClient));
 }
@@ -86,8 +85,8 @@ TCPClient& TCPClient::operator=(TCPClient&& client)
 		sendSect = client.sendSect;
 		const_cast<int&>(compression) = client.compression;
 		unexpectedShutdown = client.unexpectedShutdown;
-		serverDropTime = client.serverDropTime;
-		verifyPing = client.verifyPing;
+		pingInterval = client.pingInterval;
+		pingHandler = std::move(client.pingHandler);
 
 		ZeroMemory(&client, sizeof(TCPClient));
 	}
@@ -101,7 +100,7 @@ TCPClient::~TCPClient()
 
 void TCPClient::Cleanup()
 {
-	destruct(verifyPing);
+	destruct(pingHandler);
 	host.Disconnect();
 	DeleteCriticalSection(&sendSect);
 	if (recv)
@@ -155,7 +154,6 @@ static DWORD CALLBACK ReceiveData(LPVOID param)
 {
 	TCPClient& client = *(TCPClient*)param;
 	Socket& host = client.GetHost();
-	VerifyPing& verifyPing = *client.GetVerifyPing();
 	cfuncP func = client.GetFunction();
 	void* obj = client.GetObj();
 	DWORD64 nBytes = 0;
@@ -176,8 +174,6 @@ static DWORD CALLBACK ReceiveData(LPVOID param)
 
 				(*func)(client, dest, nBytesDecomp, obj);
 				dealloc(buffer);
-					
-				verifyPing.SetTimer(client.GetServerDropTime());
 			}
 			else
 			{
@@ -259,9 +255,9 @@ bool TCPClient::RecvServData()
 	if (!host.IsConnected())
 		return false;
 
-	verifyPing = construct<VerifyPing>(*this);
+	pingHandler = construct<PingHandler>(this);
 
-	if (!verifyPing)
+	if (!pingHandler)
 		return false;
 
 	recv = CreateThread(NULL, 0, ReceiveData, this, NULL, NULL);
@@ -343,17 +339,13 @@ bool TCPClient::IsConnected() const
 	return host.IsConnected();
 }
 
-void TCPClient::SetServerDropTime(float time)
+void TCPClient::SetPingInterval(float interval)
 {
-	serverDropTime = time;
+	pingInterval = interval;
+	pingHandler->SetPingTimer(pingInterval);
 }
 
-float TCPClient::GetServerDropTime() const
+float TCPClient::GetPingInterval() const
 {
-	return serverDropTime;
-}
-
-VerifyPing* TCPClient::GetVerifyPing() const
-{
-	return verifyPing;
+	return pingInterval;
 }
