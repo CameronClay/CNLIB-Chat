@@ -255,15 +255,17 @@ bool TCPClient::RecvServData()
 	if (!host.IsConnected())
 		return false;
 
+	recv = CreateThread(NULL, 0, ReceiveData, this, NULL, NULL);
+
+	if (!recv)
+		return false;
+
 	pingHandler = construct<PingHandler>(this);
 
 	if (!pingHandler)
 		return false;
 
-	recv = CreateThread(NULL, 0, ReceiveData, this, NULL, NULL);
-
-	if (!recv)
-		return false;
+	pingHandler->SetPingTimer(pingInterval);
 
 	InitializeCriticalSection(&sendSect);
 
