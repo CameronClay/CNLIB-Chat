@@ -230,7 +230,7 @@ void TCPClient::SendServData(const char* data, DWORD nBytes, CompressionType com
 {
 	if (compType == BESTFIT)
 	{
-		if (nBytes >= 128)
+		if (nBytes >= COMPBYTECO)
 			compType = SETCOMPRESSION;
 		else
 			compType = NOCOMPRESSION;
@@ -242,7 +242,7 @@ HANDLE TCPClient::SendServDataThread(const char* data, DWORD nBytes, Compression
 {
 	if (compType == BESTFIT)
 	{
-		if (nBytes >= 128)
+		if (nBytes >= COMPBYTECO)
 			compType = SETCOMPRESSION;
 		else
 			compType = NOCOMPRESSION;

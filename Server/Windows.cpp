@@ -181,7 +181,9 @@ void DispIPMsg(Socket& pc, const LIB_TCHAR* str)
 
 void DisconnectHandler(ClientData* data)
 {
-	DispIPMsg(data->pc, _T(" has disconnected!"));
+	LIB_TCHAR buffer[128] = {};
+	_stprintf(buffer, _T("(%s) has disconnected!"), (!data->user.empty()) ? data->user.c_str() : _T("unknown"));
+	DispIPMsg(data->pc, buffer);
 }
 
 void ConnectHandler(ClientData* data)

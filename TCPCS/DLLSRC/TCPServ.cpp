@@ -303,7 +303,7 @@ void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket exAddr, bool
 {
 	if (compType == BESTFIT)
 	{
-		if (nBytes >= 128)
+		if (nBytes >= COMPBYTECO)
 			compType = SETCOMPRESSION;
 		else
 			compType = NOCOMPRESSION;
@@ -316,7 +316,7 @@ void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket* pcs, USHORT
 {
 	if (compType == BESTFIT)
 	{
-		if (nBytes >= 128)
+		if (nBytes >= COMPBYTECO)
 			compType = SETCOMPRESSION;
 		else
 			compType = NOCOMPRESSION;
@@ -333,7 +333,7 @@ HANDLE TCPServ::SendClientDataThread(const char* data, DWORD nBytes, Socket exAd
 {
 	if (compType == BESTFIT)
 	{
-		if (nBytes >= 128)
+		if (nBytes >= COMPBYTECO)
 			compType = SETCOMPRESSION;
 		else
 			compType = NOCOMPRESSION;
@@ -345,7 +345,7 @@ HANDLE TCPServ::SendClientDataThread(const char* data, DWORD nBytes, Socket* pcs
 {
 	if (compType == BESTFIT)
 	{
-		if (nBytes >= 128)
+		if (nBytes >= COMPBYTECO)
 			compType = SETCOMPRESSION;
 		else
 			compType = NOCOMPRESSION;
