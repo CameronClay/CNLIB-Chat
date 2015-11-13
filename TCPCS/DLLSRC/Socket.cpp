@@ -121,7 +121,6 @@ Socket Socket::AcceptConnection()
 //IP or HostName for dest
 void Socket::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, float timeout)
 {
-	SOCKET sock = INVALID_SOCKET;
 	int result = false;
 	ADDRINFOT* addr = 0;
 	ADDRINFOT info = { 0, AF_INET, SOCK_STREAM, IPPROTO_TCP };
