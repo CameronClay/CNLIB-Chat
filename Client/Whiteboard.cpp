@@ -69,7 +69,7 @@ DWORD CALLBACK WBThread(LPVOID param)
 Whiteboard::Whiteboard(TCPClientInterface& clint, Palette& palette, USHORT Width, USHORT Height, USHORT FPS, BYTE palIndex)
 	:
 clint(clint),
-mouse((FPS < 60 ? 4500 / FPS : 75), (USHORT)((1000.0f / (float)FPS) + 0.5f)),
+mouse((FPS >= 60 ? (8000 / FPS) : 75), (USHORT)((1000.0f / (float)FPS) + 0.5f)),
 defaultColor(palIndex),
 palIndex(palIndex),
 hWnd(NULL),
