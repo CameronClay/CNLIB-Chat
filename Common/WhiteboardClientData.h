@@ -251,7 +251,7 @@ struct WBClientData
 
 	WBClientData(USHORT FPS, BYTE defColor)
 		:
-		mServ((FPS >= 60 ? (8000 / FPS) : 75), (USHORT)((1000.0f / (float)FPS) + 0.5f)),
+		mServ((FPS < 60 ? 4500 / FPS : 75), (USHORT)((1000.0f / (float)FPS) + 0.5f)),
 		nVertices(0),
 		tool(Tool::PaintBrush),
 		clrIndex(0),
