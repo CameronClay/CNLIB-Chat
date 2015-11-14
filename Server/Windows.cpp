@@ -17,12 +17,13 @@
 #pragma comment(lib, "TCPCS.lib")
 
 
-const float APPVERSION = 0.01f;
-
+const float APPVERSION = 0.35f;
+const float CONFIGVERSION = .0025f;
 
 #define ID_TEXTBOX_DISPLAY 0
 
 #define ID_MANAGE_ADMINS 1
+#define ID_MANAGE_OPTIONS 2
 
 struct Authent
 {
@@ -35,13 +36,15 @@ struct Authent
 	std::tstring user, password;
 };
 
-const USHORT port = 665;
+const USHORT DEFUALTPORT = 665;
+USHORT port = DEFUALTPORT;
 
 const UINT maxUserLen = 10;
 
 const LIB_TCHAR folderName[] = _T("Cam's-Server");
 const LIB_TCHAR servListFileName[] = _T("ServAuthentic.dat");
 const LIB_TCHAR adminListFileName[] = _T("AdminList.dat");
+const LIB_TCHAR optionsFileName[] = _T("Options.dat");
 
 LIB_TCHAR folderPath[MAX_PATH + 30];
 
@@ -56,6 +59,7 @@ static LIB_TCHAR szTitle[] = _T("Cameron's Server");
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK ManageAdminsProc(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK OptionsProc(HWND, UINT, WPARAM, LPARAM);
 
 USHORT screenWidth = 800, screenHeight = 600;
 
@@ -631,6 +635,27 @@ void WinMainInit()
 
 	file.Close();
 
+	file.Open(optionsFileName, FILE_GENERIC_READ, FILE_ATTRIBUTE_HIDDEN);
+
+	float configVersion;
+	if (file.Read(&configVersion, sizeof(float)))
+	{
+		if (configVersion == CONFIGVERSION)
+		{
+			if (!file.Read(&port, sizeof(USHORT)))
+				port = DEFUALTPORT;
+		}
+		else
+		{
+			file.Close();
+			file.Open(optionsFileName, FILE_GENERIC_WRITE, FILE_ATTRIBUTE_HIDDEN, CREATE_ALWAYS);
+			file.Write(&CONFIGVERSION, sizeof(float));
+			file.Write(&port, sizeof(USHORT));
+		}
+	}
+
+	file.Close();
+
 	InitializeCriticalSection(&fileSect);
 	InitializeCriticalSection(&authentSect);
 	InitializeCriticalSection(&wbSect);
@@ -724,6 +749,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		switch (LOWORD(wParam))
 		{
+		case ID_MANAGE_OPTIONS:
+		{
+			DialogBox(hInst, MAKEINTRESOURCE(OPTIONS), hWnd, OptionsProc);
+			break;
+		}
 		case ID_MANAGE_ADMINS:
 		{
 			DialogBox(hInst, MAKEINTRESOURCE(MANAGE_ADMINS), hWnd, ManageAdminsProc);
@@ -742,6 +772,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		file = CreateMenu();
 		AppendMenu(main, MF_POPUP, (UINT_PTR)file, _T("File"));
+		AppendMenu(file, MF_STRING, ID_MANAGE_OPTIONS, _T("Options"));
 		AppendMenu(file, MF_STRING, ID_MANAGE_ADMINS, _T("Manage Admins"));
 
 		SetMenu(hWnd, main);
@@ -871,3 +902,61 @@ INT_PTR CALLBACK ManageAdminsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 	return 0;
 }
 
+INT_PTR CALLBACK OptionsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	static HWND portCtrl, OK;
+	switch (message)
+	{
+	case WM_COMMAND:
+	{
+		const short id = LOWORD(wParam);
+		switch (id)
+		{
+		case ID_PORT:
+			switch (HIWORD(wParam))
+			{
+			case EN_CHANGE:
+				if (GetWindowTextLength(portCtrl) != 0)
+					EnableWindow(OK, TRUE);
+				else
+					EnableWindow(OK, FALSE);
+				break;
+			}
+			break;
+		case IDOK:
+		{
+			const UINT len = SendMessage(portCtrl, WM_GETTEXTLENGTH, 0, 0) + 1;
+			LIB_TCHAR* temp = alloc<LIB_TCHAR>(len);
+			SendMessage(portCtrl, WM_GETTEXT, len, (LPARAM)temp);
+			port = _tstoi(temp);
+
+			File file(optionsFileName, FILE_GENERIC_WRITE, FILE_ATTRIBUTE_HIDDEN, CREATE_ALWAYS);
+			file.Write(&CONFIGVERSION, sizeof(float));
+			file.Write(&port, sizeof(USHORT));
+
+			DestroyServer(serv);
+			serv = CreateServer(&MsgHandler, &ConnectHandler, &DisconnectHandler);
+			serv->AllowConnections(temp);
+
+			dealloc(temp);
+
+			EndDialog(hWnd, id);
+			break;
+		}
+		case IDCANCEL:
+			EndDialog(hWnd, id);
+			break;
+		}
+		break;
+	}
+	case WM_INITDIALOG:
+	{
+		portCtrl = GetDlgItem(hWnd, ID_PORT), OK = GetDlgItem(hWnd, IDOK);
+		LIB_TCHAR temp[6] = {};
+		SendMessage(portCtrl, EM_SETLIMITTEXT, 5, 0);
+		SendMessage(portCtrl, WM_SETTEXT, 0, (LPARAM)_itot(port, temp, 10));
+		return 1;
+	}
+	}
+	return 0;
+}

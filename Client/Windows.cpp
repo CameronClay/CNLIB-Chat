@@ -27,7 +27,7 @@
 #pragma comment(lib, "TCPCS.lib")
 
 
-const float APPVERSION = 0.01f;
+const float APPVERSION = 0.35f;
 const float CONFIGVERSION = .0025f;
 const USHORT DEFAULTPORT = 565;
 
