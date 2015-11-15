@@ -119,7 +119,7 @@ Socket Socket::AcceptConnection()
 
 
 //IP or HostName for dest
-void Socket::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, float timeout)
+bool Socket::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, float timeout)
 {
 	int result = false;
 	ADDRINFOT* addr = 0;
@@ -157,6 +157,8 @@ void Socket::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, float timeout
 		}
 		FreeAddrInfo(addr);
 	}
+
+	return IsConnected();
 }
 
 void Socket::Disconnect()

@@ -430,8 +430,7 @@ void DispText(BYTE* data, DWORD nBytes)
 
 void Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, float timeOut)
 {
-	client->Connect(dest, port, timeOut);
-	if (client->IsConnected())
+	if (client->Connect(dest, port, timeOut))
 	{
 		EnableMenuItem(file, ID_SERV_CONNECT, MF_GRAYED);
 		EnableMenuItem(file, ID_SERV_DISCONNECT, MF_ENABLED);

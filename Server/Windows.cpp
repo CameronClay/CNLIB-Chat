@@ -934,8 +934,7 @@ INT_PTR CALLBACK OptionsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 			file.Write(&CONFIGVERSION, sizeof(float));
 			file.Write(&port, sizeof(USHORT));
 
-			DestroyServer(serv);
-			serv = CreateServer(&MsgHandler, &ConnectHandler, &DisconnectHandler);
+			serv->Shutdown();
 			serv->AllowConnections(temp);
 
 			dealloc(temp);

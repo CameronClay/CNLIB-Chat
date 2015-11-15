@@ -43,7 +43,7 @@ public:
 	bool Bind(const LIB_TCHAR* port);
 	Socket AcceptConnection();
 
-	void Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, float timeout);
+	bool Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, float timeout);
 	void Disconnect();
 
 	long ReadData(void* dest, DWORD nBytes);

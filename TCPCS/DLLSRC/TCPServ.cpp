@@ -556,9 +556,9 @@ void TCPServ::Shutdown()
 		//close recv threads and free memory
 		while(nClients != 0)
 		{
-			ClientData& data = *clients[nClients - 1];
-			data.pc.Disconnect();
-			WaitForSingleObject(data.recvThread, INFINITE); //handle closed in RemoveClient
+			ClientData* data = clients[nClients - 1];
+			DisconnectClient(data);
+			WaitForSingleObject(data->recvThread, INFINITE); //handle closed in RemoveClient
 		}
 
 		dealloc(clients);

@@ -202,12 +202,7 @@ bool TCPClient::Connect( const LIB_TCHAR* dest, const LIB_TCHAR* port, float tim
 	//reset so it will send correct message
 	SetShutdownReason(true);
 
-	host.Connect( dest, port, timeOut );
-
-	if(!host.IsConnected())
-		return false;
-
-	return true;
+	return host.Connect(dest, port, timeOut);
 }
 
 void TCPClient::Disconnect()
