@@ -36,7 +36,7 @@ struct Authent
 	std::tstring user, password;
 };
 
-const USHORT DEFUALTPORT = 665;
+const USHORT DEFUALTPORT = 565;
 USHORT port = DEFUALTPORT;
 
 const UINT maxUserLen = 10;

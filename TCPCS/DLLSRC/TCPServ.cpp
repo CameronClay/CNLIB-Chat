@@ -550,6 +550,8 @@ void TCPServ::Shutdown()
 		host.Disconnect();//causes opencon thread to close
 		WaitAndCloseHandle(openCon);
 
+		destruct(pingHandler);
+
 		//nClients != 0 because nClients changes after thread ends
 		//close recv threads and free memory
 		while(nClients != 0)
