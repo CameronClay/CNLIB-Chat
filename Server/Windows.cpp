@@ -662,7 +662,7 @@ void WinMainInit()
 
 	InitializeNetworking();
 
-	//MapPort(port, _T("TCP"), _T("Cam's Serv"));
+	MapPort(port, _T("TCP"), _T("Cam's Serv"));
 
 	serv = CreateServer(&MsgHandler, &ConnectHandler, &DisconnectHandler);
 
