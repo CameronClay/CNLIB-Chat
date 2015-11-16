@@ -119,12 +119,4 @@
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
-  <ItemGroup>
-    <Image Include="..\DebugXP\cursor(1).ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\debugxp\icon1.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-  </ItemGroup>
 </Project>
