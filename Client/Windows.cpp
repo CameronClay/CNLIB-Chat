@@ -46,7 +46,7 @@ const USHORT DEFAULTPORT = 565;
 
 #define ID_BUTTON_ENTER 8
 
-#define ID_SEND_FILE 9
+#define ID_SEND_FILES 9
 #define ID_SEND_FOLDER 10
 #define ID_KICK 11
 
@@ -359,10 +359,10 @@ HWND CreateWBWindow(USHORT width, USHORT height)
 	if(!wbAtom)
 	{
 		WNDCLASS wc = {};
-		wc.hInstance = hInst;
 		wc.lpfnWndProc = WbProc;
-		wc.lpszClassName = wbClassName;
+		wc.hInstance = hInst;
 		wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+		wc.lpszClassName = wbClassName;
 
 		wbAtom = RegisterClass(&wc);
 	}
@@ -894,7 +894,7 @@ void WinMainInit()
 {
 	FileMisc::GetFolderPath(CSIDL_APPDATA, folderPath);
 	FileMisc::SetCurDirectory(folderPath);
-	FileMisc::CreateFolder(folderName, FILE_ATTRIBUTE_HIDDEN);
+	FileMisc::CreateFolder(folderName);
 	_stprintf(folderPath, _T("%s\\%s"), folderPath, folderName);
 	FileMisc::SetCurDirectory(folderPath);
 
@@ -931,10 +931,10 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	HRESULT res = CoInitialize(NULL);
 	assert(SUCCEEDED(res));
 
-	WNDCLASSEX wcex;
+	WNDCLASSEX wcex{};
 
 	wcex.cbSize = sizeof(WNDCLASSEX);
-	wcex.style = CS_HREDRAW | CS_VREDRAW;
+	//wcex.style = CS_HREDRAW | CS_VREDRAW;
 	wcex.lpfnWndProc = WndProc;
 	wcex.cbClsExtra = 0;
 	wcex.cbWndExtra = 0;
@@ -1312,7 +1312,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		}
 
-		case ID_SEND_FILE:
+		case ID_SEND_FILES:
 		{
 			const UINT i = SendMessage(listClients, LB_GETCURSEL, 0, 0);
 			const UINT len = SendMessage(listClients, LB_GETTEXTLEN, i, 0);
@@ -1324,25 +1324,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 			}
 
-			LIB_TCHAR buffer[MAX_PATH];
-			LIB_TCHAR path[MAX_PATH];
-			if (!FileMisc::BrowseFiles(_T("Browse files"), buffer, hWnd))
+			LIB_TCHAR path[MAX_PATH]{};
+			LIB_TCHAR dir[MAX_PATH]{};
+			if(!FileMisc::BrowseFiles(path, hWnd, _T("All Files\0*.*\0"), FileMisc::OFN_DEFAULT | OFN_EXPLORER | OFN_ALLOWMULTISELECT, _T("Browse files")))
 				break;
 
-			_tcsncpy(path, buffer, _tcslen(buffer) + 1);
-			PathRemoveFileSpec(path);
-			fileSend->SetFullPathSrc(std::tstring(path) + _T("\\"));
+			_tcsncpy(dir, path, _tcslen(path) + 1);
+			if (!PathIsDirectory(dir))
+				PathRemoveFileSpec(dir);
+			fileSend->SetFullPathSrc(std::tstring(dir));
 
-			FileMisc::FileData data;
-			File file(buffer, FILE_GENERIC_READ);
-			data.dateModified = file.GetDate();
-			data.size = file.GetSize();
-			PathStripPath(buffer);
-			data.fileName = buffer;
-			file.Close();
-
-			fileSend->GetList().push_back(data);
-
+			LIB_TCHAR* fileName = path + _tcslen(dir) + 1;
+			while(_tcslen(fileName))
+			{
+				LIB_TCHAR *tmp = (LIB_TCHAR*)alloc<LIB_TCHAR>(_tcslen(dir) + 1 + _tcslen(fileName) + 1);
+				PathCombine(tmp, dir, fileName);
+				FileMisc::FileData data;
+				File file(tmp, FILE_GENERIC_READ);
+				data.dateModified = file.GetDate();
+				data.size = file.GetSize();
+				data.fileName = fileName;
+				file.Close();
+				fileSend->GetList().push_back(data);
+				dealloc(tmp);
+				fileName += _tcslen(fileName) + 1;
+			}
 			fileSend->RequestTransfer();
 			break;
 		}
@@ -1531,7 +1537,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 						AppendMenu(admin, MF_STRING, ID_KICK, _T("Kick"));
 
-						AppendMenu(send, MF_STRING, ID_SEND_FILE, _T("Send File"));
+						AppendMenu(send, MF_STRING, ID_SEND_FILES, _T("Send File(s)"));
 						AppendMenu(send, MF_STRING, ID_SEND_FOLDER, _T("Send Folder"));
 
 						AppendMenu(whiteboard, MF_STRING, ID_WHITEBOARD_INVITE, _T("Invite"));

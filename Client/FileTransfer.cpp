@@ -219,13 +219,13 @@ void FileSend::SendFileNameList()
 
 void FileSend::SendCurrentFile()
 {
-	const bool exists = FileMisc::Exists((fullFilepathSrc + it->fileName).c_str());
+	const bool exists = FileMisc::Exists((fullFilepathSrc + _T('\\') + it->fileName).c_str());
 	assert(exists);
 
 	if(!exists)
 		return;
 
-	File file((fullFilepathSrc + it->fileName).c_str(), FILE_GENERIC_READ);
+	File file((fullFilepathSrc + _T('\\') + it->fileName).c_str(), FILE_GENERIC_READ);
 	const UINT userLen = username.size() + 1;
 	const DWORD extraBytesData = sizeof(UINT) + (userLen * sizeof(LIB_TCHAR)) + MSG_OFFSET;
 

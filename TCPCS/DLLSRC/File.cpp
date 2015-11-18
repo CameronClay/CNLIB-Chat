@@ -439,21 +439,21 @@ bool FileMisc::CompareTime(SYSTEMTIME& t1, SYSTEMTIME& t2)
 //}
 
 
-bool FileMisc::BrowseFiles(const LIB_TCHAR* windowName, LIB_TCHAR* filePathDest, HWND hwnd, DWORD flags)
+bool FileMisc::BrowseFiles(LIB_TCHAR* filePathDest, HWND hwnd, const LIB_TCHAR* fileTypes, DWORD flags, const LIB_TCHAR* windowName)
 {
 	OPENFILENAME file;
 
 	ZeroMemory(&file, sizeof(file));
 	file.lStructSize = sizeof(file);
 	file.hwndOwner = hwnd;
-	file.lpstrDefExt = _T("txt");
+	//file.lpstrDefExt = _T("txt");
+	file.lpstrFilter = fileTypes;
 	file.lpstrFile = filePathDest;
-	file.lpstrFile[0] = '\0';
 	file.nMaxFile = MAX_PATH;
 	file.lpstrTitle = windowName;
 	file.Flags = flags;
 
-	return GetOpenFileName(&file) != 0;
+	return GetOpenFileName(&file) != FALSE;
 }
 
 bool FileMisc::BrowseFolder(const LIB_TCHAR* windowName, LIB_TCHAR* buffer, HWND hwnd, UINT flags)

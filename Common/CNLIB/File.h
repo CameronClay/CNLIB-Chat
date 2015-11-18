@@ -88,8 +88,9 @@ namespace FileMisc
 	// Access = FILE_GENERIC_READ, FILE_GENERIC_WRITE, FILE_GENERIC_EXECUTE, attributes = FILE_ATTRIBUTE_HIDDEN, FILE_ATTRIBUTE_TEMPORARY, blank = NORMAL
 	CAMSNETLIB void SetAttrib(const LIB_TCHAR* fileName, DWORD attrib);
 
+	static const UINT OFN_DEFAULT = OFN_CREATEPROMPT | OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 	/*-----------DialogFunctions------------*/
-	CAMSNETLIB bool BrowseFiles(const LIB_TCHAR* windowName, LIB_TCHAR* filePathDest, HWND hwnd, DWORD flags = OFN_CREATEPROMPT | OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST);
+	CAMSNETLIB bool BrowseFiles(LIB_TCHAR* filePathDest, HWND hwnd, const LIB_TCHAR* fileTypes = _T("All Files\0*.*\0"), DWORD flags = OFN_DEFAULT, const LIB_TCHAR* windowName = nullptr);
 	CAMSNETLIB bool BrowseFolder(const LIB_TCHAR* windowName, LIB_TCHAR* buffer, HWND hwnd, UINT flags = BIF_RETURNONLYFSDIRS | BIF_USENEWUI);
 	CAMSNETLIB bool BrowseFont(HWND hwnd, HFONT& hFont, COLORREF& color);
 }
