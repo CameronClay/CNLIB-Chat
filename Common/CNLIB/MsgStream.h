@@ -5,23 +5,31 @@
 #include <string>
 #include "HeapAlloc.h"
 
+#define MSG_OFFSET 2
+
 class MsgStream
 {
 public:
-	//nBytes not including MSG_OFFSET
-	MsgStream(char* data, DWORD nBytes)
+	MsgStream(char* data, UINT capacity)
 		:
-		pos(2),
-		data(data),
-		nBytes(nBytes)
+		begin(data),
+		end((char*)begin + capacity),
+		data((char*)begin + MSG_OFFSET),
+		capacity(capacity)
 	{}
 	MsgStream(MsgStream&& stream)
 		:
-		pos(stream.pos),
+		begin(stream.begin),
+		end(stream.end),
 		data(stream.data),
-		nBytes(stream.nBytes)
+		capacity(stream.capacity)
 	{
 		ZeroMemory(&stream, sizeof(MsgStream));
+	}
+
+	~MsgStream()
+	{
+		dealloc((char*&)begin);
 	}
 
 	char GetType() const
@@ -33,131 +41,118 @@ public:
 		return data[1];
 	}
 
-	DWORD GetSize() const
+	UINT GetSize() const
 	{
 		//+2 for MSG_OFFSET
-		return nBytes + 2;
+		return end - begin;
 	}
-	DWORD GetDataSize() const
+	UINT GetDataSize() const
 	{
 		//size without MSG_OFFSET
-		return nBytes;
+		return end - (begin + MSG_OFFSET);
 	}
-	DWORD GetPos() const
+	UINT GetCapacity() const
 	{
-		return pos;
-	}
-
-	template<typename T> T& operator[](DWORD position) const
-	{
-		assert(position <= nBytes + 2);
-		return data[position + 2];
+		return capacity;
 	}
 
-	void SetPos(DWORD position)
+	template<typename T> T& operator[](UINT index) const
 	{
-		assert(pos <= nBytes + 2);
-		pos = position;
+		assert(index <= capactiy - 2);
+		return begin[index + 2];
+	}
+
+	void SetPos(UINT position)
+	{
+		assert(position <= capacity - 2);
+		data = (char*)begin + position + MSG_OFFSET;
 	}
 	bool End() const
 	{
-		assert(pos <= nBytes + 2);
-		return pos == nBytes + 2;
+		return begin == end;
 	}
 
-	DWORD operator+=(DWORD amount)
-	{
-		assert(pos + amount <= nBytes + 2);
-		pos += amount;
-		return pos;
-	}
-	DWORD operator-=(DWORD amount)
-	{
-		assert(pos - amount >= 2);
-		pos -= amount;
-		return pos;
-	}
-public:
-	DWORD pos;
+protected:
+	const char* begin, *end;
 	char* data;
-	const DWORD nBytes;
+	const UINT capacity;
 };
 
 class MsgStreamWriter : public MsgStream
 {
 public:
-	//nBytes not including MSG_OFFSET
-	MsgStreamWriter(char type, char msg, DWORD nBytes)
+	//capacity not including MSG_OFFSET
+	MsgStreamWriter(char type, char msg, UINT capacity)
 		:
-		MsgStream(alloc<char>(nBytes + 2), nBytes)
+		MsgStream(alloc<char>(capacity + MSG_OFFSET), capacity)
 	{
 		data[0] = type;
 		data[1] = msg;
 	}
-	MsgStreamWriter(char type, char msg, char* ptr, DWORD nBytes)
+	MsgStreamWriter(char type, char msg, char* ptr, UINT nBytes)
 		:
 		MsgStream(ptr, nBytes)
 	{
 		data[0] = type;
 		data[1] = msg;
 	}
-
 	MsgStreamWriter(MsgStreamWriter&& stream)
 		:
 		MsgStream(std::move(stream))
 	{}
 
-	~MsgStreamWriter()
+	operator const char*()
 	{
-		dealloc(data);
+		return begin;
 	}
 
-	operator char*()
+	template<typename T> class Helper
 	{
-		return data;
-	}
-
-	template<typename T> struct Helper
-	{
+	public:
+		Helper(MsgStreamWriter& stream)
+			:
+			stream(stream)
+		{}
 		void Write(const T& t)
 		{
-			*(T*)(data + pos) = t;
-			pos += sizeof(T);
-			assert(pos <= nBytes + 2);
+			*(T*)(stream.data) = t;
+			stream.data += sizeof(T);
+			assert(stream.begin <= stream.end);
 		}
-		void Write(T* t, DWORD count)
+		void Write(T* t, UINT count)
 		{
-			const DWORD nBytes = count * sizeof(T);
-			memcpy(data + pos, t, nBytes);
-			pos += nBytes;
-			assert(pos <= this->nBytes + 2);
+			const UINT nBytes = count * sizeof(T);
+			memcpy(stream.data, t, nBytes);
+			stream.data += nBytes;
+			assert(stream.begin <= stream.end);
 		}
 		void WriteEnd(T* t)
 		{
-			const DWORD nBytes = (this->nBytes + 2) - pos;
-			memcpy(data + pos, t, nBytes);
-			pos += nBytes;
-			assert(pos <= this->nBytes + 2);
+			const UINT nBytes = (stream.end + MSG_OFFSET) - stream.data;
+			memcpy(stream.data, t, nBytes);
+			stream.data += nBytes;
 		}
 
 		MsgStreamWriter& operator<<(const T& t)
 		{
 			Write(t);
-			return *this;
+			return stream;
 		}
+	private:
+		MsgStreamWriter& stream;
 	};
 
 	template<typename T> void Write(const T& t)
 	{
-		Helper<T>().Write(t);
+		Helper<T>(*this).Write(t);
 	}
-	template<typename T> void Write(T* t, DWORD count)
+	template<typename T> void Write(T* t, UINT count)
 	{
-		Helper<T>().Write(t, count);
+		Helper<T>(*this).Write(t, count);
 	}
 	template<typename T> void WriteEnd(T* t)
 	{
-		Helper<T>().WriteEnd(t);
+		Helper<T>(*this).WriteEnd(t);
 	}
 	template<typename T> MsgStreamWriter& operator<<(const T& t)
 	{
@@ -171,74 +166,89 @@ template<> void MsgStreamWriter::Helper<std::wstring>::Write(const std::wstring&
 class MsgStreamReader : public MsgStream
 {
 public:
-	//nBytes not including MSG_OFFSET
-	MsgStreamReader(char* data, DWORD nBytes)
+	MsgStreamReader(char* data, UINT capacity)
 		:
-		MsgStream(data, nBytes)
+		MsgStream(data, capacity)
 	{}
 	MsgStreamReader(MsgStreamWriter&& stream)
 		:
 		MsgStream(std::move(stream))
 	{}
 
-	operator char*()
+	operator const char*()
 	{
-		return data;
+		return begin;
 	}
 
 	template<typename T> struct Helper
 	{
-		T& Read()
+		Helper(MsgStreamReader& stream)
+			:
+			stream(stream)
+		{}
+
+		T Read()
 		{
-			T& t = *(T*)(data + pos);
-			pos += sizeof(T);
-			assert(pos <= nBytes + 2);
+			T t = *(T*)(stream.data);
+			stream.data += sizeof(T);
+			assert(begin <= end);
 
 			return t;
 		}
-		T* Read(DWORD count)
+		void Read(T& t)
 		{
-			const DWORD nBytes = count * sizeof(T);
-			T* t = (T*)(data + pos);
-			pos += nBytes;
-			assert(pos <= this->nBytes + 2);
+			t = *(T*)(stream.data);
+			stream.data += sizeof(T);
+			assert(stream.begin <= stream.end);
+		}
+		T* Read(UINT count)
+		{
+			const UINT nBytes = count * sizeof(T);
+			T* t = (T*)(stream.data);
+			stream.data += nBytes;
+			assert(stream.begin <= stream.end);
 
 			return t;
 		}
 		T* ReadEnd()
 		{
-			const DWORD nBytes = (this->nBytes + 2) - pos;
-			T* t = (T*)(data + pos);
-			pos += nBytes;
-			assert(pos <= this->nBytes + 2);
+			const UINT nBytes = (stream.end + MSG_OFFSET) - stream.data;
+			T* t = (T*)(stream.data);
+			stream.data += nBytes;
 
 			return t;
 		}
 
 		MsgStreamReader& operator>>(T& dest)
 		{
-			dest = Read<T>();
-			return *this;
+			Read<T>(dest);
+			return stream;
 		}
+	private:
+		MsgStreamReader& stream;
 	};
 
-	template<typename T> T& Read()
+	template<typename T> T Read()
 	{
-		return Helper<T>().Read();
+		return Helper<T>(*this).Read();
 	}
-	template<typename T> T* Read(DWORD count)
+	template<typename T> void Read(T& t)
 	{
-		return Helper<T>().Read(count);
+		Helper<T>(*this).Read(t);
+	}
+	template<typename T> T* Read(UINT count)
+	{
+		return Helper<T>(*this).Read(count);
 	}
 	template<typename T> T* ReadEnd()
 	{
-		return Helper<T>().ReadEnd();
+		return Helper<T>(*this).ReadEnd();
 	}
 	template<typename T> MsgStreamReader& operator>>(T& dest)
 	{
-		return Helper<T>().operator>>(dest);
+		return Helper<T>(*this).operator>>(dest);
 	}
 };
 
-template<> std::string& MsgStreamReader::Helper<std::string>::Read();
-template<> std::wstring& MsgStreamReader::Helper<std::wstring>::Read();
+template<> void MsgStreamReader::Helper<std::string>::Read(std::string& t);
+template<> void MsgStreamReader::Helper<std::wstring>::Read(std::wstring& t);
