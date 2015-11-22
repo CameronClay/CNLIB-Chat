@@ -15,9 +15,9 @@ void MsgStreamWriter::Helper<std::wstring>::Write(const std::wstring& t)
 
 std::string& MsgStreamReader::Helper<std::string>::Read()
 {
-	return ((Helper<const char>*)this)->Read(((Helper<UINT>*)this)->Read());
+	return ((Helper<char>*)this)->Read(((Helper<UINT>*)this)->Read());
 }
 std::wstring& MsgStreamReader::Helper<std::wstring>::Read()
 {
-	return ((Helper<const wchar_t>*)this)->Read(((Helper<UINT>*)this)->Read());
+	return ((Helper<wchar_t>*)this)->Read(((Helper<UINT>*)this)->Read());
 }
