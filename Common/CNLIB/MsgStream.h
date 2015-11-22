@@ -2,6 +2,7 @@
 
 #pragma once
 #include <assert.h>
+#include <string>
 #include "HeapAlloc.h"
 
 class MsgStream
@@ -118,47 +119,39 @@ public:
 		return data;
 	}
 
-	template<typename T> void Write(const T& t)
+	template<typename T> struct Helper
 	{
-		*(T*)(data + pos) = t;
-		pos += sizeof(T);
-		assert(pos <= nBytes + 2);
-	}
-	//template<typename T> void Write(const std::string& t)
-	//{
-	//	const DWORD len = (t.size() + 1) * sizeof(char);
-	//	memcpy(data + pos, t.c_str(), len);
-	//	pos += len;
-	//	assert(pos <= this->nBytes + 2);
-	//}
-	//template<typename T> void Write(const std::wstring& t)
-	//{
-	//	const DWORD len = (t.size() + 1) * sizeof(wchar_t);
-	//	memcpy(data + pos, t.c_str(), len);
-	//	pos += len;
-	//	assert(pos <= this->nBytes + 2);
-	//}
-	template<typename T> void Write(T* t, DWORD count)
-	{
-		const DWORD nBytes = count * sizeof(T);
-		memcpy(data + pos, t, nBytes);
-		pos += nBytes;
-		assert(pos <= this->nBytes + 2);
-	}
-	template<typename T> void WriteEnd(T* t)
-	{
-		const DWORD nBytes = (this->nBytes + 2) - pos;
-		memcpy(data + pos, t, nBytes);
-		pos += nBytes;
-		assert(pos <= this->nBytes + 2);
-	}
+		void Write(const T& t)
+		{
+			*(T*)(data + pos) = t;
+			pos += sizeof(T);
+			assert(pos <= nBytes + 2);
+		}
+		void Write(T* t, DWORD count)
+		{
+			const DWORD nBytes = count * sizeof(T);
+			memcpy(data + pos, t, nBytes);
+			pos += nBytes;
+			assert(pos <= this->nBytes + 2);
+		}
+		void WriteEnd(T* t)
+		{
+			const DWORD nBytes = (this->nBytes + 2) - pos;
+			memcpy(data + pos, t, nBytes);
+			pos += nBytes;
+			assert(pos <= this->nBytes + 2);
+		}
 
-	template<typename T> MsgStreamWriter& operator<<(const T& t)
-	{
-		Write(t);
-		return *this;
-	}
+		MsgStreamWriter& operator<<(const T& t)
+		{
+			Write(t);
+			return *this;
+		}
+	};
 };
+
+void MsgStreamWriter::Helper<std::string>::Write(const std::string& t);
+void MsgStreamWriter::Helper<std::wstring>::Write(const std::wstring& t);
 
 class MsgStreamReader : public MsgStream
 {
@@ -179,36 +172,42 @@ public:
 		return data;
 	}
 
-	template<typename T> T& Read()
+	template<typename T> struct Helper
 	{
-		T& t = *(T*)(data + pos);
-		pos += sizeof(T);
-		assert(pos <= nBytes + 2);
+		T& Read()
+		{
+			T& t = *(T*)(data + pos);
+			pos += sizeof(T);
+			assert(pos <= nBytes + 2);
 
-		return t;
-	}
-	template<typename T> T* Read(DWORD count)
-	{
-		const DWORD nBytes = count * sizeof(T);
-		T* t = (T*)(data + pos);
-		pos += nBytes;
-		assert(pos <= this->nBytes + 2);
+			return t;
+		}
+		T* Read(DWORD count)
+		{
+			const DWORD nBytes = count * sizeof(T);
+			T* t = (T*)(data + pos);
+			pos += nBytes;
+			assert(pos <= this->nBytes + 2);
 
-		return t;
-	}
-	template<typename T> T* ReadEnd()
-	{
-		const DWORD nBytes = (this->nBytes + 2) - pos;
-		T* t = (T*)(data + pos);
-		pos += nBytes;
-		assert(pos <= this->nBytes + 2);
+			return t;
+		}
+		T* ReadEnd()
+		{
+			const DWORD nBytes = (this->nBytes + 2) - pos;
+			T* t = (T*)(data + pos);
+			pos += nBytes;
+			assert(pos <= this->nBytes + 2);
 
-		return t;
-	}
+			return t;
+		}
 
-	template<typename T> MsgStreamReader& operator>>(T& dest)
-	{
-		dest = Read<T>();
-		return *this;
-	}
+		MsgStreamReader& operator>>(T& dest)
+		{
+			dest = Read<T>();
+			return *this;
+		}
+	};
 };
+
+std::string& MsgStreamReader::Helper<std::string>::Read();
+std::wstring& MsgStreamReader::Helper<std::wstring>::Read();

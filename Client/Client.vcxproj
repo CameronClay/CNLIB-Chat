@@ -155,6 +155,7 @@
     <ClCompile Include="..\Common\Palette.cpp" />
     <ClCompile Include="..\Common\WhiteboardClientData.cpp" />
     <ClCompile Include="..\Common\WinFirewall.cpp" />
+    <ClCompile Include="..\TCPCS\DLLSRC\MsgStream.cpp" />
     <ClCompile Include="FileTransfer.cpp" />
     <ClCompile Include="Options.cpp" />
     <ClCompile Include="Whiteboard.cpp" />
