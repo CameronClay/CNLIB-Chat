@@ -15,7 +15,6 @@ public:
 		data(data),
 		nBytes(nBytes)
 	{}
-
 	MsgStream(MsgStream&& stream)
 		:
 		pos(stream.pos),
@@ -78,7 +77,7 @@ public:
 		pos -= amount;
 		return pos;
 	}
-protected:
+public:
 	DWORD pos;
 	char* data;
 	const DWORD nBytes;
@@ -95,7 +94,6 @@ public:
 		data[0] = type;
 		data[1] = msg;
 	}
-
 	MsgStreamWriter(char type, char msg, char* ptr, DWORD nBytes)
 		:
 		MsgStream(ptr, nBytes)
@@ -148,10 +146,27 @@ public:
 			return *this;
 		}
 	};
+
+	template<typename T> void Write(const T& t)
+	{
+		Helper<T>().Write(t);
+	}
+	template<typename T> void Write(T* t, DWORD count)
+	{
+		Helper<T>().Write(t, count);
+	}
+	template<typename T> void WriteEnd(T* t)
+	{
+		Helper<T>().WriteEnd(t);
+	}
+	template<typename T> MsgStreamWriter& operator<<(const T& t)
+	{
+		return Helper<T>().operator<<(t);
+	}
 };
 
-void MsgStreamWriter::Helper<std::string>::Write(const std::string& t);
-void MsgStreamWriter::Helper<std::wstring>::Write(const std::wstring& t);
+template<> void MsgStreamWriter::Helper<std::string>::Write(const std::string& t);
+template<> void MsgStreamWriter::Helper<std::wstring>::Write(const std::wstring& t);
 
 class MsgStreamReader : public MsgStream
 {
@@ -161,7 +176,6 @@ public:
 		:
 		MsgStream(data, nBytes)
 	{}
-
 	MsgStreamReader(MsgStreamWriter&& stream)
 		:
 		MsgStream(std::move(stream))
@@ -207,7 +221,24 @@ public:
 			return *this;
 		}
 	};
+
+	template<typename T> T& Read()
+	{
+		return Helper<T>().Read();
+	}
+	template<typename T> T* Read(DWORD count)
+	{
+		return Helper<T>().Read(count);
+	}
+	template<typename T> T* ReadEnd()
+	{
+		return Helper<T>().ReadEnd();
+	}
+	template<typename T> MsgStreamReader& operator>>(T& dest)
+	{
+		return Helper<T>().operator>>(dest);
+	}
 };
 
-std::string& MsgStreamReader::Helper<std::string>::Read();
-std::wstring& MsgStreamReader::Helper<std::wstring>::Read();
+template<> std::string& MsgStreamReader::Helper<std::string>::Read();
+template<> std::wstring& MsgStreamReader::Helper<std::wstring>::Read();
