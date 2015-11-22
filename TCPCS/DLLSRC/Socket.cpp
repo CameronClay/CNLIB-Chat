@@ -86,18 +86,20 @@ Socket::operator HANDLE&()
 
 bool Socket::Bind(const LIB_TCHAR* port)
 {
-	ADDRINFOT info = { AI_PASSIVE, AF_INET, SOCK_STREAM, IPPROTO_TCP };
+	ADDRINFOT info = { AI_PASSIVE, AF_UNSPEC, SOCK_STREAM, IPPROTO_TCP };
 	ADDRINFOT* addr = 0;
 	GetAddrInfo(NULL, port, &info, &addr);
 
-	bool result = false;
-	pc = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
-	if (pc != INVALID_SOCKET)
+	bool result = true;
+	for (ADDRINFOT* tempPtr = addr; tempPtr->ai_next != nullptr; tempPtr = tempPtr->ai_next)
 	{
-		if (bind(pc, addr->ai_addr, addr->ai_addrlen) == 0)
+		ADDRINFOT& temp = *tempPtr;
+		if ((temp.ai_family == AF_INET) || (temp.ai_family == AF_INET6))
 		{
-			if (listen(pc, SOMAXCONN) == 0)
-				result = true;
+			pc = socket(temp.ai_family, temp.ai_socktype, temp.ai_protocol);
+			if (result &= (pc != INVALID_SOCKET))
+				if (result &= (bind(pc, temp.ai_addr, temp.ai_addrlen) == 0))
+					result &= (listen(pc, SOMAXCONN) == 0);					
 		}
 	}
 
@@ -180,7 +182,7 @@ long Socket::ReadData(void* dest, DWORD nBytes)
 	long received = 0, temp = SOCKET_ERROR;
 	do
 	{
-		received += temp = recv(pc, &(((char*)dest)[received]), nBytes - received, 0);
+		received += temp = recv(pc, ((char*)dest) + received, nBytes - received, 0);
 		if ((temp == 0) || (temp == SOCKET_ERROR))
 			return temp;
 	} while (received != nBytes);
@@ -193,7 +195,7 @@ long Socket::SendData(const void* data, DWORD nBytes)
 	long sent = 0, temp = SOCKET_ERROR;
 	do
 	{
-		sent += temp = send(pc, &(((char*)data)[sent]), nBytes - sent, 0);
+		sent += temp = send(pc, ((char*)data) + sent, nBytes - sent, 0);
 		if (temp == SOCKET_ERROR)
 			return temp;
 	} while(sent != nBytes);
@@ -201,16 +203,18 @@ long Socket::SendData(const void* data, DWORD nBytes)
 }
 
 
-void Socket::ToIp(LIB_TCHAR* ipaddr) const
+bool Socket::ToIp(LIB_TCHAR* ipaddr) const
 {
 	sockaddr_in saddr = {};
 	int len = sizeof(saddr);
-	getpeername(pc, (sockaddr*)&saddr, &len);
+	bool res = (getpeername(pc, (sockaddr*)&saddr, &len) != SOCKET_ERROR);
 #if NTDDI_VERSION >= NTDDI_VISTA
 	InetNtop(saddr.sin_family, &saddr.sin_addr, ipaddr, INET_ADDRSTRLEN);
 #else
 	Inet_ntot(saddr.sin_addr, ipaddr);
 #endif
+
+	return res;
 }
 
 bool Socket::IsConnected() const
@@ -219,45 +223,43 @@ bool Socket::IsConnected() const
 }
 
 
-void Socket::GetLocalIP(LIB_TCHAR* dest)
+bool Socket::GetLocalIP(LIB_TCHAR* dest, DWORD buffSize, bool ipv6)
 {
-	LIB_TCHAR buffer[255] = {};
-	ADDRINFOT info = { 0, AF_INET }, *pa = nullptr;
-	GetHostName(buffer, 255);
-	GetAddrInfo(buffer, NULL, &info, &pa);
+	LIB_TCHAR buffer[128] = {};
+	ADDRINFOT info = { 0, ipv6 ? AF_INET6 : AF_INET }, *pa = nullptr;
+	GetHostName(buffer, 128);
+	bool res = (GetAddrInfo(buffer, NULL, &info, &pa) == 0);
 
-#if NTDDI_VERSION >= NTDDI_VISTA
-	RtlIpv4AddressToString(&((sockaddr_in*)pa->ai_addr)->sin_addr, dest);
-#else
-	DWORD buffSize = INET_ADDRSTRLEN;
-	WSAAddressToString(pa->ai_addr, pa->ai_addrlen, NULL, dest, &buffSize);
-#endif
+	if (res)
+		res &= WSAAddressToString(pa->ai_addr, pa->ai_addrlen, NULL, dest, &buffSize);
 
 	FreeAddrInfo(pa);
+
+	return  res;
 }
 
-void Socket::HostNameToIP(const LIB_TCHAR* host, LIB_TCHAR* dest, UINT buffSize)
+bool Socket::HostNameToIP(const LIB_TCHAR* host, LIB_TCHAR* dest, DWORD buffSize, bool ipv6)
 {
-	ADDRINFOT info = { 0, AF_INET }, *p = nullptr;
-	GetAddrInfo(host, NULL, &info, &p);
+	ADDRINFOT info = { 0, ipv6 ? AF_INET6 : AF_INET }, *pa = nullptr;
+	bool res = (GetAddrInfo(host, NULL, &info, &pa) == 0);
 
-#if NTDDI_VERSION >= NTDDI_VISTA
-	InetNtop(p->ai_family, p->ai_addr, dest, buffSize);
-#else
-	Inet_ntot(((sockaddr_in*)p->ai_addr)->sin_addr, dest);
-#endif
-	FreeAddrInfo(p);
+	if (res)
+		res &= WSAAddressToString(pa->ai_addr, pa->ai_addrlen, NULL, dest, &buffSize);
+
+	FreeAddrInfo(pa);
+
+	return res;
 }
 
-void Socket::SetBlocking()
+bool Socket::SetBlocking()
 {
 	u_long nbio = 0;
-	ioctlsocket(pc, FIONBIO, &nbio);
+	return (ioctlsocket(pc, FIONBIO, &nbio) != SOCKET_ERROR);
 }
 
-void Socket::SetNonBlocking()
+bool Socket::SetNonBlocking()
 {
 	u_long nbio = 1;
-	ioctlsocket(pc, FIONBIO, &nbio);
+	return (ioctlsocket(pc, FIONBIO, &nbio) != SOCKET_ERROR);
 }
 

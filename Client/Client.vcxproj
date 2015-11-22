@@ -153,9 +153,9 @@
   <ItemGroup>
     <ClCompile Include="..\Common\Mouse.cpp" />
     <ClCompile Include="..\Common\Palette.cpp" />
-    <ClCompile Include="..\Common\Timer.cpp" />
     <ClCompile Include="..\Common\WhiteboardClientData.cpp" />
     <ClCompile Include="..\Common\WinFirewall.cpp" />
+    <ClCompile Include="..\TCPCS\DLLSRC\MsgStream.cpp" />
     <ClCompile Include="FileTransfer.cpp" />
     <ClCompile Include="Options.cpp" />
     <ClCompile Include="Whiteboard.cpp" />
@@ -177,7 +177,6 @@
     <ClInclude Include="..\Common\Format.h" />
     <ClInclude Include="..\Common\Mouse.h" />
     <ClInclude Include="..\Common\Palette.h" />
-    <ClInclude Include="..\Common\Timer.h" />
     <ClInclude Include="..\Common\Vec2.h" />
     <ClInclude Include="..\Common\WhiteboardClientData.h" />
     <ClInclude Include="FileTransfer.h" />

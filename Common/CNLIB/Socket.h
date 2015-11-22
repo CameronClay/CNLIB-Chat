@@ -13,6 +13,20 @@
 CAMSNETLIB int InitializeNetworking();
 CAMSNETLIB int CleanupNetworking();
 
+//class CAMSNETLIB Socket
+//{
+//public:
+//	void SetBlocking();
+//	void SetNonBlocking();
+//
+//	void Disconnect();
+//
+//	bool IsConnected() const;
+//
+//	static void GetLocalIP(LIB_TCHAR* dest);
+//	static void HostNameToIP(const LIB_TCHAR* host, LIB_TCHAR* dest, UINT buffSize);
+//};
+
 class CAMSNETLIB Socket
 {
 public:
@@ -49,15 +63,15 @@ public:
 	long ReadData(void* dest, DWORD nBytes);
 	long SendData(const void* data, DWORD nBytes);
 
-	void ToIp(LIB_TCHAR* ipaddr) const;
+	bool ToIp(LIB_TCHAR* ipaddr) const;
 	bool IsConnected() const;
 
-	void SetBlocking();
-	void SetNonBlocking();
+	bool SetBlocking();
+	bool SetNonBlocking();
 
 	//dest size needs to be at least 16
-	static void GetLocalIP(LIB_TCHAR* dest);
-	static void HostNameToIP(const LIB_TCHAR* host, LIB_TCHAR* dest, UINT buffSize);
+	static bool GetLocalIP(LIB_TCHAR* dest, DWORD buffSize, bool ipv6);
+	static bool HostNameToIP(const LIB_TCHAR* host, LIB_TCHAR* dest, DWORD buffSize, bool ipv6);
 
 private:
 	SOCKET pc;

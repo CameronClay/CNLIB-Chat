@@ -1,6 +1,5 @@
 #pragma once
 #include "CNLIB\TCPClientInterface.h"
-#include "Timer.h"
 #include "ColorDef.h"
 #include "Palette.h"
 #include "WhiteboardClientData.h"
