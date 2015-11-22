@@ -82,14 +82,14 @@ class MsgStreamWriter : public MsgStream
 {
 public:
 	//capacity not including MSG_OFFSET
-	MsgStreamWriter(char type, char msg, DWORD capacity)
+	MsgStreamWriter(char type, char msg, UINT capacity)
 		:
 		MsgStream(alloc<char>(capacity + MSG_OFFSET), capacity)
 	{
 		data[0] = type;
 		data[1] = msg;
 	}
-	MsgStreamWriter(char type, char msg, char* ptr, DWORD nBytes)
+	MsgStreamWriter(char type, char msg, char* ptr, UINT nBytes)
 		:
 		MsgStream(ptr, nBytes)
 	{
@@ -119,16 +119,16 @@ public:
 			stream.data += sizeof(T);
 			assert(stream.begin <= stream.end);
 		}
-		void Write(T* t, DWORD count)
+		void Write(T* t, UINT count)
 		{
-			const DWORD nBytes = count * sizeof(T);
+			const UINT nBytes = count * sizeof(T);
 			memcpy(stream.data, t, nBytes);
 			stream.data += nBytes;
 			assert(stream.begin <= stream.end);
 		}
 		void WriteEnd(T* t)
 		{
-			const DWORD nBytes = (stream.end + MSG_OFFSET) - stream.data;
+			const UINT nBytes = (stream.end + MSG_OFFSET) - stream.data;
 			memcpy(stream.data, t, nBytes);
 			stream.data += nBytes;
 		}
@@ -146,7 +146,7 @@ public:
 	{
 		Helper<T>(*this).Write(t);
 	}
-	template<typename T> void Write(T* t, DWORD count)
+	template<typename T> void Write(T* t, UINT count)
 	{
 		Helper<T>(*this).Write(t, count);
 	}
@@ -166,7 +166,7 @@ template<> void MsgStreamWriter::Helper<std::wstring>::Write(const std::wstring&
 class MsgStreamReader : public MsgStream
 {
 public:
-	MsgStreamReader(char* data, DWORD capacity)
+	MsgStreamReader(char* data, UINT capacity)
 		:
 		MsgStream(data, capacity)
 	{}
@@ -201,9 +201,9 @@ public:
 			stream.data += sizeof(T);
 			assert(stream.begin <= stream.end);
 		}
-		T* Read(DWORD count)
+		T* Read(UINT count)
 		{
-			const DWORD nBytes = count * sizeof(T);
+			const UINT nBytes = count * sizeof(T);
 			T* t = (T*)(stream.data);
 			stream.data += nBytes;
 			assert(stream.begin <= stream.end);
@@ -212,7 +212,7 @@ public:
 		}
 		T* ReadEnd()
 		{
-			const DWORD nBytes = (stream.end + MSG_OFFSET) - stream.data;
+			const UINT nBytes = (stream.end + MSG_OFFSET) - stream.data;
 			T* t = (T*)(stream.data);
 			stream.data += nBytes;
 
@@ -236,7 +236,7 @@ public:
 	{
 		Helper<T>(*this).Read(t);
 	}
-	template<typename T> T* Read(DWORD count)
+	template<typename T> T* Read(UINT count)
 	{
 		return Helper<T>(*this).Read(count);
 	}
