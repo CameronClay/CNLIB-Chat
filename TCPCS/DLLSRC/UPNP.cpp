@@ -78,7 +78,7 @@ bool MapPort(USHORT port, const LIB_TCHAR* protocal, const LIB_TCHAR* name)
 	if (upnp.Initialize())
 	{
 		LIB_TCHAR IP[16] = {};
-		Socket::GetLocalIP(IP);
+		Socket::GetLocalIP(IP, 16, false);
 		if (upnp.PortMapExists(port, protocal))
 			result = upnp.RemovePortMap(port, protocal);
 

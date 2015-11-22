@@ -4,7 +4,6 @@
 #include "ColorDef.h"
 #include "WhiteboardClientData.h"
 #include "Palette.h"
-#include "Timer.h"
 #include "Vec2.h"
 
 class Whiteboard
