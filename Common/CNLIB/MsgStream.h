@@ -2,8 +2,9 @@
 
 #pragma once
 #include <assert.h>
-#include <string>
 #include "HeapAlloc.h"
+#include <string>
+#include <vector>
 
 #define MSG_OFFSET 2
 
@@ -56,7 +57,7 @@ public:
 		return capacity;
 	}
 
-	template<typename T> T& operator[](UINT index) const
+	template<typename T> T operator[](UINT index) const
 	{
 		assert(index <= capactiy - 2);
 		return begin[index + 2];
@@ -106,6 +107,28 @@ public:
 		return begin;
 	}
 
+	template<typename T> void Write(const T& t)
+	{
+		Helper<T>(*this).Write(t);
+	}
+	template<typename T> void Write(T* t, UINT count)
+	{
+		Helper<T>(*this).Write(t, count);
+	}
+	template<typename T> void WriteEnd(T* t)
+	{
+		Helper<T>(*this).WriteEnd(t);
+	}
+	template<typename T> MsgStreamWriter& operator<<(const T& t)
+	{
+		return Helper<T>().operator<<(t);
+	}
+
+	template<typename T> UINT SizeType(const T& t) const
+	{
+		return Helper<T>(*this).Value(t);
+	}
+private:
 	template<typename T> class Helper
 	{
 	public:
@@ -113,6 +136,7 @@ public:
 			:
 			stream(stream)
 		{}
+
 		void Write(const T& t)
 		{
 			*(T*)(stream.data) = t;
@@ -133,6 +157,19 @@ public:
 			stream.data += nBytes;
 		}
 
+		UINT SizeType(T* t, UINT count) const
+		{
+			UINT size = 0;
+			for (UINT i = 0; i < count; i++)
+				size += stream.SizeType(t[i]);
+
+			return size;
+		}
+		UINT SizeType(const T& t) const
+		{
+			return sizeof(T);
+		}
+
 		MsgStreamWriter& operator<<(const T& t)
 		{
 			Write(t);
@@ -141,27 +178,7 @@ public:
 	private:
 		MsgStreamWriter& stream;
 	};
-
-	template<typename T> void Write(const T& t)
-	{
-		Helper<T>(*this).Write(t);
-	}
-	template<typename T> void Write(T* t, UINT count)
-	{
-		Helper<T>(*this).Write(t, count);
-	}
-	template<typename T> void WriteEnd(T* t)
-	{
-		Helper<T>(*this).WriteEnd(t);
-	}
-	template<typename T> MsgStreamWriter& operator<<(const T& t)
-	{
-		return Helper<T>().operator<<(t);
-	}
 };
-
-template<> void MsgStreamWriter::Helper<std::string>::Write(const std::string& t);
-template<> void MsgStreamWriter::Helper<std::wstring>::Write(const std::wstring& t);
 
 class MsgStreamReader : public MsgStream
 {
@@ -180,8 +197,30 @@ public:
 		return begin;
 	}
 
-	template<typename T> struct Helper
+	template<typename T> T Read()
 	{
+		return Helper<T>(*this).Read();
+	}
+	template<typename T> void Read(T& t)
+	{
+		Helper<T>(*this).Read(t);
+	}
+	template<typename T> T* Read(UINT count)
+	{
+		return Helper<T>(*this).Read(count);
+	}
+	template<typename T> T* ReadEnd()
+	{
+		return Helper<T>(*this).ReadEnd();
+	}
+	template<typename T> MsgStreamReader& operator>>(T& dest)
+	{
+		return Helper<T>(*this).operator>>(dest);
+	}
+private:
+	template<typename T> class Helper
+	{
+	public:
 		Helper(MsgStreamReader& stream)
 			:
 			stream(stream)
@@ -227,28 +266,17 @@ public:
 	private:
 		MsgStreamReader& stream;
 	};
-
-	template<typename T> T Read()
-	{
-		return Helper<T>(*this).Read();
-	}
-	template<typename T> void Read(T& t)
-	{
-		Helper<T>(*this).Read(t);
-	}
-	template<typename T> T* Read(UINT count)
-	{
-		return Helper<T>(*this).Read(count);
-	}
-	template<typename T> T* ReadEnd()
-	{
-		return Helper<T>(*this).ReadEnd();
-	}
-	template<typename T> MsgStreamReader& operator>>(T& dest)
-	{
-		return Helper<T>(*this).operator>>(dest);
-	}
 };
+
+//template<typename T> void MsgStreamWriter::Helper<std::vector<T>>::Write(const std::vector<T>& t);
+//template<typename T> UINT MsgStreamWriter::Helper<std::vector<T>>::SizeType(const std::vector<T>& t) const;
+
+template<> void MsgStreamWriter::Helper<std::string>::Write(const std::string& t);
+template<> UINT MsgStreamWriter::Helper<std::string>::SizeType(const std::string& t) const;
+
+template<> void MsgStreamWriter::Helper<std::wstring>::Write(const std::wstring& t);
+template<> UINT MsgStreamWriter::Helper<std::wstring>::SizeType(const std::wstring& t) const;
+
 
 template<> void MsgStreamReader::Helper<std::string>::Read(std::string& t);
 template<> void MsgStreamReader::Helper<std::wstring>::Read(std::wstring& t);
