@@ -491,6 +491,9 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 	//streamWriter.SizeType<std::basic_string<char>>();
 	streamWriter.Write(temp);
 	streamReader.Read<std::basic_string<char>>();
+	streamWriter.Write<std::map<int, char>>(std::map<int, char>());
+	streamWriter.Write<std::vector<float>>(std::vector<float>());
+	//End test
 
 	switch (type)
 	{
