@@ -111,30 +111,64 @@ public:
 	{
 		Helper<T>(*this).Write(t);
 	}
-	template<typename T> void Write(T* t, UINT count)
+	template<typename T> MsgStreamWriter& operator<<(const T& t)
+	{
+		return Helper<T>(*this).operator<<(t);
+	}
+
+	template<typename T, typename std::enable_if<std::numeric_limits<T>::is_integer>::type* = 0>
+	void Write(T* t, UINT count)
 	{
 		Helper<T>(*this).Write(t, count);
 	}
-	template<typename T> void WriteEnd(T* t)
+	template<typename T, typename std::enable_if<std::numeric_limits<T>::is_integer>::type* = 0>
+	void WriteEnd(T* t)
 	{
 		Helper<T>(*this).WriteEnd(t);
 	}
-	template<typename T> MsgStreamWriter& operator<<(const T& t)
-	{
-		return Helper<T>().operator<<(t);
-	}
 
-	template<typename T> UINT SizeType(const T& t) const
+	template<typename T, typename std::enable_if<std::numeric_limits<T>::is_integer>::type* = 0>
+	static UINT SizeType()
 	{
-		return Helper<T>(*this).Value(t);
+		return SizeHelper<T>::SizeType();
+	}
+	template<typename T, typename std::enable_if<!std::numeric_limits<T>::is_integer>::type* = 0>
+	static UINT SizeType(const T& t)
+	{
+		return SizeHelper<T>::SizeType(t);
 	}
 private:
-	template<typename T> class Helper
+	template<typename T> struct SizeHelper
+	{
+		static UINT SizeType()
+		{
+			return sizeof(T);
+		}
+	};
+
+	template<typename T> class HelpBase
+	{
+	public:
+		HelpBase(MsgStreamWriter& stream)
+			:
+			stream(stream)
+		{}
+
+		MsgStreamWriter& operator<<(const T& t)
+		{
+			stream.Write<T>(t);
+			return stream;
+		}
+	protected:
+		MsgStreamWriter& stream;
+	};
+
+	template<typename T> class Helper : public HelpBase<T>
 	{
 	public:
 		Helper(MsgStreamWriter& stream)
 			:
-			stream(stream)
+			HelpBase(stream)
 		{}
 
 		void Write(const T& t)
@@ -156,27 +190,6 @@ private:
 			memcpy(stream.data, t, nBytes);
 			stream.data += nBytes;
 		}
-
-		UINT SizeType(T* t, UINT count) const
-		{
-			UINT size = 0;
-			for (UINT i = 0; i < count; i++)
-				size += stream.SizeType(t[i]);
-
-			return size;
-		}
-		UINT SizeType(const T& t) const
-		{
-			return sizeof(T);
-		}
-
-		MsgStreamWriter& operator<<(const T& t)
-		{
-			Write(t);
-			return stream;
-		}
-	private:
-		MsgStreamWriter& stream;
 	};
 };
 
@@ -197,7 +210,7 @@ public:
 		return begin;
 	}
 
-	template<typename T> T Read()
+	template<typename T> T&& Read()
 	{
 		return Helper<T>(*this).Read();
 	}
@@ -218,27 +231,43 @@ public:
 		return Helper<T>(*this).operator>>(dest);
 	}
 private:
-	template<typename T> class Helper
+	template<typename T> class Helper;
+	template<typename T> class HelpBase
 	{
 	public:
-		Helper(MsgStreamReader& stream)
+		HelpBase(MsgStreamReader& stream)
 			:
 			stream(stream)
 		{}
 
-		T Read()
+		void Read(T& t)
+		{
+			t = std::move(stream.Read<T>());
+		}
+
+		MsgStreamReader& operator>>(T& dest)
+		{
+			Read(dest);
+			return stream;
+		}
+	protected:
+		MsgStreamReader& stream;
+	};
+	template<typename T> class Helper : public HelpBase<T>
+	{
+	public:
+		Helper(MsgStreamReader& stream)
+			:
+			HelpBase(stream)
+		{}
+
+		T&& Read()
 		{
 			T t = *(T*)(stream.data);
 			stream.data += sizeof(T);
 			assert(begin <= end);
 
-			return t;
-		}
-		void Read(T& t)
-		{
-			t = *(T*)(stream.data);
-			stream.data += sizeof(T);
-			assert(stream.begin <= stream.end);
+			return std::move(t);
 		}
 		T* Read(UINT count)
 		{
@@ -257,26 +286,55 @@ private:
 
 			return t;
 		}
-
-		MsgStreamReader& operator>>(T& dest)
-		{
-			Read<T>(dest);
-			return stream;
-		}
-	private:
-		MsgStreamReader& stream;
 	};
 };
 
-//template<typename T> void MsgStreamWriter::Helper<std::vector<T>>::Write(const std::vector<T>& t);
-//template<typename T> UINT MsgStreamWriter::Helper<std::vector<T>>::SizeType(const std::vector<T>& t) const;
-
-template<> void MsgStreamWriter::Helper<std::string>::Write(const std::string& t);
-template<> UINT MsgStreamWriter::Helper<std::string>::SizeType(const std::string& t) const;
-
-template<> void MsgStreamWriter::Helper<std::wstring>::Write(const std::wstring& t);
-template<> UINT MsgStreamWriter::Helper<std::wstring>::SizeType(const std::wstring& t) const;
+typedef MsgStreamWriter StreamWriter;
+typedef MsgStreamReader StreamReader;
 
 
-template<> void MsgStreamReader::Helper<std::string>::Read(std::string& t);
-template<> void MsgStreamReader::Helper<std::wstring>::Read(std::wstring& t);
+template<typename T> 
+class StreamWriter::Helper<std::basic_string<T>> : public StreamWriter::HelpBase<std::basic_string<T>>
+{
+public:
+	Helper(StreamWriter& stream) : HelpBase(stream){}
+	void Write(const std::basic_string<T>& t);
+};
+
+template<typename T> 
+struct StreamWriter::SizeHelper<std::basic_string<T>>
+{
+	static UINT SizeType(const std::basic_string<T>& t);
+};
+
+template<typename T> 
+class StreamReader::Helper<std::basic_string<T>> : public StreamReader::HelpBase<std::basic_string<T>>
+{
+public:
+	Helper(StreamReader& stream) : HelpBase(stream){}
+	std::basic_string<T>&& Read();
+};
+
+
+template<typename T> 
+class StreamWriter::Helper<std::vector<T>> : public StreamWriter::HelpBase<std::vector<T>>
+{
+public:
+	Helper(StreamWriter& stream) : HelpBase(stream){}
+	void Write(const std::vector<T>& t);
+};
+
+template<typename T> 
+class StreamWriter::SizeHelper<std::vector<T>>
+{
+	static UINT SizeType(const std::vector<T>& t);
+};
+
+template<typename T> 
+class StreamReader::Helper<std::vector<T>> : public StreamReader::HelpBase<std::vector<T>>
+{
+public:
+	Helper(StreamReader& stream) : HelpBase(stream){}
+	std::vector<T>&& Read();
+};
+

@@ -522,7 +522,7 @@ void TCPServ::RemoveClient(USHORT& pos)
 	if(!user.empty() && host.IsConnected())//if user wasnt declined authentication
 	{
 		MsgStreamWriter streamWriter(TYPE_CHANGE, MSG_CHANGE_DISCONNECT, (user.size() + 1) * sizeof(LIB_TCHAR));
-		streamWriter.WriteEnd(user.c_str());
+		streamWriter.WriteEnd<wchar_t>((wchar_t*)user.c_str());
 		SendClientData(streamWriter, streamWriter.GetSize(), Socket(), false);
 	}
 }
