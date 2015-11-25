@@ -421,7 +421,7 @@ public:
 };
 
 template<typename T>
-class StreamWriter::SizeHelper<std::list<T>>
+struct StreamWriter::SizeHelper<std::list<T>>
 {
 	static UINT SizeType(const std::list<T>& t)
 	{
@@ -509,7 +509,7 @@ public:
 };
 
 template<typename Key, typename T>
-class StreamWriter::SizeHelper<std::map<Key, T>>
+struct StreamWriter::SizeHelper<std::map<Key, T>>
 {
 	static UINT SizeType(const std::map<Key, T>& t)
 	{
@@ -554,7 +554,7 @@ public:
 };
 
 template<typename Key, typename T>
-class StreamWriter::SizeHelper<std::unordered_map<Key, T>>
+struct StreamWriter::SizeHelper<std::unordered_map<Key, T>>
 {
 	static UINT SizeType(const std::unordered_map<Key, T>& t)
 	{
