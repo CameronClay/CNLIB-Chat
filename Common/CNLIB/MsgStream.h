@@ -19,8 +19,8 @@ public:
 	MsgStream(char* data, UINT capacity)
 		:
 		begin(data),
-		end((char*)begin + capacity),
-		data((char*)begin + MSG_OFFSET),
+		end(data + capacity + MSG_OFFSET),
+		data(data + MSG_OFFSET),
 		capacity(capacity)
 	{}
 	MsgStream(MsgStream&& stream)
@@ -32,19 +32,19 @@ public:
 	{
 		ZeroMemory(&stream, sizeof(MsgStream));
 	}
-
+/*
 	~MsgStream()
 	{
 		dealloc((char*&)begin);
 	}
-
+*/
 	char GetType() const
 	{
-		return data[0];
+		return data[-2];
 	}
 	char GetMsg() const
 	{
-		return data[1];
+		return data[-1];
 	}
 
 	UINT GetSize() const
@@ -64,7 +64,7 @@ public:
 
 	template<typename T> T operator[](UINT index) const
 	{
-		assert(index <= capactiy - 2);
+		assert(index <= capacity - 2);
 		return begin[index + 2];
 	}
 
@@ -92,20 +92,25 @@ public:
 		:
 		MsgStream(alloc<char>(capacity + MSG_OFFSET), capacity)
 	{
-		data[0] = type;
-		data[1] = msg;
+		data[-2] = type;
+		data[-1] = msg;
 	}
 	MsgStreamWriter(char type, char msg, char* ptr, UINT nBytes)
 		:
 		MsgStream(ptr, nBytes)
 	{
-		data[0] = type;
-		data[1] = msg;
+		data[-2] = type;
+		data[-1] = msg;
 	}
 	MsgStreamWriter(MsgStreamWriter&& stream)
 		:
 		MsgStream(std::move(stream))
 	{}
+
+	~MsgStreamWriter()
+	{
+		dealloc( (char*&)begin ); // would rather user handle allocation
+	}
 
 	operator const char*()
 	{
@@ -149,6 +154,10 @@ private:
 		{
 			return sizeof(T);
 		}
+		static UINT SizeType(const T&)
+		{
+			return sizeof(T);
+		}
 	};
 	template<typename T> class HelpBase
 	{
@@ -189,7 +198,7 @@ private:
 		}
 		void WriteEnd(T* t)
 		{
-			const UINT nBytes = (stream.end + MSG_OFFSET) - stream.data;
+			const UINT nBytes = stream.end - stream.data;
 			memcpy(stream.data, t, nBytes);
 			stream.data += nBytes;
 		}
@@ -203,7 +212,7 @@ public:
 		:
 		MsgStream(data, capacity)
 	{}
-	MsgStreamReader(MsgStreamWriter&& stream)
+	MsgStreamReader(MsgStreamReader&& stream)
 		:
 		MsgStream(std::move(stream))
 	{}
@@ -269,7 +278,7 @@ private:
 		{
 			T t = *(T*)(stream.data);
 			stream.data += sizeof(T);
-			assert(begin <= end);
+			assert(stream.begin <= stream.end);
 
 			return std::move(t);
 		}
@@ -284,7 +293,7 @@ private:
 		}
 		T* ReadEnd()
 		{
-			const UINT nBytes = (stream.end + MSG_OFFSET) - stream.data;
+			const UINT nBytes = stream.end - stream.data;
 			T* t = (T*)(stream.data);
 			stream.data += nBytes;
 
@@ -359,7 +368,7 @@ public:
 	std::pair<T1, T2>&& Read()
 	{
 		//Read in in backwards order because of order of eval
-		return std::pair<T1, T2>(stream.Read<T1>(), stream.Read<T2>());
+		return std::move(std::make_pair(stream.Read<T1>(), stream.Read<T2>()));
 	}
 };
 
@@ -515,7 +524,7 @@ struct StreamWriter::SizeHelper<std::map<Key, T>>
 	{
 		UINT size = MsgStreamWriter::SizeHelper<UINT>::SizeType();
 		for (auto& a : t)
-			size += MsgStreamWriter::SizeHelper<T>::SizeType(a);
+			size += MsgStreamWriter::SizeHelper<std::pair<Key,T>>::SizeType(a);
 
 		return size;
 	}
@@ -560,7 +569,7 @@ struct StreamWriter::SizeHelper<std::unordered_map<Key, T>>
 	{
 		UINT size = MsgStreamWriter::SizeHelper<UINT>::SizeType();
 		for (auto& a : t)
-			size += MsgStreamWriter::SizeHelper<T>::SizeType(a);
+			size += MsgStreamWriter::SizeHelper<std::pair<Key,T>>::SizeType(a);
 
 		return size;
 	}
