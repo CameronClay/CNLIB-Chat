@@ -20,7 +20,7 @@ template<typename T> inline T* alloc(size_t count)
 {
 	return (T*)(count != 0 ? HeapAlloc(GetProcessHeap(), NULL, sizeof(T) * count) : nullptr);
 }
-template<typename T> inline void dealloc(T& p)
+template<typename T> inline void dealloc(T*& p)
 {
 	if (p)
 	{

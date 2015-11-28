@@ -484,17 +484,6 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 	const char type = streamReader.GetType(), msg = streamReader.GetMsg();
 
 
-	//This is just a test
-	std::string temp = "MOO I AM COW!";
-	MsgStreamWriter streamWriter(0,0,500);
-	streamWriter.SizeType<std::basic_string<char>>(temp);
-	//streamWriter.SizeType<std::basic_string<char>>();
-	streamWriter.Write(temp);
-	streamReader.Read<std::basic_string<char>>();
-	streamWriter.Write<std::map<int, char>>(std::map<int, char>());
-	streamWriter.Write<std::vector<float>>(std::vector<float>());
-	//End test
-
 	switch (type)
 	{
 		//Unnecessary now
