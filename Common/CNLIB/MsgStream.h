@@ -123,7 +123,8 @@ public:
 	}
 	template<typename T> MsgStreamWriter& operator<<(const T& t)
 	{
-		return Helper<T>(*this).operator<<(t);
+		Write(t);
+		return *this;
 	}
 
 	template<typename T>
@@ -140,25 +141,14 @@ public:
 	template<typename T>
 	static std::enable_if_t<std::is_arithmetic<T>::value, UINT> SizeType()
 	{
-		return SizeHelper<T>::SizeType();
+		return sizeof(T);
 	}
 	template<typename T>
 	static UINT SizeType(const T& t)
 	{
-		return SizeHelper<T>::SizeType(t);
+		return Helper<T>::SizeType(t);
 	}
 private:
-	template<typename T> struct SizeHelper
-	{
-		static UINT SizeType()
-		{
-			return sizeof(T);
-		}
-		static UINT SizeType(const T&)
-		{
-			return sizeof(T);
-		}
-	};
 	template<typename T> class HelpBase
 	{
 	public:
@@ -167,11 +157,6 @@ private:
 			stream(stream)
 		{}
 
-		MsgStreamWriter& operator<<(const T& t)
-		{
-			stream.Write<T>(t);
-			return stream;
-		}
 	protected:
 		MsgStreamWriter& stream;
 	};
@@ -202,6 +187,10 @@ private:
 			memcpy(stream.data, t, nBytes);
 			stream.data += nBytes;
 		}
+		static UINT SizeType(const T&)
+		{
+			return sizeof(T);
+		}
 	};
 } StreamWriter;
 
@@ -222,17 +211,18 @@ public:
 		return begin;
 	}
 
-	template<typename T> T&& Read()
+	template<typename T> T Read()
 	{
 		return Helper<T>(*this).Read();
 	}
 	template<typename T> void Read(T& t)
 	{
-		Helper<T>(*this).Read(t);
+		t = Helper<T>(*this).Read();
 	}
 	template<typename T> MsgStreamReader& operator>>(T& dest)
 	{
-		return Helper<T>(*this).operator>>(dest);
+		Read(dest);
+		return *this;
 	}
 
 	template<typename T> std::enable_if_t<std::is_arithmetic<T>::value, T>* Read(UINT count)
@@ -252,16 +242,6 @@ private:
 			stream(stream)
 		{}
 
-		void Read(T& t)
-		{
-			t = std::move(stream.Read<T>());
-		}
-
-		MsgStreamReader& operator>>(T& dest)
-		{
-			Read(dest);
-			return stream;
-		}
 	protected:
 		MsgStreamReader& stream;
 	};
@@ -273,13 +253,13 @@ private:
 			HelpBase(stream)
 		{}
 
-		T&& Read()
+		T Read()
 		{
 			T t = *(T*)(stream.data);
 			stream.data += sizeof(T);
 			assert(stream.begin <= stream.end);
 
-			return std::move(t);
+			return t;
 		}
 		T* Read(UINT count)
 		{
@@ -310,13 +290,8 @@ public:
 	{
 		const UINT len = t.size();
 		stream.Write(len);
-		stream.Write(t.c_str(), len * sizeof(T));
+		stream.Write(t.c_str(), len);
 	}
-};
-
-template<typename T> 
-struct StreamWriter::SizeHelper<std::basic_string<T>>
-{
 	static UINT SizeType(const std::basic_string<T>& t)
 	{
 		return t.size() * sizeof(T);
@@ -328,9 +303,10 @@ class StreamReader::Helper<std::basic_string<T>> : public HelpBase<std::basic_st
 {
 public:
 	Helper(StreamReader& stream) : HelpBase(stream){}
-	std::basic_string<T>&& Read()
+	std::basic_string<T> Read()
 	{
-		return std::move(std::basic_string<T>(stream.Read<T>(stream.Read<UINT>())));
+		UINT size = stream.Read<UINT>();
+		return std::basic_string<T>(stream.Read<T>(size), size);
 	}
 };
 
@@ -344,15 +320,9 @@ public:
 		//Read in reverse order because of order of eval
 		stream << t.second << t.first;
 	}
-};
-
-template<typename T1, typename T2>
-struct StreamWriter::SizeHelper<std::pair<T1, T2>>
-{
 	static UINT SizeType(const std::pair<T1, T2>& t)
 	{
-		return StreamWriter::SizeHelper<T1>::SizeType() +
-			StreamWriter::SizeHelper<T2>::SizeType();
+		return Helper<T1>::SizeType(t.first) + Helper<T2>::SizeType(t.second);
 	}
 };
 
@@ -361,10 +331,10 @@ class StreamReader::Helper<std::pair<T1, T2>> : public HelpBase<std::pair<T1, T2
 {
 public:
 	Helper(StreamReader& stream) : HelpBase(stream){}
-	std::pair<T1, T2>&& Read()
+	std::pair<T1, T2> Read()
 	{
 		//Read in reverse order because of order of eval
-		return std::move(std::make_pair(stream.Read<T1>(), stream.Read<T2>()));
+		return std::make_pair(stream.Read<T1>(), stream.Read<T2>());
 	}
 };
 
@@ -380,16 +350,11 @@ public:
 		for (auto& a : t)
 			stream.Write(a);
 	}
-};
-
-template<typename T> 
-struct StreamWriter::SizeHelper<std::vector<T>>
-{
 	static UINT SizeType(const std::vector<T>& t)
 	{
-		UINT size = StreamWriter::SizeHelper<UINT>::SizeType();
+		UINT size = 0;
 		for (auto& a : t)
-			size += StreamWriter::SizeHelper<T>::SizeType(a);
+			size += Helper<T>::SizeType(a);
 
 		return size;
 	}
@@ -400,14 +365,15 @@ class StreamReader::Helper<std::vector<T>> : public HelpBase<std::vector<T>>
 {
 public:
 	Helper(StreamReader& stream) : HelpBase(stream){}
-	std::vector<T>&& Read()
+	std::vector<T> Read()
 	{
 		const UINT size = stream.Read<UINT>();
-		std::vector<T> temp(size);
+		std::vector<T> temp;
+		temp.reserve(size);
 		for (UINT i = 0; i < size; i++)
-			temp.push_back(std::move(stream.Read<T>()));
+			temp.push_back(stream.Read<T>());
 
-		return std::move(temp);
+		return temp;
 	}
 };
 
@@ -423,16 +389,11 @@ public:
 		for (auto& a : t)
 			stream.Write(a);
 	}
-};
-
-template<typename T>
-struct StreamWriter::SizeHelper<std::list<T>>
-{
 	static UINT SizeType(const std::list<T>& t)
 	{
-		UINT size = StreamWriter::SizeHelper<UINT>::SizeType();
+		UINT size = 0;
 		for (auto& a : t)
-			size += StreamWriter::SizeHelper<T>::SizeType(a);
+			size += Helper<T>::SizeType(a);
 
 		return size;
 	}
@@ -443,14 +404,14 @@ class StreamReader::Helper<std::list<T>> : public HelpBase<std::list<T>>
 {
 public:
 	Helper(StreamReader& stream) : HelpBase(stream){}
-	std::list<T>&& Read()
+	std::list<T> Read()
 	{
 		const UINT size = stream.Read<UINT>();
-		std::list<T> temp(size);
+		std::list<T> temp;
 		for (UINT i = 0; i < size; i++)
-			temp.push_back(std::move(stream.Read<T>()));
+			temp.push_back(stream.Read<T>());
 
-		return std::move(temp);
+		return temp;
 	}
 };
 
@@ -461,21 +422,16 @@ public:
 	Helper(StreamWriter& stream) : HelpBase(stream){}
 	void Write(const std::forward_list<T>& t)
 	{
-		const UINT size = t.size();
+		const UINT size = std::distance(t.cbegin(), t.cend());
 		stream.Write(size);
 		for (auto& a : t)
 			stream.Write(a);
 	}
-};
-
-template<typename T>
-struct StreamWriter::SizeHelper<std::forward_list<T>>
-{
 	static UINT SizeType(const std::forward_list<T>& t)
 	{
-		UINT size = StreamWriter::SizeHelper<UINT>::SizeType();
+		UINT size = 0;
 		for (auto& a : t)
-			size += StreamWriter::SizeHelper<T>::SizeType(a);
+			size += Helper<T>::SizeType(a);
 
 		return size;
 	}
@@ -486,14 +442,14 @@ class StreamReader::Helper<std::forward_list<T>> : public HelpBase<std::forward_
 {
 public:
 	Helper(StreamReader& stream) : HelpBase(stream){}
-	std::forward_list<T>&& Read()
+	std::forward_list<T> Read()
 	{
 		const UINT size = stream.Read<UINT>();
-		std::forward_list<T><T> temp(size);
+		std::forward_list<T> temp;
 		for (UINT i = 0; i < size; i++)
-			temp.push_back(std::move(stream.Read<T>()));
+			temp.push_front(stream.Read<T>());
 
-		return std::move(temp);
+		return temp;
 	}
 };
 
@@ -507,20 +463,13 @@ public:
 		const UINT size = t.size();
 		stream.Write(size);
 		for (auto& a : t)
-		{
 			stream.Write(a);
-		}
 	}
-};
-
-template<typename Key, typename T>
-struct StreamWriter::SizeHelper<std::map<Key, T>>
-{
 	static UINT SizeType(const std::map<Key, T>& t)
 	{
-		UINT size = MsgStreamWriter::SizeHelper<UINT>::SizeType();
+		UINT size = 0;
 		for (auto& a : t)
-			size += MsgStreamWriter::SizeHelper<std::pair<Key,T>>::SizeType(a);
+			size += Helper<std::pair<Key,T>>::SizeType(a);
 
 		return size;
 	}
@@ -531,14 +480,14 @@ class StreamReader::Helper<std::map<Key, T>> : public HelpBase<std::map<Key, T>>
 {
 public:
 	Helper(StreamReader& stream) : HelpBase(stream){}
-	std::map<Key, T>&& Read()
+	std::map<Key, T> Read()
 	{
 		const UINT size = stream.Read<UINT>();
-		std::map<Key, T> temp(size);
+		std::map<Key, T> temp;
 		for (UINT i = 0; i < size; i++)
-			temp.insert(std::move(stream.Read<T>()));
+			temp.insert(stream.Read<std::pair<Key,T>>());
 
-		return std::move(temp);
+		return temp;
 	}
 };
 
@@ -552,20 +501,13 @@ public:
 		const UINT size = t.size();
 		stream.Write(size);
 		for (auto& a : t)
-		{
 			stream.Write(a);
-		}
 	}
-};
-
-template<typename Key, typename T>
-struct StreamWriter::SizeHelper<std::unordered_map<Key, T>>
-{
 	static UINT SizeType(const std::unordered_map<Key, T>& t)
 	{
-		UINT size = MsgStreamWriter::SizeHelper<UINT>::SizeType();
+		UINT size = 0;
 		for (auto& a : t)
-			size += MsgStreamWriter::SizeHelper<std::pair<Key,T>>::SizeType(a);
+			size += Helper<std::pair<Key,T>>::SizeType(a);
 
 		return size;
 	}
@@ -576,13 +518,14 @@ class StreamReader::Helper<std::unordered_map<Key, T>> : public HelpBase<std::un
 {
 public:
 	Helper(StreamReader& stream) : HelpBase(stream){}
-	std::unordered_map<Key, T>&& Read()
+	std::unordered_map<Key, T> Read()
 	{
 		const UINT size = stream.Read<UINT>();
-		std::unordered_map<Key, T> temp(size);
+		std::unordered_map<Key, T> temp;
+		temp.reserve(size);
 		for (UINT i = 0; i < size; i++)
-			temp.insert(std::move(stream.Read<T>()));
+			temp.insert(stream.Read<std::pair<Key,T>>());
 
-		return std::move(temp);
+		return temp;
 	}
 };
