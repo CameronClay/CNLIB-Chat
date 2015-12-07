@@ -155,7 +155,7 @@ void Whiteboard::SendMouseData(TCPClientInterface* client)
 		char* msg = alloc<char>(nBytes);
 		msg[0] = TYPE_DATA;
 		msg[1] = MSG_DATA_MOUSE;
-		mouse.Extract((BYTE*)&msg[MSG_OFFSET], count);
+		mouse.Extract((BYTE*)(msg + MSG_OFFSET), count);
 		client->SendServData(msg, nBytes);
 		dealloc(msg);
 	}

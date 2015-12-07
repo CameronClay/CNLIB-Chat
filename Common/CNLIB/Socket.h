@@ -54,7 +54,7 @@ public:
 	operator SOCKET&();
 	operator HANDLE&();
 
-	bool Bind(const LIB_TCHAR* port);
+	bool Bind(const LIB_TCHAR* port, bool ipv6 = false);
 	Socket AcceptConnection();
 
 	bool Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, float timeout);
@@ -70,8 +70,8 @@ public:
 	bool SetNonBlocking();
 
 	//dest size needs to be at least 16
-	static bool GetLocalIP(LIB_TCHAR* dest, DWORD buffSize, bool ipv6);
-	static bool HostNameToIP(const LIB_TCHAR* host, LIB_TCHAR* dest, DWORD buffSize, bool ipv6);
+	static bool GetLocalIP(LIB_TCHAR* dest, DWORD buffSize, bool ipv6 = false);
+	static bool HostNameToIP(const LIB_TCHAR* host, LIB_TCHAR* dest, DWORD buffSize, bool ipv6 = false);
 
 private:
 	SOCKET pc;

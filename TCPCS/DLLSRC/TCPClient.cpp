@@ -168,7 +168,7 @@ static DWORD CALLBACK ReceiveData(LPVOID param)
 
 			if (host.ReadData(buffer, (nBytesComp != 0) ? nBytesComp : nBytesDecomp) > 0)
 			{
-				BYTE* dest = &buffer[nBytesComp];
+				BYTE* dest = buffer + nBytesComp;
 				if (nBytesComp != 0)
 					FileMisc::Decompress(dest, nBytesDecomp, buffer, nBytesComp);
 

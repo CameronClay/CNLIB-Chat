@@ -13,6 +13,7 @@
 #include "Mouse.h"
 #include "DebugHelper.h"
 #include "WhiteboardClientData.h"
+#include "TextDisplay.h"
 #include <windows.h>
 #include <windowsx.h>
 #include <commctrl.h>
@@ -134,204 +135,12 @@ static HMENU main, file, options;
 HANDLE wbPThread;
 DWORD wbPThreadID;
 
+TextDisplay textBuffer;
+
 std::tstring user;
 #pragma endregion
 
-//CRITICAL_SECTION mouseSect;
-//RECT wbWindowRect;
-//POINT pt = { 0, 0 };
-//POINT ptClient = { 0, 0 };
-//double mouseX = 0.0, mouseY = 0.0;
-//double mouseSpeed = 1.0;
-//HICON cursor;
-//bool inD3DRect = false;
-//void UpdateMouse();
-
-//void DrawCursor(HICON cursor, HWND hWnd, int x, int y)
-//{
-//	HDC dc = GetDC(hWnd);
-//	DrawIcon(dc, x, y, cursor);
-//	ReleaseDC(hWnd, dc);
-//}
-//
-//void ShowWinCursor()
-//{
-//	int result = 0;
-//	do
-//	{
-//		result = ShowCursor(TRUE);
-//	} while(result <= 0);
-//}
-//
-//void HideWinCursor()
-//{
-//	int result = 0;
-//	do
-//	{
-//		result = ShowCursor(FALSE);
-//	} while(result > 0);
-//}
-//
-////width, height, border, caption
-//void GetWindowSizes(USHORT* sizes)
-//{
-//	RECT clientRect{};
-//	GetClientRect(wbHandle, &clientRect);
-//
-//	const USHORT width = clientRect.right - clientRect.left,
-//		height = clientRect.bottom - clientRect.top;
-//
-//	const USHORT border = ((wbWindowRect.right - wbWindowRect.left) - width) / 2;
-//
-//	const USHORT caption = ((wbWindowRect.bottom - wbWindowRect.top) - height) - (2 * border);
-//
-//	sizes[0] = width;
-//	sizes[1] = height;
-//	sizes[2] = border;
-//	sizes[3] = caption;
-//}
-//
-//RECT GetD3DRect()
-//{
-//	USHORT sizes[4];
-//	GetWindowSizes(sizes);
-//
-//	RECT rc;
-//	rc.left = wbWindowRect.left + sizes[2];
-//	rc.right = rc.left + sizes[0];
-//	rc.top = wbWindowRect.top + sizes[3] + sizes[2];
-//	rc.bottom = rc.top + sizes[1];
-//
-//	return rc;
-//}
-//
-//LRESULT CALLBACK MouseProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-//{
-//	static POINT prevPt;
-//	switch(message)
-//	{
-//	case WM_INPUT:
-//	{
-//		if(GetForegroundWindow() == wbHandle)
-//		{
-//			BYTE buffer[100];
-//			UINT size = ARRAYSIZE(buffer);
-//
-//			GetRawInputData((HRAWINPUT)lParam, RID_INPUT, buffer, &size, sizeof(RAWINPUTHEADER));
-//
-//			RAWINPUT *pri = (RAWINPUT*)buffer;
-//			if(pri->header.dwType == RIM_TYPEMOUSE)
-//			{
-//				EnterCriticalSection(&mouseSect);
-//				RAWMOUSE& mouse = pri->data.mouse;
-//
-//				if(mouse.usFlags == MOUSE_MOVE_RELATIVE)
-//				{
-//					prevPt = pt;
-//					mouseX += mouseSpeed * (double)mouse.lLastX;
-//					mouseY += mouseSpeed * (double)mouse.lLastY;
-//					pt = { mouseX, mouseY };
-//				}
-//
-//				else if(mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
-//				{
-//					prevPt = pt;
-//					pt = { mouseX = mouse.lLastX, mouseY = mouse.lLastY };
-//				}
-//
-//
-//				const bool inWinRect = PtInRect(&wbWindowRect, pt);
-//				RECT rc = GetD3DRect();
-//				inD3DRect = PtInRect(&rc, pt);
-//
-//				if(inWinRect)
-//				{
-//					if(inD3DRect)
-//					{
-//						++inRect;
-//						//HideWinCursor();
-//
-//						ptClient = pt;
-//						ScreenToClient(wbHandle, &ptClient);
-//
-//						//DrawCursor(cursor, wbHandle, ptClient.x, ptClient.y);
-//
-//						const USHORT buttons = mouse.usButtonFlags;
-//						if(buttons & RI_MOUSE_LEFT_BUTTON_DOWN)
-//							mServ.OnLeftPressed(ptClient.x, ptClient.y);
-//
-//						if(buttons & RI_MOUSE_LEFT_BUTTON_UP)
-//							mServ.OnLeftReleased(ptClient.x, ptClient.y);
-//
-//						if(buttons & RI_MOUSE_RIGHT_BUTTON_DOWN)
-//							mServ.OnRightPressed(ptClient.x, ptClient.y);
-//
-//						if(buttons & RI_MOUSE_RIGHT_BUTTON_UP)
-//							mServ.OnRightReleased(ptClient.x, ptClient.y);
-//
-//						if((pt.x != prevPt.x) || (pt.y != prevPt.y))
-//							mServ.OnMouseMove(ptClient.x, ptClient.y);
-//					}
-//					/*else
-//					ShowWinCursor();*/
-//				}
-//				/*else
-//				ShowWinCursor();*/
-//
-//				LeaveCriticalSection(&mouseSect);
-//			}
-//		}
-//
-//		return 0;
-//	}
-//	default:
-//		return DefWindowProc(hWnd, message, wParam, lParam);
-//	}
-//	return 0;
-//}
-//
-//DWORD CALLBACK MouseThread(LPVOID)
-//{
-//	WNDCLASS wc = {};
-//	wc.hInstance = hInst;
-//	wc.lpfnWndProc = MouseProc;
-//	wc.lpszClassName = _T("dummy class");
-//	wc.hCursor = NULL;
-//
-//	RegisterClass(&wc);
-//
-//	HWND hnd = CreateWindowEx(NULL, wc.lpszClassName, _T("dummy"), NULL, 0, 0, 0, 0, NULL, NULL, hInst, nullptr);
-//
-//	//ShowWindow(hnd, SW_SHOW);
-//
-//	RAWINPUTDEVICE rid;
-//	rid.usUsagePage = 0x01;
-//	rid.usUsage = 0x02;
-//	rid.dwFlags = RIDEV_INPUTSINK;
-//	rid.hwndTarget = hnd;
-//
-//	BOOL res = RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE));
-//	assert(res);
-//
-//	MSG msg = {};
-//	while(msg.message != WM_QUIT)
-//	{
-//		/*EnterCriticalSection(&mouseSect);
-//		UpdateMouse();
-//		LeaveCriticalSection(&mouseSect);*/
-//
-//		if(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-//		{
-//			DispatchMessage(&msg);
-//		}
-//	}
-//
-//	UnregisterClass(wc.lpszClassName, hInst);
-//
-//	return 0;
-//}
 HWND CreateWBWindow(USHORT width, USHORT height);
-
 
 DWORD CALLBACK WBPThread(LPVOID param)
 {
@@ -416,18 +225,6 @@ void RecalcSizeVars(USHORT width, USHORT height)
 	top = screenHeight * (8.0f / 10.0f), topLen = screenHeight - top;
 }
 
-void DispText(BYTE* data, DWORD nBytes)
-{
-	const UINT len = SendMessage(textDisp, WM_GETTEXTLENGTH, 0, 0) + 1;
-	LIB_TCHAR* buffer = (LIB_TCHAR*)alloc<char>(((len + 2) * sizeof(LIB_TCHAR)) + nBytes);
-	SendMessage(textDisp, WM_GETTEXT, len, (LPARAM)buffer);
-	if (len != 1) _tcscat(buffer, _T("\r\n"));
-	_tcscat(buffer, (LIB_TCHAR*)data);
-	SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)buffer);
-	dealloc(buffer);
-	SendMessage(textDisp, EM_LINESCROLL, 0, MAXLONG);
-}
-
 void Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, float timeOut)
 {
 	if (client->Connect(dest, port, timeOut))
@@ -478,11 +275,10 @@ int FindClient(std::tstring& name)
 
 void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void* obj)
 {
-	char* dat = (char*)(&data[MSG_OFFSET]);
+	char* dat = (char*)(data + MSG_OFFSET);
 	nBytes -= MSG_OFFSET;
 	MsgStreamReader streamReader((char*)data, nBytes);
 	const char type = streamReader.GetType(), msg = streamReader.GetMsg();
-
 
 	switch (type)
 	{
@@ -513,17 +309,14 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 				LIB_TCHAR buffer[128];
 				_stprintf(buffer, _T("Server: %s has connected!"), (LIB_TCHAR*)dat);
 
-				UINT nBy = 0;
-				LIB_TCHAR* text = FormatText((BYTE*)buffer, _tcslen(buffer) * sizeof(LIB_TCHAR), nBy, opts->TimeStamps());
-				DispText((BYTE*)text, nBy);
+				const UINT nChars = Format::FormatTextBuffLen(buffer, _tcslen(buffer) * sizeof(LIB_TCHAR), opts->TimeStamps());
+				LIB_TCHAR* text = alloc<LIB_TCHAR>(nChars);
+				Format::FormatText(buffer, text, nChars, opts->TimeStamps());
+				textBuffer.WriteLine(text, nChars);
 				dealloc(text);
-				std::tstring str = (LIB_TCHAR*)dat;
-				const UINT first = str.find(_T("<"), 0) + 1, second = str.find(_T(">"), first), len = second - first;
-				assert((first != std::tstring::npos) || (second != std::tstring::npos));
-				const std::tstring name = str.substr(first, len);
 
-				if(FindClient((std::tstring)name) == -1)
-					SendMessage(listClients, LB_ADDSTRING, 0, (LPARAM)name.c_str());
+				if (FindClient((std::tstring((LIB_TCHAR*)dat))) == -1)
+					SendMessage(listClients, LB_ADDSTRING, 0, (LPARAM)dat);
 
 				Flash();
 				break;
@@ -563,10 +356,12 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 				_stprintf(buffer, _T("Server: %s has disconnected!"), (LIB_TCHAR*)dat);
 
 
-				UINT nBy = 0;
-				LIB_TCHAR* text = FormatText((BYTE*)buffer, _tcslen(buffer) * sizeof(LIB_TCHAR), nBy, opts->TimeStamps());
-				DispText((BYTE*)text, nBy);
+				const UINT nChars = Format::FormatTextBuffLen(buffer, _tcslen(buffer) * sizeof(LIB_TCHAR), opts->TimeStamps());
+				LIB_TCHAR* text = alloc<LIB_TCHAR>(nChars);
+				Format::FormatText(buffer, text, nChars, opts->TimeStamps());
+				textBuffer.WriteLine(text, nChars);
 				dealloc(text);
+
 				Flash();
 				break;
 			}
@@ -579,10 +374,12 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 			{
 				case MSG_DATA_TEXT:
 				{
-					UINT nBy = 0;
-					LIB_TCHAR* buffer = FormatText((BYTE*)dat, nBytes, nBy, opts->TimeStamps());
-					DispText((BYTE*)buffer, nBy);
-					dealloc(buffer);
+					const UINT nChars = Format::FormatTextBuffLen((LIB_TCHAR*)dat, nBytes / sizeof(LIB_TCHAR), opts->TimeStamps());
+					LIB_TCHAR* text = alloc<LIB_TCHAR>(nChars);
+					Format::FormatText((LIB_TCHAR*)dat, text, nChars, opts->TimeStamps());
+					textBuffer.WriteLine(text, nChars);
+					dealloc(text);
+
 					Flash();
 					break;
 				}
@@ -1038,201 +835,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	return (int)msg.wParam;
 }
 
-// RAW INPUT buffer loses some data no matter what you do, in own thread and all
-//void UpdateMouse()
-//{
-//	static POINT prevPt;//, screen = { GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
-//	//static int leftDown = 0;
-//	//static int leftUp = 0;
-//	//static int inRect = 0;
-//	//static int nMoveUpdate = 0;
-//
-//	BYTE buffer[512];
-//	UINT size = ARRAYSIZE(buffer);
-//	UINT count = 0;
-//
-//	do
-//	{
-//		count = GetRawInputBuffer((RAWINPUT*)buffer, &size, sizeof(RAWINPUTHEADER));
-//		assert(count != (UINT)-1);
-//
-//		RAWINPUT *pri = (RAWINPUT*)buffer;
-//		for(UINT i = 0; i < count; i++)
-//		{
-//			if(pri->header.dwType == RIM_TYPEMOUSE)
-//			{
-//				RAWMOUSE& mouse = ((RAWINPUT*)((char*)pri + 8))->data.mouse;
-//
-//				if(mouse.usFlags == MOUSE_MOVE_RELATIVE)
-//				{
-//					prevPt = pt;
-//					mouseX += mouseSpeed * (double)mouse.lLastX;
-//					mouseY += mouseSpeed * (double)mouse.lLastY;
-//					pt = { mouseX, mouseY };
-//				}
-//
-//				else if(mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
-//				{
-//					prevPt = pt;
-//					pt = { mouseX = mouse.lLastX, mouseY = mouse.lLastY };
-//				}
-//
-//
-//				const bool inWinRect = PtInRect(&wbWindowRect, pt);
-//				RECT rc = GetD3DRect();
-//				inD3DRect = PtInRect(&rc, pt);
-//
-//				if(inWinRect)
-//				{
-//					if(inD3DRect)
-//					{
-//						//++inRect;
-//						//HideWinCursor();
-//
-//						ptClient = pt;
-//						ScreenToClient(wbHandle, &ptClient);
-//
-//						//DrawCursor(cursor, wbHandle, ptClient.x, ptClient.y);
-//
-//						const USHORT buttons = mouse.usButtonFlags;
-//						if(buttons & RI_MOUSE_LEFT_BUTTON_DOWN)
-//						{
-//							mServ.OnLeftPressed(ptClient.x, ptClient.y);
-//							//++leftDown;
-//						}
-//
-//						if(buttons & RI_MOUSE_LEFT_BUTTON_UP)
-//						{
-//							mServ.OnLeftReleased(ptClient.x, ptClient.y);
-//							//++leftUp;
-//						}
-//
-//						if(buttons & RI_MOUSE_RIGHT_BUTTON_DOWN)
-//							mServ.OnRightPressed(ptClient.x, ptClient.y);
-//
-//						if(buttons & RI_MOUSE_RIGHT_BUTTON_UP)
-//						{
-//							//leftUp = leftDown = nMoveUpdate = inRect = 0;
-//							mServ.OnRightReleased(ptClient.x, ptClient.y);
-//						}
-//
-//						if((pt.x != prevPt.x) || (pt.y != prevPt.y))
-//						{
-//							mServ.OnMouseMove(ptClient.x, ptClient.y);
-//							//++nMoveUpdate;
-//						}
-//					}
-//					//else
-//						//ShowWinCursor();
-//				}
-//				//else
-//					//ShowWinCursor();
-//
-//				/*LIB_TCHAR textBuffer[128];
-//				_stprintf(textBuffer, _T("In D3D Rect:%d\r\nMove Updates:%d\r\nLeft Down: %d\r\nLeftUp:%d"), inRect, nMoveUpdate, leftDown, leftUp);
-//				SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)textBuffer);*/
-//			}
-//			pri = NEXTRAWINPUTBLOCK(pri);
-//		}
-//
-//	} while(count != 0);
-//
-//	//Sleep(5);
-//}
-
-//DWORD CALLBACK Mouse(LPVOID)
-//{
-//	static POINT pt, prevPt;
-//
-//	RAWINPUTDEVICE rid;
-//	rid.usUsagePage = 0x01;
-//	rid.usUsage = 0x02;
-//	rid.dwFlags = NULL;
-//	rid.hwndTarget = wbHandle;
-//
-//	BOOL RESULT = RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE));
-//
-//	MSG msg = {};
-//	while(msg.message != WM_QUIT)
-//	{
-//		if(!PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-//		{
-//			UINT size;
-//			//GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
-//			DWORD err = GetRawInputBuffer(NULL, &size, sizeof(RAWINPUTHEADER));
-//
-//			size = 16;
-//			size += 8;
-//			size *= 16;
-//
-//			RAWINPUT *ri = (RAWINPUT*)alloc<BYTE>(size);
-//
-//			//GetRawInputBuffer(HRAWINPUT)lParam, RID_INPUT, ri, &size, sizeof(RAWINPUTHEADER));
-//			const UINT count = GetRawInputBuffer(ri, &size, sizeof(RAWINPUTHEADER));
-//			err = GetLastError();
-//
-//
-//			RAWINPUT *pri = ri;
-//			for(UINT i = 0; i < count; i++)
-//			{
-//				if(pri->header.dwType == RIM_TYPEMOUSE)
-//				{
-//					RAWMOUSE& mouse = ((RAWINPUT*)((char*)pri + 8))->data.mouse;
-//
-//					if(mouse.usFlags == MOUSE_MOVE_RELATIVE)
-//					{
-//						prevPt = pt;
-//						pt = { pt.x + mouse.lLastX, pt.y + mouse.lLastY };
-//					}
-//
-//					else if(mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
-//					{
-//						prevPt = pt;
-//						pt = { mouse.lLastX, mouse.lLastY };
-//					}
-//
-//					RECT rc{};
-//					GetClientRect(wbHandle, &rc);
-//					if(PtInRect(&rc, pt))
-//					{
-//						POINT temp = pt;
-//						ScreenToClient(wbHandle, &temp);
-//
-//						switch(mouse.usButtonFlags)
-//						{
-//						case RI_MOUSE_LEFT_BUTTON_DOWN:
-//							mServ.OnLeftPressed(temp.x, temp.y);
-//							break;
-//
-//						case RI_MOUSE_LEFT_BUTTON_UP:
-//							mServ.OnLeftReleased(temp.x, temp.y);
-//							break;
-//
-//						case RI_MOUSE_RIGHT_BUTTON_DOWN:
-//							mServ.OnRightPressed(temp.x, temp.y);
-//							break;
-//
-//						case RI_MOUSE_RIGHT_BUTTON_UP:
-//							mServ.OnRightReleased(temp.x, temp.y);
-//							break;
-//						}
-//
-//						if((pt.x != prevPt.x) || (pt.y != prevPt.y))
-//							mServ.OnMouseMove(temp.x, temp.y);
-//					}
-//				}
-//				pri = NEXTRAWINPUTBLOCK(pri);
-//			}
-//
-//			LIB_TCHAR buffer[128];
-//			_stprintf(buffer, _T("(%d, %d)"), pt.x, pt.y);
-//			SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)buffer);
-//			dealloc(ri);
-//		}
-//	}
-//	return 0;
-//}
-
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	static HWND buttonEnter;
@@ -1299,14 +901,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			char* msg = alloc<char>(nBytes);
 			msg[0] = TYPE_DATA;
 			msg[1] = MSG_DATA_TEXT;
-			SendMessage(textInput, WM_GETTEXT, len, (LPARAM)&msg[MSG_OFFSET]);
+			SendMessage(textInput, WM_GETTEXT, len, (LPARAM)(msg + MSG_OFFSET));
 			SendMessage(textInput, WM_SETTEXT, 0, (LPARAM)_T(""));
 			EnableWindow(buttonEnter, false);
 
-			UINT nBy;
-			LIB_TCHAR* dispMsg = FormatText((BYTE*)&msg[MSG_OFFSET], nBytes - MSG_OFFSET, user, nBy, opts->TimeStamps());
-			DispText((BYTE*)dispMsg, nBy);
-			dealloc(dispMsg);
+			const UINT nChars = Format::FormatTextBuffLen((LIB_TCHAR*)(msg + MSG_OFFSET), len - 1, user, opts->TimeStamps());
+			LIB_TCHAR* text = alloc<LIB_TCHAR>(nChars);
+			Format::FormatText((LIB_TCHAR*)(msg + MSG_OFFSET), text, nChars, user, opts->TimeStamps());
+			textBuffer.WriteLine(text, nChars);
+			dealloc(text);
 
 			client->SendServData(msg, nBytes);
 			dealloc(msg);
@@ -1473,6 +1076,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 		textDisp = CreateWindow(WC_EDIT, NULL, WS_CHILD | WS_VISIBLE | ES_MULTILINE | WS_BORDER | ES_READONLY | WS_VSCROLL, 0, 0, left, top, hWnd, (HMENU)ID_TEXTBOX_DISPLAY, hInst, 0);
+		textBuffer.SetHandle(textDisp);
+
 		textInput = CreateWindow(WC_EDIT, NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_MULTILINE | WS_VSCROLL, 0, top, left, topLen, hWnd, (HMENU)ID_TEXTBOX_INPUT, hInst, NULL);
 		listClients = CreateWindow(WC_LISTBOX, NULL, WS_CHILD | WS_VISIBLE | LBS_STANDARD, left, 0, leftLen, top, hWnd, (HMENU)ID_LISTBOX_CLIENTS, hInst, NULL);
 
@@ -1574,12 +1179,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		if(opts->SaveLogs())
 		{
-			const UINT len = SendMessage(textDisp, WM_GETTEXTLENGTH, 0, 0) + 1;
-			if(len > 1)
+			const std::tstring& text = textBuffer.GetText();
+			if (!text.empty())
 			{
-				LIB_TCHAR* buffer = (LIB_TCHAR*)alloc<char>(((len + 2) * sizeof(LIB_TCHAR)));
-				SendMessage(textDisp, WM_GETTEXT, len, (LPARAM)buffer);
-				opts->AddLog((char*)buffer, len * sizeof(LIB_TCHAR));
+				opts->AddLog((const char*)text.c_str(), text.size() * sizeof(LIB_TCHAR));
 			}
 		}
 		DestroyClient(client);
@@ -1604,73 +1207,6 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	switch (message)
 	{
-	/*case WM_INPUT:
-	{
-		UINT size;
-		GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
-
-		RAWINPUT *ri = (RAWINPUT*)alloc<BYTE>(size);
-
-		GetRawInputData((HRAWINPUT)lParam, RID_INPUT, ri, &size, sizeof(RAWINPUTHEADER));
-
-		if(ri->header.dwType == RIM_TYPEMOUSE)
-		{
-			RAWMOUSE& mouse = ri->data.mouse;
-
-			if(mouse.usFlags == MOUSE_MOVE_RELATIVE)
-			{
-				prevPt = pt;
-				mouseX += mouseSpeed * (double)mouse.lLastX;
-				mouseY += mouseSpeed * (double)mouse.lLastY;
-				pt = { mouseX, mouseY };
-			}
-
-			else if(mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
-			{
-				prevPt = pt;
-				pt = { mouseX = mouse.lLastX, mouseY = mouse.lLastY };
-			}
-
-			RECT rc{};
-			GetClientRect(hWnd, &rc);
-			if(PtInRect(&rc, pt))
-			{
-				POINT temp = pt;
-				ScreenToClient(hWnd, &temp);
-
-				SetCursorPos(temp.x, temp.y);
-
-				switch(mouse.usButtonFlags)
-				{
-				case RI_MOUSE_LEFT_BUTTON_DOWN:
-					mServ.OnLeftPressed(temp.x, temp.y);
-					break;
-
-				case RI_MOUSE_LEFT_BUTTON_UP:
-					mServ.OnLeftReleased(temp.x, temp.y);
-					break;
-
-				case RI_MOUSE_RIGHT_BUTTON_DOWN:
-					mServ.OnRightPressed(temp.x, temp.y);
-					break;
-
-				case RI_MOUSE_RIGHT_BUTTON_UP:
-					mServ.OnRightReleased(temp.x, temp.y);
-					break;
-				}
-
-				if((pt.x != prevPt.x) || (pt.y != prevPt.y))
-					mServ.OnMouseMove(temp.x, temp.y);
-			}
-		}
-
-		LIB_TCHAR buffer[128];
-		_stprintf(buffer, _T("(%d, %d)"), pt.x, pt.y);
-		SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)buffer);
-		dealloc(ri);
-		break;
-	}*/
-
 	case WM_COMMAND:
 	{
 		switch(LOWORD(wParam))

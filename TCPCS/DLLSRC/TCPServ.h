@@ -15,7 +15,7 @@ public:
 	TCPServ& operator=(TCPServ&& serv);
 
 	//Allows connections to the server; should only be called once
-	bool AllowConnections(const LIB_TCHAR* port);
+	bool AllowConnections(const LIB_TCHAR* port, IPV ipv = ipboth);
 
 	//Used to send data to clients
 	//addr parameter functions as both the excluded address, and as a single address, 

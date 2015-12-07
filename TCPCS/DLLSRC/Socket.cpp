@@ -84,26 +84,25 @@ Socket::operator HANDLE&()
 	return (HANDLE&)pc;
 }
 
-bool Socket::Bind(const LIB_TCHAR* port)
+bool Socket::Bind(const LIB_TCHAR* port, bool ipv6)
 {
-	ADDRINFOT info = { AI_PASSIVE, AF_UNSPEC, SOCK_STREAM, IPPROTO_TCP };
-	ADDRINFOT* addr = 0;
-	GetAddrInfo(NULL, port, &info, &addr);
+	ADDRINFOT info = { AI_PASSIVE, ipv6 ? AF_INET6 : AF_INET, SOCK_STREAM, IPPROTO_TCP };
+	ADDRINFOT* paddr = 0;
+	GetAddrInfo(NULL, port, &info, &paddr);
+	ADDRINFOT& addr = *paddr;
 
-	bool result = true;
-	for (ADDRINFOT* tempPtr = addr; tempPtr->ai_next != nullptr; tempPtr = tempPtr->ai_next)
+	bool result = false;
+	pc = socket(addr.ai_family, addr.ai_socktype, addr.ai_protocol);
+	if (pc != INVALID_SOCKET)
 	{
-		ADDRINFOT& temp = *tempPtr;
-		if ((temp.ai_family == AF_INET) || (temp.ai_family == AF_INET6))
+		if (bind(pc, addr.ai_addr, addr.ai_addrlen) == 0)
 		{
-			pc = socket(temp.ai_family, temp.ai_socktype, temp.ai_protocol);
-			if (result &= (pc != INVALID_SOCKET))
-				if (result &= (bind(pc, temp.ai_addr, temp.ai_addrlen) == 0))
-					result &= (listen(pc, SOMAXCONN) == 0);					
+			if (listen(pc, SOMAXCONN) == 0)
+				result = true;
 		}
 	}
 
-	FreeAddrInfo(addr);
+	FreeAddrInfo(paddr);
 
 	return result;
 }

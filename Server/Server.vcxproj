@@ -155,10 +155,12 @@
     <ClInclude Include="..\Common\CNLIB\CompressionTypes.h" />
     <ClInclude Include="..\Common\CNLIB\File.h" />
     <ClInclude Include="..\Common\CNLIB\HeapAlloc.h" />
+    <ClInclude Include="..\Common\CNLIB\IPV.h" />
     <ClInclude Include="..\Common\CNLIB\Messages.h" />
     <ClInclude Include="..\Common\CNLIB\MsgStream.h" />
     <ClInclude Include="..\Common\CNLIB\Ping.h" />
     <ClInclude Include="..\Common\CNLIB\Socket.h" />
+    <ClInclude Include="..\Common\CNLIB\StreamExt.h" />
     <ClInclude Include="..\Common\CNLIB\TCPServInterface.h" />
     <ClInclude Include="..\Common\CNLIB\Typedefs.h" />
     <ClInclude Include="..\Common\CNLIB\UPNP.h" />
@@ -166,6 +168,7 @@
     <ClInclude Include="..\Common\Format.h" />
     <ClInclude Include="..\Common\Mouse.h" />
     <ClInclude Include="..\Common\Palette.h" />
+    <ClInclude Include="..\Common\TextDisplay.h" />
     <ClInclude Include="..\Common\Vec2.h" />
     <ClInclude Include="..\Common\WhiteboardClientData.h" />
     <ClInclude Include="..\Common\WinFirewall.h" />

@@ -20,15 +20,13 @@ public:
 		:
 		begin(data),
 		end(data + capacity + MSG_OFFSET),
-		data(data + MSG_OFFSET),
-		capacity(capacity)
+		data(data + MSG_OFFSET)
 	{}
 	MsgStream(MsgStream&& stream)
 		:
 		begin(stream.begin),
 		end(stream.end),
-		data(stream.data),
-		capacity(stream.capacity)
+		data(stream.data)
 	{
 		ZeroMemory(&stream, sizeof(MsgStream));
 	}
@@ -49,7 +47,6 @@ public:
 
 	UINT GetSize() const
 	{
-		//+2 for MSG_OFFSET
 		return end - begin;
 	}
 	UINT GetDataSize() const
@@ -57,22 +54,13 @@ public:
 		//size without MSG_OFFSET
 		return end - (begin + MSG_OFFSET);
 	}
-	UINT GetCapacity() const
-	{
-		return capacity;
-	}
 
 	template<typename T> std::enable_if_t<std::is_arithmetic<T>::value, T> operator[](UINT index) const
 	{
 		assert(index <= capacity - MSG_OFFSET);
-		return begin[index + 2];
+		return begin[index + MSG_OFFSET];
 	}
 
-	void SetPos(UINT position)
-	{
-		assert(position <= capacity - MSG_OFFSET);
-		data = (char*)begin + position + MSG_OFFSET;
-	}
 	bool End() const
 	{
 		return begin == end;
@@ -81,7 +69,6 @@ public:
 protected:
 	const char* begin, *end;
 	char* data;
-	const UINT capacity;
 };
 
 typedef class MsgStreamWriter : public MsgStream
@@ -172,20 +159,21 @@ private:
 		{
 			*(T*)(stream.data) = t;
 			stream.data += sizeof(T);
-			assert(stream.begin <= stream.end);
+			assert(stream.data <= stream.end);
 		}
 		void Write(T* t, UINT count)
 		{
 			const UINT nBytes = count * sizeof(T);
 			memcpy(stream.data, t, nBytes);
 			stream.data += nBytes;
-			assert(stream.begin <= stream.end);
+			assert(stream.data <= stream.end);
 		}
 		void WriteEnd(T* t)
 		{
 			const UINT nBytes = stream.end - stream.data;
 			memcpy(stream.data, t, nBytes);
 			stream.data += nBytes;
+			assert(stream.data <= stream.end);
 		}
 		static UINT SizeType(const T&)
 		{
@@ -257,7 +245,7 @@ private:
 		{
 			T t = *(T*)stream.data;
 			stream.data += sizeof(T);
-			assert(stream.begin <= stream.end);
+			assert(stream.data <= stream.end);
 
 			return t;
 		}
@@ -266,7 +254,7 @@ private:
 			const UINT nBytes = count * sizeof(T);
 			T* t = (T*)(stream.data);
 			stream.data += nBytes;
-			assert(stream.begin <= stream.end);
+			assert(stream.data <= stream.end);
 
 			return t;
 		}
@@ -275,6 +263,7 @@ private:
 			const UINT nBytes = stream.end - stream.data;
 			T* t = (T*)(stream.data);
 			stream.data += nBytes;
+			assert(stream.data <= stream.end);
 
 			return t;
 		}

@@ -7,6 +7,7 @@
 #include "Format.h"
 #include "CNLIB\HeapAlloc.h"
 #include "CNLIB\Messages.h"
+#include "TextDisplay.h"
 #include "Whiteboard.h"
 #include <assert.h>
 #include <windows.h>
@@ -69,6 +70,8 @@ Whiteboard* wb = nullptr;
 std::vector<Authent> userList;
 std::vector<std::tstring> adminList;
 
+TextDisplay textBuffer;
+
 bool IsAdmin(std::tstring& user)
 {
 	for (auto& i : adminList)
@@ -79,18 +82,6 @@ bool IsAdmin(std::tstring& user)
 		}
 	}
 	return false;
-}
-
-void DispText(BYTE* data, DWORD nBytes)
-{
-	const UINT len = SendMessage(textDisp, WM_GETTEXTLENGTH, 0, 0) + 1;
-	LIB_TCHAR* buffer = (LIB_TCHAR*)alloc<char>(((len + 2) * sizeof(LIB_TCHAR)) + nBytes);
-	SendMessage(textDisp, WM_GETTEXT, len, (LPARAM)buffer);
-	if (len != 1) _tcscat(buffer, _T("\r\n"));
-	_tcscat(buffer, (LIB_TCHAR*)data);
-	SendMessage(textDisp, WM_SETTEXT, 0, (LPARAM)buffer);
-	dealloc(buffer);
-	SendMessage(textDisp, EM_LINESCROLL, 0, MAXLONG);
 }
 
 void AddToList(std::tstring& user, std::tstring& pass)
@@ -106,11 +97,11 @@ void AddToList(std::tstring& user, std::tstring& pass)
 	LeaveCriticalSection(&fileSect);
 }
 
-void SendSingleUserData(TCPServInterface& serv, char* dat, DWORD nBytes, char type, char message)
+void SendSingleUserData(TCPServInterface& serv, const char* dat, DWORD nBytes, char type, char message)
 {
-	const UINT userLen = *(UINT*)&(dat[0]);
+	const UINT userLen = *(UINT*)dat;
 	//																	   - 1 for \0
-	std::tstring user = std::tstring((LIB_TCHAR*)&(dat[sizeof(UINT)]), userLen - 1);
+	std::tstring user = std::tstring((LIB_TCHAR*)(dat + sizeof(UINT)), userLen - 1);
 	ClientData* client = serv.FindClient(user);
 	if(client == nullptr)
 		return;
@@ -121,7 +112,7 @@ void SendSingleUserData(TCPServInterface& serv, char* dat, DWORD nBytes, char ty
 
 	msg[0] = type;
 	msg[1] = message;
-	memcpy(&msg[MSG_OFFSET], &dat[offset], nBytes - offset);
+	memcpy(msg + MSG_OFFSET, dat + offset, nBytes - offset);
 
 	serv.SendClientData(msg, nBy, client->pc, true);
 	dealloc(msg);
@@ -179,7 +170,7 @@ void DispIPMsg(Socket& pc, const LIB_TCHAR* str)
 		LIB_TCHAR buffer[128] = {};
 		pc.ToIp(buffer);
 		_tcscat(buffer, str);
-		DispText((BYTE*)buffer, _tcslen(buffer) * sizeof(LIB_TCHAR));
+		textBuffer.WriteLine(buffer, _tcslen(buffer));
 	}
 }
 
@@ -201,7 +192,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 	auto clients = serv.GetClients();
 	const USHORT nClients = serv.ClientCount();
 	
-	char* dat = (char*)(&data[MSG_OFFSET]);
+	char* dat = (char*)(data + MSG_OFFSET);
 	nBytes -= MSG_OFFSET;
 	MsgStreamReader streamReader((char*)data, nBytes);
 	const char type = streamReader.GetType(), msg = streamReader.GetMsg();
@@ -319,11 +310,16 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 		{
 		case MSG_DATA_TEXT:
 		{
-			UINT nBy;
-			LIB_TCHAR* msg = FormatMsg(TYPE_DATA, MSG_DATA_TEXT, (BYTE*)dat, nBytes, clint->user, nBy);
+			//<%s>: %s
+			const UINT nChars = Format::FormatTextBuffLen((LIB_TCHAR*)dat, nBytes / sizeof(LIB_TCHAR), clint->user, false);
+			LIB_TCHAR* text = alloc<LIB_TCHAR>(nChars);
+			Format::FormatText((LIB_TCHAR*)dat, text, nChars, clint->user, false);
 
-			serv.SendClientData((char*)msg, nBy, clint->pc, false);
-			dealloc(msg);
+			MsgStreamWriter streamWriter(TYPE_DATA, MSG_DATA_TEXT, nChars * sizeof(LIB_TCHAR));
+			streamWriter.Write(text, nChars);
+			dealloc(text);
+			
+			serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, false);
 			break;
 		}
 		case MSG_DATA_MOUSE:
@@ -767,6 +763,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_CREATE:
 	{
 		textDisp = CreateWindow(WC_EDIT, NULL, WS_CHILD | WS_VISIBLE | ES_MULTILINE | WS_BORDER | ES_READONLY | WS_VSCROLL, 0, 0, screenWidth, screenHeight, hWnd, (HMENU)ID_TEXTBOX_DISPLAY, hInst, 0);
+		textBuffer.SetHandle(textDisp);
 
 		main = CreateMenu();
 

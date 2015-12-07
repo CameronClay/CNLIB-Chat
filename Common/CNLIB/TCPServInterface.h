@@ -6,6 +6,7 @@
 #include "Socket.h"
 #include "Ping.h"
 #include "CompressionTypes.h"
+#include "IPV.h"
 
 
 class CAMSNETLIB TCPServInterface : public PingHI
@@ -33,7 +34,7 @@ public:
 		void* obj;
 	};
 
-	virtual bool AllowConnections(const LIB_TCHAR* port) = 0;
+	virtual bool AllowConnections(const LIB_TCHAR* port, IPV ipv = ipboth) = 0;
 
 
 	virtual void SendClientData(const char* data, DWORD nBytes, Socket addr, bool single, CompressionType compType = BESTFIT) = 0;

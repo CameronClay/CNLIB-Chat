@@ -246,12 +246,12 @@ void FileSend::SendCurrentFile()
 		UINT pos = MSG_OFFSET;
 		msg[0] = TYPE_FILE;
 		msg[1] = MSG_FILE_DATA;
-		*(UINT*)&(msg[pos]) = userLen;
+		*(UINT*)(msg + pos) = userLen;
 		pos += sizeof(UINT);
-		memcpy(&msg[pos], username.c_str(), userLen * sizeof(LIB_TCHAR));
+		memcpy(msg + pos, username.c_str(), userLen * sizeof(LIB_TCHAR));
 		pos += userLen * sizeof(LIB_TCHAR);
 
-		DWORD bytesRead = file.Read(&msg[pos], nBytesPerLoop);
+		DWORD bytesRead = file.Read(msg + pos, nBytesPerLoop);
 		progress += ((double)bytesRead) / (double)(1024 * 1024);
 		dialog.SetProgress((DWORD)((progress / size) * 1000));
 		client.SendServData(msg, bytesRead + extraBytesData);

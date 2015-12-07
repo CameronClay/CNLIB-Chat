@@ -277,7 +277,7 @@ static DWORD CALLBACK RecvData(LPVOID info)
 
 			if (pc.ReadData(buffer, (nBytesComp != 0) ? nBytesComp : nBytesDecomp) > 0)
 			{
-				BYTE* dest = &buffer[nBytesComp];
+				BYTE* dest = buffer + nBytesComp;
 				if (nBytesComp != 0)
 					FileMisc::Decompress(dest, nBytesDecomp, buffer, nBytesComp);
 
@@ -450,7 +450,7 @@ TCPServ::~TCPServ()
 	Shutdown();
 }
 
-bool TCPServ::AllowConnections(const LIB_TCHAR* port)
+bool TCPServ::AllowConnections(const LIB_TCHAR* port, IPV ipv)
 {
 	if(host.IsConnected() || !host.Bind(port))
 		return false;
