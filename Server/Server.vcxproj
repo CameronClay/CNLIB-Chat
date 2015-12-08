@@ -160,6 +160,7 @@
     <ClInclude Include="..\Common\CNLIB\MsgStream.h" />
     <ClInclude Include="..\Common\CNLIB\Ping.h" />
     <ClInclude Include="..\Common\CNLIB\Socket.h" />
+    <ClInclude Include="..\Common\CNLIB\SocketListen.h" />
     <ClInclude Include="..\Common\CNLIB\StreamExt.h" />
     <ClInclude Include="..\Common\CNLIB\TCPServInterface.h" />
     <ClInclude Include="..\Common\CNLIB\Typedefs.h" />
@@ -179,7 +180,6 @@
     <ClCompile Include="..\Common\Mouse.cpp" />
     <ClCompile Include="..\Common\Palette.cpp" />
     <ClCompile Include="..\Common\WhiteboardClientData.cpp" />
-    <ClCompile Include="..\Common\WinFirewall.cpp" />
     <ClCompile Include="Whiteboard.cpp" />
     <ClCompile Include="Windows.cpp" />
   </ItemGroup>

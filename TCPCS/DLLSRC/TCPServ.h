@@ -3,6 +3,7 @@
 #pragma once
 #include "TCPServInterface.h"
 #include "HeapAlloc.h"
+#include "SocketListen.h"
 
 class TCPServ : public TCPServInterface
 {
@@ -15,7 +16,7 @@ public:
 	TCPServ& operator=(TCPServ&& serv);
 
 	//Allows connections to the server; should only be called once
-	bool AllowConnections(const LIB_TCHAR* port, IPV ipv = ipboth);
+	IPv AllowConnections(const LIB_TCHAR* port, IPv ipv = ipboth);
 
 	//Used to send data to clients
 	//addr parameter functions as both the excluded address, and as a single address, 
@@ -56,20 +57,20 @@ public:
 	void SetPingInterval(float interval);
 	float GetPingInterval() const;
 
-	Socket& GetHost();
+	//[0] = ipv4, [1] = ipv6
+	std::vector<SocketListen>& GetHost();
 	bool MaxClients() const;
 	void* GetObj() const;
 	int GetCompression() const;
 	bool IsConnected() const;
 private:
-	Socket host; //host/listener socket
+	std::vector<SocketListen> host; //vector of host/listener sockets
 	ClientData** clients; //array of clients
 	USHORT nClients; //number of current connected clients
 	sfunc function; //used to intialize what clients default function/msghandler is
 	void* obj; //passed to function/msgHandler for oop programming
 	customFunc conFunc, disFunc; //function called when connect/disconnect occurs
 	CRITICAL_SECTION clientSect, sendSect; //used for synchonization
-	HANDLE openCon; //wait for connections thread
 	const int compression; //compression server sends packets at
 	const USHORT maxCon; //max clients
 	float pingInterval; //interval at which server pings(technically is a keep alive message that sends data) clients

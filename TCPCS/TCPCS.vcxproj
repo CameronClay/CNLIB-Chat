@@ -144,6 +144,7 @@
     <ClInclude Include="..\Common\CNLIB\MsgStream.h" />
     <ClInclude Include="..\Common\CNLIB\Ping.h" />
     <ClInclude Include="..\Common\CNLIB\Socket.h" />
+    <ClInclude Include="..\Common\CNLIB\SocketListen.h" />
     <ClInclude Include="..\Common\CNLIB\StreamExt.h" />
     <ClInclude Include="..\Common\CNLIB\TCPClientInterface.h" />
     <ClInclude Include="..\Common\CNLIB\TCPServInterface.h" />
@@ -153,9 +154,11 @@
     <ClInclude Include="DLLSRC\TCPServ.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\Common\WinFirewall.cpp" />
     <ClCompile Include="DLLSRC\File.cpp" />
     <ClCompile Include="DLLSRC\Ping.cpp" />
     <ClCompile Include="DLLSRC\Socket.cpp" />
+    <ClCompile Include="DLLSRC\SocketListen.cpp" />
     <ClCompile Include="DLLSRC\TCPClient.cpp" />
     <ClCompile Include="DLLSRC\TCPServ.cpp" />
     <ClCompile Include="DLLSRC\Typedefs.cpp" />

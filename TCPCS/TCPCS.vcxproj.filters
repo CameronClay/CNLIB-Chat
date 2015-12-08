@@ -60,6 +60,9 @@
     <ClInclude Include="..\Common\CNLIB\IPV.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\SocketListen.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DLLSRC\File.cpp">
@@ -81,6 +84,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DLLSRC\UPNP.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DLLSRC\SocketListen.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\WinFirewall.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

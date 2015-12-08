@@ -232,30 +232,6 @@ static DWORD CALLBACK SendAllDataEx(LPVOID info)
 	return 0;
 }
 
-DWORD CALLBACK WaitForConnections(LPVOID tcpServ)
-{
-	TCPServ& serv = *(TCPServ*)tcpServ;
-	Socket& host = serv.GetHost();
-
-	while( host.IsConnected() )
-	{
-		Socket temp = host.AcceptConnection();
-		if( temp.IsConnected() )
-		{
-			if(!serv.MaxClients())
-			{
-				serv.AddClient(temp);
-			}
-			else
-			{
-				serv.SendMsg(temp, true, TYPE_CHANGE, MSG_CHANGE_SERVERFULL);
-				temp.Disconnect();
-			}
-		}
-	}
-	return 0;
-}
-
 static DWORD CALLBACK RecvData(LPVOID info)
 {
 	Data* data = (Data*)info;
@@ -385,14 +361,13 @@ void TCPServ::SendMsg(const std::tstring& user, char type, char message)
 
 TCPServ::TCPServ(sfunc func, customFunc conFunc, customFunc disFunc, USHORT maxCon, int compression, float pingInterval, void* obj)
 	:
-	host(INVALID_SOCKET),
+	host(),
 	clients(nullptr),
 	nClients(0),
 	function(func),
 	obj(obj),
 	conFunc(conFunc),
 	disFunc(disFunc),
-	openCon(NULL),
 	compression(compression),
 	maxCon(maxCon),
 	pingInterval(pingInterval),
@@ -403,7 +378,7 @@ TCPServ::TCPServ(sfunc func, customFunc conFunc, customFunc disFunc, USHORT maxC
 
 TCPServ::TCPServ(TCPServ&& serv)
 	:
-	host(serv.host),
+	host(std::move(serv.host)),
 	clients(serv.clients), 
 	nClients(serv.nClients),
 	function(serv.function),
@@ -412,7 +387,6 @@ TCPServ::TCPServ(TCPServ&& serv)
 	disFunc(serv.disFunc),
 	clientSect(serv.clientSect),
 	sendSect(serv.sendSect),
-	openCon(serv.openCon),
 	compression(serv.compression),
 	maxCon(serv.maxCon),
 	pingHandler(serv.pingHandler)
@@ -426,7 +400,7 @@ TCPServ& TCPServ::operator=(TCPServ&& serv)
 	{
 		this->~TCPServ();
 
-		host = serv.host;
+		host = std::move(serv.host);
 		clients = serv.clients;
 		nClients = serv.nClients;
 		function = serv.function;
@@ -435,10 +409,9 @@ TCPServ& TCPServ::operator=(TCPServ&& serv)
 		const_cast<void( *& )(ClientData*)>(disFunc) = serv.disFunc;
 		clientSect = serv.clientSect;
 		sendSect = serv.sendSect;
-		openCon = serv.openCon;
 		const_cast<int&>(compression) = serv.compression;
 		const_cast<USHORT&>(maxCon) = serv.maxCon;
-		pingHandler = std::move(serv.pingHandler);
+		pingHandler = serv.pingHandler;
 
 		ZeroMemory(&serv, sizeof(TCPServ));
 	}
@@ -450,30 +423,45 @@ TCPServ::~TCPServ()
 	Shutdown();
 }
 
-bool TCPServ::AllowConnections(const LIB_TCHAR* port, IPV ipv)
+IPv TCPServ::AllowConnections(const LIB_TCHAR* port, IPv ipv)
 {
-	if(host.IsConnected() || !host.Bind(port))
-		return false;
+	if(!host.empty())
+		return ipvnone;
 
 	if(!clients)
 		clients = alloc<ClientData*>(maxCon);
 
-	openCon = CreateThread(NULL, 0, WaitForConnections, this, NULL, NULL);
+	if (ipv & ipv4)
+	{
+		SocketListen temp;
+		if (temp.Bind(port, false))
+			host.push_back(std::move(temp));
+		else
+			ipv = (IPv)(ipv ^ ipv4);
+	}
+	if (ipv & ipv6)
+	{
+		SocketListen temp;
+		if (temp.Bind(port, true))
+			host.push_back(std::move(temp));
+		else
+			ipv = (IPv)(ipv ^ ipv6);
+	}
 
-	if(!openCon)
-		return false;
-
-	pingHandler = new PingHandler(this);
+	for (auto& it : host)
+		it.StartThread(*this);
+	
+	pingHandler = construct<PingHandler>(this);
 
 	if (!pingHandler)
-		return false;
+		return ipvnone;
 
 	pingHandler->SetPingTimer(pingInterval);
 
 	InitializeCriticalSection(&clientSect);
 	InitializeCriticalSection(&sendSect);
 
-	return true;
+	return ipv;
 }
 
 void TCPServ::AddClient(Socket pc)
@@ -519,7 +507,7 @@ void TCPServ::RemoveClient(USHORT& pos)
 
 	LeaveCriticalSection(&clientSect);
 
-	if(!user.empty() && host.IsConnected())//if user wasnt declined authentication
+	if(!user.empty() && !host.empty())//if user wasnt declined authentication, and server was not shut down
 	{
 		MsgStreamWriter streamWriter(TYPE_CHANGE, MSG_CHANGE_DISCONNECT, (user.size() + 1) * sizeof(LIB_TCHAR));
 		streamWriter.WriteEnd(user.c_str());
@@ -545,10 +533,9 @@ void TCPServ::DisconnectClient(ClientData* client)
 
 void TCPServ::Shutdown()
 {
-	if (openCon)
+	if (pingHandler)
 	{
-		host.Disconnect();//causes opencon thread to close
-		WaitAndCloseHandle(openCon);
+		host.clear(); //empties out and destroys all host sockets
 
 		destruct(pingHandler);
 
@@ -578,7 +565,7 @@ void TCPServ::Ping()
 	SendMsg(Socket(), false, TYPE_PING, MSG_PING);
 }
 
-Socket& TCPServ::GetHost()
+std::vector<SocketListen>& TCPServ::GetHost()
 {
 	return host;
 }
@@ -631,7 +618,7 @@ int TCPServ::GetCompression() const
 
 bool TCPServ::IsConnected() const
 {
-	return host.IsConnected();
+	return !host.empty();
 }
 
 CRITICAL_SECTION* TCPServ::GetSendSect()

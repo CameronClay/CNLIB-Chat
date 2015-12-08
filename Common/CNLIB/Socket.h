@@ -4,6 +4,7 @@
 
 #include "Typedefs.h"
 #include <tchar.h>
+#include "IPv.h"
 
 #if NTDDI_VERSION >= NTDDI_VISTA
 #include <Natupnp.h>
@@ -30,11 +31,9 @@ CAMSNETLIB int CleanupNetworking();
 class CAMSNETLIB Socket
 {
 public:
+	Socket();
 	Socket(const LIB_TCHAR* port);
 	Socket(SOCKET pc);
-	Socket();
-	Socket(Socket&& sock);
-	~Socket(); //does not disconnect socket
 
 	struct Hash
 	{

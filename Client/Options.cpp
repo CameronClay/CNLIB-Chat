@@ -20,7 +20,9 @@ Options::Options(Options&& opts)
 	saveLogs(opts.saveLogs),
 	flashCount(opts.flashCount),
 	info(opts.info)
-{}
+{
+
+}
 
 Options::~Options()
 {

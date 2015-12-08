@@ -4,9 +4,10 @@
 #include <stdlib.h>
 #include <vector>
 #include "Socket.h"
+#include "SocketListen.h"
 #include "Ping.h"
 #include "CompressionTypes.h"
-#include "IPV.h"
+#include "IPv.h"
 
 
 class CAMSNETLIB TCPServInterface : public PingHI
@@ -34,7 +35,7 @@ public:
 		void* obj;
 	};
 
-	virtual bool AllowConnections(const LIB_TCHAR* port, IPV ipv = ipboth) = 0;
+	virtual IPv AllowConnections(const LIB_TCHAR* port, IPv ipv = ipboth) = 0;
 
 
 	virtual void SendClientData(const char* data, DWORD nBytes, Socket addr, bool single, CompressionType compType = BESTFIT) = 0;
@@ -63,7 +64,7 @@ public:
 	virtual bool MaxClients() const = 0;
 	virtual bool IsConnected() const = 0;
 
-	virtual Socket& GetHost() = 0;
+	virtual std::vector<SocketListen>& GetHost() = 0;
 
 	virtual void* GetObj() const = 0;
 };

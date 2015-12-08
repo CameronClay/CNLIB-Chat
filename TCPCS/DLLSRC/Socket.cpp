@@ -34,14 +34,6 @@ Socket::Socket(SOCKET pc)
 	pc(pc)
 {}
 
-Socket::Socket(Socket&& sock)
-	:
-	pc(sock.pc)
-{}
-
-Socket::~Socket(){}
-
-
 Socket& Socket::operator= (const Socket& pc)
 {
 	this->pc = pc.pc;
