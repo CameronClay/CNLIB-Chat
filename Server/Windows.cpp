@@ -310,10 +310,11 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 		{
 		case MSG_DATA_TEXT:
 		{
-			//<%s>: %s
-			const UINT nChars = Format::FormatTextBuffLen((LIB_TCHAR*)dat, nBytes / sizeof(LIB_TCHAR), clint->user, false);
+			//<user>: text
+			UINT nChars = Format::FormatTextBuffLen((LIB_TCHAR*)dat, nBytes / sizeof(LIB_TCHAR), clint->user, false);
 			LIB_TCHAR* text = alloc<LIB_TCHAR>(nChars);
 			Format::FormatText((LIB_TCHAR*)dat, text, nChars, clint->user, false);
+			--nChars;
 
 			MsgStreamWriter streamWriter(TYPE_DATA, MSG_DATA_TEXT, nChars * sizeof(LIB_TCHAR));
 			streamWriter.Write(text, nChars);

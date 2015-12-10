@@ -309,10 +309,10 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 				LIB_TCHAR buffer[128];
 				_stprintf(buffer, _T("Server: %s has connected!"), (LIB_TCHAR*)dat);
 
-				const UINT nChars = Format::FormatTextBuffLen(buffer, _tcslen(buffer) * sizeof(LIB_TCHAR), opts->TimeStamps());
+				const UINT nChars = Format::FormatTextBuffLen(buffer, _tcslen(buffer), opts->TimeStamps());
 				LIB_TCHAR* text = alloc<LIB_TCHAR>(nChars);
 				Format::FormatText(buffer, text, nChars, opts->TimeStamps());
-				textBuffer.WriteLine(text, nChars);
+				textBuffer.WriteLine(text, nChars - 1);
 				dealloc(text);
 
 				if (FindClient((std::tstring((LIB_TCHAR*)dat))) == -1)
@@ -356,10 +356,10 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 				_stprintf(buffer, _T("Server: %s has disconnected!"), (LIB_TCHAR*)dat);
 
 
-				const UINT nChars = Format::FormatTextBuffLen(buffer, _tcslen(buffer) * sizeof(LIB_TCHAR), opts->TimeStamps());
+				const UINT nChars = Format::FormatTextBuffLen(buffer, _tcslen(buffer), opts->TimeStamps());
 				LIB_TCHAR* text = alloc<LIB_TCHAR>(nChars);
 				Format::FormatText(buffer, text, nChars, opts->TimeStamps());
-				textBuffer.WriteLine(text, nChars);
+				textBuffer.WriteLine(text, nChars - 1);
 				dealloc(text);
 
 				Flash();
@@ -374,10 +374,11 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 			{
 				case MSG_DATA_TEXT:
 				{
-					const UINT nChars = Format::FormatTextBuffLen((LIB_TCHAR*)dat, nBytes / sizeof(LIB_TCHAR), opts->TimeStamps());
+					std::tstring str((LIB_TCHAR*)dat, nBytes / sizeof(LIB_TCHAR));
+					const UINT nChars = Format::FormatTextBuffLen(str.c_str(), str.length(), opts->TimeStamps());
 					LIB_TCHAR* text = alloc<LIB_TCHAR>(nChars);
-					Format::FormatText((LIB_TCHAR*)dat, text, nChars, opts->TimeStamps());
-					textBuffer.WriteLine(text, nChars);
+					Format::FormatText(str.c_str(), text, nChars, opts->TimeStamps());
+					textBuffer.WriteLine(text, nChars - 1);
 					dealloc(text);
 
 					Flash();
@@ -908,7 +909,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			const UINT nChars = Format::FormatTextBuffLen((LIB_TCHAR*)(msg + MSG_OFFSET), len - 1, user, opts->TimeStamps());
 			LIB_TCHAR* text = alloc<LIB_TCHAR>(nChars);
 			Format::FormatText((LIB_TCHAR*)(msg + MSG_OFFSET), text, nChars, user, opts->TimeStamps());
-			textBuffer.WriteLine(text, nChars);
+			textBuffer.WriteLine(text, nChars - 1);
 			dealloc(text);
 
 			client->SendServData(msg, nBytes);

@@ -19,9 +19,6 @@ public:
 	}
 	void WriteLine(LIB_TCHAR* buffer, DWORD length)
 	{
-		if (buffer[length - 1] == _T('\0'))
-			--length;
-
 		if (!text.empty())
 			text.append(_T("\r\n"));
 
