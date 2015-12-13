@@ -169,17 +169,14 @@ void FileSend::SetFullPathSrc(std::tstring& fullFilepathSrc)
 
 void FileSend::RequestTransfer()
 {
-	const UINT nameLen = username.size() + 1;
-	const DWORD nBytes = sizeof(UINT) + (nameLen * sizeof(LIB_TCHAR)) + sizeof(double);
-	MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_TRANSFER, nBytes);
+	MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_TRANSFER, StreamWriter::SizeType(username) + sizeof(double));
 
 	for(auto& i : list)
 		size += i.size;
 
 	size /= (1024 * 1024);
 
-	streamWriter.Write(nameLen);
-	streamWriter.Write(username.c_str(), nameLen);
+	streamWriter.Write(username);
 	streamWriter.Write(size);
 
 	client.SendServData(streamWriter, streamWriter.GetSize());
@@ -197,11 +194,9 @@ void FileSend::SendFileNameList()
 	for(auto& i : list)
 		nChars += i.fileName.size() + 1;
 
-	const UINT userLen = username.size() + 1;
-	const DWORD nBytes = ((nChars + userLen) * sizeof(LIB_TCHAR)) + ((sizeof(SYSTEMTIME) + sizeof(DWORD64) + sizeof(UINT)) * list.size()) + sizeof(UINT);
+	const DWORD nBytes = (nChars * sizeof(LIB_TCHAR)) + StreamWriter::SizeType(username) + ((sizeof(SYSTEMTIME) + sizeof(DWORD64) + sizeof(UINT)) * list.size()) + sizeof(UINT);
 	MsgStreamWriter streamWriter(TYPE_FILE, MSG_FILE_LIST, nBytes);
-	streamWriter.Write(userLen);
-	streamWriter.Write(username.c_str(), userLen);
+	streamWriter.Write(username);
 
 	for(auto it = list.begin(), end = list.end(); it != end; it++)
 	{
@@ -373,7 +368,7 @@ void FileReceive::RecvFileNameList(MsgStreamReader& streamReader, std::tstring& 
 		const DWORD64 size = streamReader.Read<DWORD64>();
 		const SYSTEMTIME time = streamReader.Read<SYSTEMTIME>();
 		const UINT nameLen = streamReader.Read<UINT>();
-		std::tstring temp(streamReader.Read<LIB_TCHAR>(nameLen));
+		std::tstring temp = streamReader.Read<std::tstring>();
 		temp.insert(0, downloadPath + _T("\\"));
 		list.push_back(FileMisc::FileData(temp, time, size));
 

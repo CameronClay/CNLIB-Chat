@@ -3,6 +3,7 @@
 #pragma once
 #include <WinSock2.h>
 #include <string>
+#include <sstream>
 
 #pragma comment(lib,"Ws2_32.lib")
 
@@ -19,8 +20,10 @@ namespace std
 {
 #ifdef UNICODE
 	typedef wstring tstring;
+	typedef wstringstream tstringstream;
 #else
 	typedef string tstring;
+	typedef stringstream tstringstream;
 #endif
 };
 

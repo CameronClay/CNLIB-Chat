@@ -38,11 +38,11 @@ public:
 */
 	char GetType() const
 	{
-		return data[-2];
+		return begin[0];
 	}
 	char GetMsg() const
 	{
-		return data[-1];
+		return begin[1];
 	}
 
 	UINT GetSize() const

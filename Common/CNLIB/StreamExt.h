@@ -11,7 +11,7 @@ public:
 	}
 	static UINT SizeType(const std::basic_string<T>& t)
 	{
-		return t.size() * sizeof(T);
+		return sizeof(size_t) + t.size() * sizeof(T);
 	}
 };
 
@@ -22,7 +22,7 @@ public:
 	Helper(StreamReader& stream) : HelpBase(stream){}
 	std::basic_string<T> Read()
 	{
-		UINT size = stream.Read<UINT>();
+		const size_t size = stream.Read<size_t>();
 		return std::basic_string<T>(stream.Read<T>(size), size);
 	}
 };
@@ -68,7 +68,7 @@ public:
 	}
 	static UINT SizeType(const std::vector<T>& t)
 	{
-		UINT size = 0;
+		size_t size = sizeof(size_t);
 		for (auto& a : t)
 			size += Helper<T>::SizeType(a);
 
@@ -83,10 +83,10 @@ public:
 	Helper(StreamReader& stream) : HelpBase(stream){}
 	std::vector<T> Read()
 	{
-		const UINT size = stream.Read<UINT>();
+		const size_t size = stream.Read<size_t>();
 		std::vector<T> temp;
 		temp.reserve(size);
-		for (UINT i = 0; i < size; i++)
+		for (size_t i = 0; i < size; i++)
 			temp.push_back(stream.Read<T>());
 
 		return temp;
@@ -106,7 +106,7 @@ public:
 	}
 	static UINT SizeType(const std::list<T>& t)
 	{
-		UINT size = 0;
+		size_t size = sizeof(size_t);
 		for (auto& a : t)
 			size += Helper<T>::SizeType(a);
 
@@ -121,7 +121,7 @@ public:
 	Helper(StreamReader& stream) : HelpBase(stream){}
 	std::list<T> Read()
 	{
-		const UINT size = stream.Read<UINT>();
+		const size_t size = stream.Read<UINT>();
 		std::list<T> temp;
 		for (UINT i = 0; i < size; i++)
 			temp.push_back(stream.Read<T>());
@@ -137,14 +137,14 @@ public:
 	Helper(StreamWriter& stream) : HelpBase(stream){}
 	void Write(const std::forward_list<T>& t)
 	{
-		const UINT size = std::distance(t.cbegin(), t.cend());
+		const size_t size = std::distance(t.cbegin(), t.cend());
 		stream.Write(size);
 		for (auto& a : t)
 			stream.Write(a);
 	}
 	static UINT SizeType(const std::forward_list<T>& t)
 	{
-		UINT size = 0;
+		size_t size = sizeof(size_t);
 		for (auto& a : t)
 			size += Helper<T>::SizeType(a);
 
@@ -159,9 +159,9 @@ public:
 	Helper(StreamReader& stream) : HelpBase(stream){}
 	std::forward_list<T> Read()
 	{
-		const UINT size = stream.Read<UINT>();
+		const size_t size = stream.Read<size_t>();
 		std::forward_list<T> temp;
-		for (UINT i = 0; i < size; i++)
+		for (size_t i = 0; i < size; i++)
 			temp.push_front(stream.Read<T>());
 
 		return temp;
@@ -181,7 +181,7 @@ public:
 	}
 	static UINT SizeType(const std::map<Key, T>& t)
 	{
-		UINT size = 0;
+		size_t size = sizeof(size_t);
 		for (auto& a : t)
 			size += Helper<std::pair<Key,T>>::SizeType(a);
 
@@ -196,9 +196,9 @@ public:
 	Helper(StreamReader& stream) : HelpBase(stream){}
 	std::map<Key, T> Read()
 	{
-		const UINT size = stream.Read<UINT>();
+		const size_t size = stream.Read<size_t>();
 		std::map<Key, T> temp;
-		for (UINT i = 0; i < size; i++)
+		for (size_t i = 0; i < size; i++)
 			temp.insert(stream.Read<std::pair<Key,T>>());
 
 		return temp;
@@ -218,7 +218,7 @@ public:
 	}
 	static UINT SizeType(const std::unordered_map<Key, T>& t)
 	{
-		UINT size = 0;
+		size_t size = sizeof(size_t);
 		for (auto& a : t)
 			size += Helper<std::pair<Key,T>>::SizeType(a);
 
@@ -233,7 +233,7 @@ public:
 	Helper(StreamReader& stream) : HelpBase(stream){}
 	std::unordered_map<Key, T> Read()
 	{
-		const UINT size = stream.Read<UINT>();
+		const size_t size = stream.Read<size_t>();
 		std::unordered_map<Key, T> temp;
 		temp.reserve(size);
 		for (UINT i = 0; i < size; i++)

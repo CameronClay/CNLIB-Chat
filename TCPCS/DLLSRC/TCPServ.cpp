@@ -509,8 +509,8 @@ void TCPServ::RemoveClient(USHORT& pos)
 
 	if(!user.empty() && !host.empty())//if user wasnt declined authentication, and server was not shut down
 	{
-		MsgStreamWriter streamWriter(TYPE_CHANGE, MSG_CHANGE_DISCONNECT, (user.size() + 1) * sizeof(LIB_TCHAR));
-		streamWriter.WriteEnd(user.c_str());
+		MsgStreamWriter streamWriter(TYPE_CHANGE, MSG_CHANGE_DISCONNECT, StreamWriter::SizeType(user));
+		streamWriter.Write(user);
 		SendClientData(streamWriter, streamWriter.GetSize(), Socket(), false);
 	}
 }

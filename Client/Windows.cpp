@@ -253,7 +253,7 @@ void Flash()
 }
 
 //returns index if found, -1 if not found
-int FindClient(std::tstring& name)
+int FindClient(const std::tstring& name)
 {
 	const USHORT count = SendMessage(listClients, LB_GETCOUNT, 0, 0);
 	LIB_TCHAR* buffer = alloc<LIB_TCHAR>(maxUserLen + 1);
@@ -306,31 +306,32 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 			}
 			case MSG_CHANGE_CONNECT:
 			{
+				const std::tstring name = streamReader.Read<std::tstring>();
+
 				LIB_TCHAR buffer[128];
-				_stprintf(buffer, _T("Server: %s has connected!"), (LIB_TCHAR*)dat);
+				_stprintf(buffer, _T("Server: %s has connected!"), (LIB_TCHAR*)name.c_str());
 
-				const UINT nChars = Format::FormatTextBuffLen(buffer, _tcslen(buffer), opts->TimeStamps());
-				LIB_TCHAR* text = alloc<LIB_TCHAR>(nChars);
-				Format::FormatText(buffer, text, nChars, opts->TimeStamps());
-				textBuffer.WriteLine(text, nChars - 1);
-				dealloc(text);
+				std::tstring str;
+				Format::FormatText(buffer, str, opts->TimeStamps());
+				textBuffer.WriteLine(str);
 
-				if (FindClient((std::tstring((LIB_TCHAR*)dat))) == -1)
-					SendMessage(listClients, LB_ADDSTRING, 0, (LPARAM)dat);
+				if (FindClient(name) == -1)
+					SendMessage(listClients, LB_ADDSTRING, 0, (LPARAM)name.c_str());
 
 				Flash();
 				break;
 			}
 			case MSG_CHANGE_CONNECTINIT:
 			{
-				if(FindClient(std::tstring((LIB_TCHAR*)dat)) == -1)
-					SendMessage(listClients, LB_ADDSTRING, 0, (LPARAM)dat);
+				const std::tstring name = streamReader.Read<std::tstring>();
+				if (FindClient(name) == -1)
+					SendMessage(listClients, LB_ADDSTRING, 0, (LPARAM)name.c_str());
 
 				break;
 			}
 			case MSG_CHANGE_DISCONNECT:
 			{
-				std::tstring name = (LIB_TCHAR*)dat;
+				const std::tstring name = streamReader.Read<std::tstring>();
 				int item = 0;
 
 				if(fileReceive->Running())
@@ -349,18 +350,16 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 					}
 				}
 
-				if((item = FindClient((std::tstring)name)) != -1)
+				if (item = FindClient(name) != -1)
 					SendMessage(listClients, LB_DELETESTRING, item, 0);
 
 				LIB_TCHAR buffer[128];
-				_stprintf(buffer, _T("Server: %s has disconnected!"), (LIB_TCHAR*)dat);
+				_stprintf(buffer, _T("Server: %s has disconnected!"), (LIB_TCHAR*)name.c_str());
 
 
-				const UINT nChars = Format::FormatTextBuffLen(buffer, _tcslen(buffer), opts->TimeStamps());
-				LIB_TCHAR* text = alloc<LIB_TCHAR>(nChars);
-				Format::FormatText(buffer, text, nChars, opts->TimeStamps());
-				textBuffer.WriteLine(text, nChars - 1);
-				dealloc(text);
+				std::tstring str;
+				Format::FormatText(buffer, str, opts->TimeStamps());
+				textBuffer.WriteLine(str);
 
 				Flash();
 				break;
@@ -374,12 +373,9 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 			{
 				case MSG_DATA_TEXT:
 				{
-					std::tstring str((LIB_TCHAR*)dat, nBytes / sizeof(LIB_TCHAR));
-					const UINT nChars = Format::FormatTextBuffLen(str.c_str(), str.length(), opts->TimeStamps());
-					LIB_TCHAR* text = alloc<LIB_TCHAR>(nChars);
-					Format::FormatText(str.c_str(), text, nChars, opts->TimeStamps());
-					textBuffer.WriteLine(text, nChars - 1);
-					dealloc(text);
+					std::tstring str = streamReader.Read<std::tstring>();
+					Format::FormatText(str, str, opts->TimeStamps());
+					textBuffer.WriteLine(str);
 
 					Flash();
 					break;
@@ -422,7 +418,7 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 					fileSend->Stop();//stop instead of stopsend because thread hasnt been created and only vars need cleared
 
 					LIB_TCHAR buffer[255];
-					_stprintf(buffer, _T("%s has declined your transfer request!"), (LIB_TCHAR*)dat);
+					_stprintf(buffer, _T("%s has declined your transfer request!"), streamReader.Read<std::tstring>().c_str());
 					MessageBox(hMainWind, buffer, _T("DECLINED"), MB_ICONERROR);
 					break;
 				}
@@ -430,7 +426,7 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 				case MSG_RESPONSE_TRANSFER_CONFIRMED:
 				{
 					LIB_TCHAR buffer[255];
-					_stprintf(buffer, _T("%s has confirmed your transfer request!"), (LIB_TCHAR*)dat);
+					_stprintf(buffer, _T("%s has confirmed your transfer request!"), streamReader.Read<std::tstring>().c_str());
 					MessageBox(hMainWind, buffer, _T("Success"), MB_OK);
 					fileSend->StartSend();
 					break;
@@ -439,7 +435,7 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 				case MSG_RESPONSE_WHITEBOARD_CONFIRMED:
 				{
 					LIB_TCHAR buffer[255];
-					_stprintf(buffer, _T("%s has joined the Whiteboard!"), (LIB_TCHAR*)dat);
+					_stprintf(buffer, _T("%s has joined the Whiteboard!"), streamReader.Read<std::tstring>().c_str());
 					MessageBox(hMainWind, buffer, _T("Success"), MB_OK);
 					break;
 				}
@@ -447,7 +443,7 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 				case MSG_RESPONSE_WHITEBOARD_DECLINED:
 				{
 					LIB_TCHAR buffer[255];
-					_stprintf(buffer, _T("%s has declined the whiteboard!"), (LIB_TCHAR*)dat);
+					_stprintf(buffer, _T("%s has declined the whiteboard!"), streamReader.Read<std::tstring>().c_str());
 					MessageBox(hMainWind, buffer, _T("DECLINED"), MB_ICONERROR);
 					break;
 				}
@@ -491,8 +487,7 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 			{
 				case MSG_REQUEST_TRANSFER:
 				{
-					const UINT len = streamReader.Read<UINT>();
-					fileReceive->GetUser() = streamReader.Read<LIB_TCHAR>(len);
+					fileReceive->GetUser() = streamReader.Read<std::tstring>();
 					fileReceive->SetSize(streamReader.Read<double>());
 					if (fileReceive->Running())
 					{
@@ -510,10 +505,10 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 				case MSG_REQUEST_WHITEBOARD:
 				{
 					wbCanDraw = streamReader.Read<bool>();
-					LIB_TCHAR* name = streamReader.ReadEnd<TCHAR>();
+					std::tstring name = streamReader.Read<std::tstring>();
 
 					LIB_TCHAR buffer[255];
-					_stprintf(buffer, _T("%s wants to display a whiteboard. Can Draw: %s"), (LIB_TCHAR*)name, wbCanDraw ? _T("Yes") : _T("No"));
+					_stprintf(buffer, _T("%s wants to display a whiteboard. Can Draw: %s"), name.c_str(), wbCanDraw ? _T("Yes") : _T("No"));
 
 					DialogBoxParam(hInst, MAKEINTRESOURCE(REQUEST), hMainWind, RequestWBProc, (LPARAM)buffer);
 					break;
@@ -543,7 +538,7 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 
 					Flash();
 					LIB_TCHAR buffer[255];
-					_stprintf(buffer, _T("%s has kicked you from the server!"), (LIB_TCHAR*)dat);
+					_stprintf(buffer, _T("%s has kicked you from the server!"), streamReader.Read<std::tstring>().c_str());
 					MessageBox(hMainWind, buffer, _T("Kicked"), MB_ICONERROR);
 
 					Disconnect();
@@ -633,7 +628,7 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 			case MSG_WHITEBOARD_KICK:
 			{
 				LIB_TCHAR buffer[255];
-				_stprintf(buffer, _T("%s has removed you from the whiteboard!"), (LIB_TCHAR*)dat);
+				_stprintf(buffer, _T("%s has removed you from the whiteboard!"), streamReader.Read<std::tstring>().c_str());
 				MessageBox(wbHandle, buffer, _T("Kicked"), MB_ICONEXCLAMATION);
 				SendMessage(wbHandle, WM_CLOSE, 0, 0);
 				break;
@@ -898,22 +893,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 			}
 			const UINT len = SendMessage(textInput, WM_GETTEXTLENGTH, 0, 0) + 1;
-			const UINT nBytes = (len * sizeof(LIB_TCHAR)) + MSG_OFFSET;
-			char* msg = alloc<char>(nBytes);
-			msg[0] = TYPE_DATA;
-			msg[1] = MSG_DATA_TEXT;
-			SendMessage(textInput, WM_GETTEXT, len, (LPARAM)(msg + MSG_OFFSET));
+
+			LIB_TCHAR* buffer = alloc<LIB_TCHAR>(len);
+			SendMessage(textInput, WM_GETTEXT, len, (LPARAM)buffer);
+			std::tstring str = buffer;
+			dealloc(buffer);
+
 			SendMessage(textInput, WM_SETTEXT, 0, (LPARAM)_T(""));
 			EnableWindow(buttonEnter, false);
 
-			const UINT nChars = Format::FormatTextBuffLen((LIB_TCHAR*)(msg + MSG_OFFSET), len - 1, user, opts->TimeStamps());
-			LIB_TCHAR* text = alloc<LIB_TCHAR>(nChars);
-			Format::FormatText((LIB_TCHAR*)(msg + MSG_OFFSET), text, nChars, user, opts->TimeStamps());
-			textBuffer.WriteLine(text, nChars - 1);
-			dealloc(text);
+			std::tstring dest;
+			Format::FormatText(str.c_str(), dest, user, opts->TimeStamps());
+			textBuffer.WriteLine(dest);
 
-			client->SendServData(msg, nBytes);
-			dealloc(msg);
+			MsgStreamWriter streamWriter(TYPE_DATA, MSG_DATA_TEXT, StreamWriter::SizeType(str));
+			streamWriter.Write(str);
+			client->SendServData(streamWriter, streamWriter.GetSize());
 			break;
 		}
 
@@ -1731,10 +1726,9 @@ INT_PTR CALLBACK AuthenticateProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 				break;
 			}
 
-			std::tstring send = user + _T(":") + pass;
-			const UINT sendLen = send.size() + 1;
-			MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_AUTHENTICATION, sendLen * sizeof(LIB_TCHAR));
-			streamWriter.Write(send.c_str(), sendLen);
+			const std::tstring send = user + _T(":") + pass;
+			MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_AUTHENTICATION, StreamWriter::SizeType(send));
+			streamWriter.Write(send);
 
 			client->SendServData(streamWriter, streamWriter.GetSize());
 
@@ -2110,7 +2104,6 @@ INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 {
 	static HWND draw, invite;
 	static std::tstring usersel;
-	static UINT len;
 	switch(message)
 	{
 	case WM_COMMAND:
@@ -2123,9 +2116,9 @@ INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 			//const bool canInvite = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANINVITE));
 			//const bool canDraw = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
 
-			MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_WHITEBOARD, (len * sizeof(LIB_TCHAR)) + sizeof(bool));
+			MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_WHITEBOARD, StreamWriter::SizeType(usersel) + sizeof(bool));
 			streamWriter.Write(BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
-			streamWriter.Write(usersel.c_str(), len);
+			streamWriter.Write(usersel);
 
 			client->SendServData(streamWriter, streamWriter.GetSize());
 
@@ -2144,7 +2137,7 @@ INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 	case WM_INITDIALOG:
 	{
 		const UINT i = SendMessage(listClients, LB_GETCURSEL, 0, 0);
-		len = SendMessage(listClients, LB_GETTEXTLEN, i, 0) + 1;
+		const UINT len = SendMessage(listClients, LB_GETTEXTLEN, i, 0) + 1;
 		usersel.resize(len);
 		SendMessage(listClients, LB_GETTEXT, i, (LPARAM)&usersel[0]);
 		usersel.pop_back();

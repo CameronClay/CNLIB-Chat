@@ -276,8 +276,8 @@ void TCPClient::SendMsg(char type, char message)
 
 void TCPClient::SendMsg(const std::tstring& name, char type, char message)
 {
-	MsgStreamWriter streamWriter(type, message, (name.size() + 1) * sizeof(LIB_TCHAR));
-	streamWriter.WriteEnd(name.c_str());
+	MsgStreamWriter streamWriter(type, message, StreamWriter::SizeType(name));
+	streamWriter.Write(name);
 	SendServData(streamWriter, streamWriter.GetSize(), NOCOMPRESSION);
 }
 
