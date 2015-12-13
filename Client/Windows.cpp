@@ -309,7 +309,7 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 				const std::tstring name = streamReader.Read<std::tstring>();
 
 				LIB_TCHAR buffer[128];
-				_stprintf(buffer, _T("Server: %s has connected!"), (LIB_TCHAR*)name.c_str());
+				_stprintf(buffer, _T("Server: %s has connected!"), name.c_str());
 
 				std::tstring str;
 				Format::FormatText(buffer, str, opts->TimeStamps());
@@ -354,7 +354,7 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 					SendMessage(listClients, LB_DELETESTRING, item, 0);
 
 				LIB_TCHAR buffer[128];
-				_stprintf(buffer, _T("Server: %s has disconnected!"), (LIB_TCHAR*)name.c_str());
+				_stprintf(buffer, _T("Server: %s has disconnected!"), name.c_str());
 
 
 				std::tstring str;
@@ -903,7 +903,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			EnableWindow(buttonEnter, false);
 
 			std::tstring dest;
-			Format::FormatText(str.c_str(), dest, user, opts->TimeStamps());
+			Format::FormatText(str, dest, user, opts->TimeStamps());
 			textBuffer.WriteLine(dest);
 
 			MsgStreamWriter streamWriter(TYPE_DATA, MSG_DATA_TEXT, StreamWriter::SizeType(str));
