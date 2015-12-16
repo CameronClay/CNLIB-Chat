@@ -30,12 +30,7 @@ public:
 	{
 		ZeroMemory(&stream, sizeof(MsgStream));
 	}
-/*
-	~MsgStream()
-	{
-		dealloc((char*&)begin);
-	}
-*/
+
 	char GetType() const
 	{
 		return begin[0];
@@ -96,7 +91,7 @@ public:
 
 	~MsgStreamWriter()
 	{
-		dealloc( (char*&)begin ); // would rather user handle allocation
+		dealloc( (char*&)begin );
 	}
 
 	operator const char*()
