@@ -56,7 +56,6 @@ FileTransfer::FileTransfer(FileTransfer&& ft)
 
 FileTransfer::~FileTransfer()
 {
-
 }
 
 void FileTransfer::SetList(std::vector<FileMisc::FileData>&& list)
@@ -84,7 +83,7 @@ HWND FileTransfer::GetWnd() const
 	return wnd;
 }
 
-std::vector<FileMisc::FileData>&  FileTransfer::GetList()
+std::vector<FileMisc::FileData>& FileTransfer::GetList()
 {
 	return list;
 }
@@ -169,7 +168,7 @@ void FileSend::SetFullPathSrc(std::tstring& fullFilepathSrc)
 
 void FileSend::RequestTransfer()
 {
-	MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_TRANSFER, StreamWriter::SizeType(username) + sizeof(double));
+	MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_TRANSFER, StreamWriter::SizeType(username, size));
 
 	for(auto& i : list)
 		size += i.size;

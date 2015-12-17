@@ -87,7 +87,7 @@ public:
 		std::vector<T> temp;
 		temp.reserve(size);
 		for (size_t i = 0; i < size; i++)
-			temp.push_back(std::move(stream.Read<T>()));
+			temp.push_back(stream.Read<T>());
 
 		return temp;
 	}
@@ -124,7 +124,7 @@ public:
 		const size_t size = stream.Read<size_t>();
 		std::list<T> temp;
 		for (UINT i = 0; i < size; i++)
-			temp.push_back(std::move(stream.Read<T>()));
+			temp.push_back(stream.Read<T>());
 
 		return temp;
 	}
@@ -162,7 +162,7 @@ public:
 		const size_t size = stream.Read<size_t>();
 		std::forward_list<T> temp;
 		for (size_t i = 0; i < size; i++)
-			temp.push_front(std::move(stream.Read<T>()));
+			temp.push_front(stream.Read<T>());
 
 		return temp;
 	}
@@ -199,7 +199,7 @@ public:
 		const size_t size = stream.Read<size_t>();
 		std::map<Key, T> temp;
 		for (size_t i = 0; i < size; i++)
-			temp.insert(std::move(stream.Read<std::pair<Key, T>>()));
+			temp.insert(stream.Read<std::pair<Key, T>>());
 
 		return temp;
 	}
@@ -237,7 +237,7 @@ public:
 		std::unordered_map<Key, T> temp;
 		temp.reserve(size);
 		for (UINT i = 0; i < size; i++)
-			temp.insert(std::move(stream.Read<std::pair<Key, T>>()));
+			temp.insert(stream.Read<std::pair<Key, T>>());
 
 		return temp;
 	}
