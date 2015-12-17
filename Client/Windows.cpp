@@ -225,9 +225,9 @@ void RecalcSizeVars(USHORT width, USHORT height)
 	top = screenHeight * (8.0f / 10.0f), topLen = screenHeight - top;
 }
 
-void Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, float timeOut)
+void Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, float timeOut)
 {
-	if (client->Connect(dest, port, timeOut))
+	if (client->Connect(dest, port, ipv6, timeOut))
 	{
 		EnableMenuItem(file, ID_SERV_CONNECT, MF_GRAYED);
 		EnableMenuItem(file, ID_SERV_DISCONNECT, MF_ENABLED);
@@ -1448,7 +1448,7 @@ INT_PTR CALLBACK ConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 			str.resize(len + 1);
 			SendMessage(list, LB_GETTEXT, index, (LPARAM)&str[0]);
 			const UINT pos = str.find(_T(":"));
-			Connect(str.substr(0, pos).c_str(), str.substr(pos + 1).c_str(), timeOut);
+			Connect(str.substr(0, pos).c_str(), str.substr(pos + 1).c_str(), false, timeOut);
 			if (client->IsConnected())
 			{
 				client->RecvServData();
