@@ -241,6 +241,7 @@ HANDLE TCPClient::SendServDataThread(const char* data, DWORD nBytes, Compression
 		else
 			compType = NOCOMPRESSION;
 	}
+	
 	return CreateThread(NULL, 0, SendData, (LPVOID)construct<SendInfo>(*this, (char*)data, nBytes, compType), NULL, NULL);
 }
 

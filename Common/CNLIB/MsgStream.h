@@ -126,18 +126,8 @@ public:
 		return TypeSize<T...>::value;
 	}
 
-<<<<<<< HEAD
-	//template<typename T, typename... Args>
-	//static UINT SizeType(const T&, const Args&... args)
-	//{
-	//	return Helper<T>::SizeType(t) + SizeType<Args...>(args...);
-	//}
-	template<typename T>
-	static UINT SizeType(const T& t)
-=======
 	template<typename... T>
 	static UINT SizeType(const T&... t)
->>>>>>> 36e06aad0b7c53bae63863ddb8da09c27107a865
 	{
 		UINT size = 0;
 		for(auto& a : { Helper<T>::SizeType(t)... })
