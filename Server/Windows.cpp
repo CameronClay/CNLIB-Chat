@@ -37,8 +37,8 @@ struct Authent
 	std::tstring user, password;
 };
 
-const USHORT DEFUALTPORT = 565;
-USHORT port = DEFUALTPORT;
+const USHORT DEFAULTPORT = 565;
+USHORT port = DEFAULTPORT;
 
 const UINT maxUserLen = 10;
 
@@ -151,7 +151,7 @@ void RequestTransfer(TCPServInterface& serv, std::tstring& srcUserName, MsgStrea
 
 	MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_TRANSFER, StreamWriter::SizeType(srcUserName) + sizeof(double));
 	streamWriter.Write(srcUserName);
-	streamWriter.Write<double>(streamReader.Read<double>());
+	streamWriter.Write(streamReader.Read<double>());
 
 	serv.SendClientData(streamWriter, streamWriter.GetSize(), client->pc, true);
 }
@@ -204,7 +204,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 			const UINT pos = authent.find(_T(":"));
 			assert(pos != std::tstring::npos);
 
-			std::tstring user = authent.substr(0, pos), pass = authent.substr(pos + 1, (nBytes / sizeof(LIB_TCHAR) - pos));
+			std::tstring user = authent.substr(0, pos), pass = authent.substr(pos + 1, authent.size() - pos);
 			bool inList = false, auth = false;
 
 			//Compare credentials with those stored on the server
@@ -285,7 +285,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 				auto fClint = serv.FindClient(name);
 				if(!fClint)
 					break;
-				MsgStreamWriter streamWriter(streamReader.GetType(), streamReader.GetMsg(), sizeof(bool) + StreamWriter::SizeType(clint->user));
+				MsgStreamWriter streamWriter(streamReader.GetType(), streamReader.GetMsg(), StreamWriter::SizeType(canDraw, clint->user));
 				streamWriter.Write(canDraw);
 				streamWriter.Write(clint->user);
 				serv.SendClientData(streamWriter, streamWriter.GetSize(), fClint->pc, true);
@@ -364,7 +364,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 
 			//Send activate message to new client
 			MsgStreamWriter streamWriter(TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE, sizeof(WBParams));
-			streamWriter.Write<WBParams>(wbParams);
+			streamWriter.Write(wbParams);
 			serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, true);
 			break;
 		}
@@ -450,7 +450,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 		{
 		case MSG_VERSION_CHECK:
 		{
-			if (*(float*)dat == APPVERSION)
+			if (streamReader.Read<float>() == APPVERSION)
 				serv.SendMsg(clint->pc, true, TYPE_VERSION, MSG_VERSION_UPTODATE);
 			else
 				serv.SendMsg(clint->pc, true, TYPE_VERSION, MSG_VERSION_OUTOFDATE);
@@ -472,10 +472,10 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 				WBParams* params = (WBParams*)dat;
 
 				MsgStreamWriter streamWriter(TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE, sizeof(WBParams));
-				streamWriter.Write(std::move(*params));
+				streamWriter.Write(*params);
 				serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, true);
 
-				wb = construct<Whiteboard>(serv, *params, clint->user);
+				wb = construct<Whiteboard>(serv, std::move(*params), clint->user);
 
 				wb->StartThread();
 			}
@@ -629,7 +629,7 @@ void WinMainInit()
 		if (configVersion == CONFIGVERSION)
 		{
 			if (!file.Read(&port, sizeof(USHORT)))
-				port = DEFUALTPORT;
+				port = DEFAULTPORT;
 		}
 		else
 		{

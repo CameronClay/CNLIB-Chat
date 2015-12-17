@@ -120,12 +120,13 @@ public:
 		Helper<T>(*this).WriteEnd(t);
 	}
 
-	template<typename T>
-	static std::enable_if_t<std::is_arithmetic<T>::value, UINT> SizeType()
+	template<typename... T>
+	static UINT SizeType()
 	{
-		return sizeof(T);
+		return TypeSize<T...>::value;
 	}
 
+<<<<<<< HEAD
 	//template<typename T, typename... Args>
 	//static UINT SizeType(const T&, const Args&... args)
 	//{
@@ -133,10 +134,24 @@ public:
 	//}
 	template<typename T>
 	static UINT SizeType(const T& t)
+=======
+	template<typename... T>
+	static UINT SizeType(const T&... t)
+>>>>>>> 36e06aad0b7c53bae63863ddb8da09c27107a865
 	{
-		return Helper<T>::SizeType(t);
+		UINT size = 0;
+		for(auto& a : { Helper<T>::SizeType(t)... })
+			size += a;
+		return size;
 	}
+
 private:
+	template<typename T, typename... V>
+	struct TypeSize : std::integral_constant<UINT, sizeof(T) + TypeSize<V...>::value>{};
+	template<typename T>
+	struct TypeSize<T> : std::integral_constant<UINT, sizeof(T)>
+	{ static_assert(std::is_arithmetic<T>::value, "cannot call SizeType<T...>() with a non-arithmetic type"); };
+
 	template<typename T> class HelpBase
 	{
 	public:
