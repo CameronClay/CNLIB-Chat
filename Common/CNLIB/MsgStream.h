@@ -125,6 +125,12 @@ public:
 	{
 		return sizeof(T);
 	}
+
+	//template<typename T, typename... Args>
+	//static UINT SizeType(const T&, const Args&... args)
+	//{
+	//	return Helper<T>::SizeType(t) + SizeType<Args...>(args...);
+	//}
 	template<typename T>
 	static UINT SizeType(const T& t)
 	{

@@ -37,7 +37,7 @@ public:
 		SendMessage(hnd, WM_SETTEXT, 0, (LPARAM)text.c_str());
 		SendMessage(hnd, EM_LINESCROLL, 0, MAXLONG);
 	}
-	const std::tstring GetText()
+	const std::tstring& GetText() const
 	{
 		return text;
 	}

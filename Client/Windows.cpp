@@ -350,7 +350,7 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 					}
 				}
 
-				if (item = FindClient(name) != -1)
+				if ((item = FindClient(name)) != -1)
 					SendMessage(listClients, LB_DELETESTRING, item, 0);
 
 				LIB_TCHAR buffer[128];
@@ -1178,7 +1178,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			const std::tstring& text = textBuffer.GetText();
 			if (!text.empty())
 			{
-				opts->AddLog((const char*)text.c_str(), text.size() * sizeof(LIB_TCHAR));
+				opts->AddLog((const char*)text.c_str(), (text.size() + 1) * sizeof(LIB_TCHAR));
 			}
 		}
 		DestroyClient(client);

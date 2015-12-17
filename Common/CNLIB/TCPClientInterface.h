@@ -14,7 +14,7 @@ typedef void(**const cfuncP)(TCPClientInterface& client, const BYTE* data, DWORD
 class CAMSNETLIB TCPClientInterface : public PingHI
 {
 public:
-	virtual bool Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, float timeOut = 5.0f) = 0;
+	virtual bool Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6 = false, float timeOut = 5.0f) = 0;
 
 	virtual void Shutdown() = 0;
 	virtual void Disconnect() = 0;

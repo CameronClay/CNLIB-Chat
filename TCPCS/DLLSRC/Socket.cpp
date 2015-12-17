@@ -112,11 +112,11 @@ Socket Socket::AcceptConnection()
 
 
 //IP or HostName for dest
-bool Socket::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, float timeout)
+bool Socket::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, float timeout)
 {
 	int result = false;
 	ADDRINFOT* addr = 0;
-	ADDRINFOT info = { 0, AF_INET, SOCK_STREAM, IPPROTO_TCP };
+	ADDRINFOT info = { 0, ipv6 ? AF_INET6 : AF_INET, SOCK_STREAM, IPPROTO_TCP };
 	//info.ai_flags = AI_NUMERICHOST;
 	result = GetAddrInfo(dest, port, &info, &addr);
 	if(!result)
