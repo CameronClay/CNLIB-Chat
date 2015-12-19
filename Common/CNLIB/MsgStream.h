@@ -58,7 +58,7 @@ public:
 
 	bool End() const
 	{
-		return begin == end;
+		return data == end;
 	}
 
 protected:
@@ -73,13 +73,6 @@ public:
 	MsgStreamWriter(char type, char msg, UINT capacity)
 		:
 		MsgStream(alloc<char>(capacity + MSG_OFFSET), capacity)
-	{
-		data[-2] = type;
-		data[-1] = msg;
-	}
-	MsgStreamWriter(char type, char msg, char* ptr, UINT nBytes)
-		:
-		MsgStream(ptr, nBytes)
 	{
 		data[-2] = type;
 		data[-1] = msg;
@@ -110,12 +103,12 @@ public:
 	}
 
 	template<typename T>
-	typename std::enable_if_t<std::is_arithmetic<T>::value> Write(T* t, UINT count)
+	std::enable_if_t<std::is_arithmetic<T>::value> Write(T* t, UINT count)
 	{
 		Helper<T>(*this).Write(t, count);
 	}
 	template<typename T>
-	typename std::enable_if_t<std::is_arithmetic<T>::value> WriteEnd(T* t)
+	std::enable_if_t<std::is_arithmetic<T>::value> WriteEnd(T* t)
 	{
 		Helper<T>(*this).WriteEnd(t);
 	}
@@ -219,11 +212,13 @@ public:
 		return *this;
 	}
 
-	template<typename T> std::enable_if_t<std::is_arithmetic<T>::value, T>* Read(UINT count)
+	template<typename T> 
+	std::enable_if_t<std::is_arithmetic<T>::value, T>* Read(UINT count)
 	{
 		return Helper<T>(*this).Read(count);
 	}
-	template<typename T> std::enable_if_t<std::is_arithmetic<T>::value, T>* ReadEnd()
+	template<typename T> 
+	std::enable_if_t<std::is_arithmetic<T>::value, T>* ReadEnd()
 	{
 		return Helper<T>(*this).ReadEnd();
 	}
