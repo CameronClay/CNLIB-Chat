@@ -5,6 +5,7 @@
 #include "CNLIB\File.h"
 #include "CNLIB\UPNP.h"
 #include "Format.h"
+#include "MessagesExt.h"
 #include "CNLIB\HeapAlloc.h"
 #include "CNLIB\Messages.h"
 #include "TextDisplay.h"

@@ -1,5 +1,6 @@
 #include "Whiteboard.h"
 #include "CNLIB\HeapAlloc.h"
+#include "MessagesExt.h"
 #include "CNLIB\Messages.h"
 #include <stdlib.h>
 #include <time.h>

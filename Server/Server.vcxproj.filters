@@ -24,9 +24,6 @@
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\WinFirewall.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Whiteboard.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -42,52 +39,58 @@
     <ClInclude Include="..\Common\Palette.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\File.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\HeapAlloc.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\Messages.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\MsgStream.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\Ping.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\Socket.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\TCPServInterface.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\Typedefs.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\UPNP.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\Vec2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\CircularBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\CompressionTypes.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\TextDisplay.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\StreamExt.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\Common\CNLIB\File.h">
+      <Filter>Header Files\CNILB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\HeapAlloc.h">
+      <Filter>Header Files\CNILB</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\CNLIB\IPV.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\CNILB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\Messages.h">
+      <Filter>Header Files\CNILB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\MsgStream.h">
+      <Filter>Header Files\CNILB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\Ping.h">
+      <Filter>Header Files\CNILB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\Socket.h">
+      <Filter>Header Files\CNILB</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\CNLIB\SocketListen.h">
+      <Filter>Header Files\CNILB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\TCPServInterface.h">
+      <Filter>Header Files\CNILB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\StreamExt.h">
+      <Filter>Header Files\CNILB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\UPNP.h">
+      <Filter>Header Files\CNILB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\WinFirewall.h">
+      <Filter>Header Files\CNILB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\Typedefs.h">
+      <Filter>Header Files\CNILB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\CompressionTypes.h">
+      <Filter>Header Files\CNILB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\MessagesExt.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -105,6 +108,9 @@
     </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{58cb3057-d89a-40b6-9ef4-d574329ea053}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\CNILB">
+      <UniqueIdentifier>{eb58c982-aba4-4200-abe0-d6b286c2007f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

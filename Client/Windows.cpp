@@ -8,6 +8,7 @@
 #include "Format.h"
 #include "CNLIB\HeapAlloc.h"
 #include "CNLIB\Messages.h"
+#include "MessagesExt.h"
 #include "Options.h"
 #include "Whiteboard.h"
 #include "Mouse.h"

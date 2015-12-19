@@ -1,6 +1,7 @@
 #include "FileTransfer.h"
 #include <assert.h>
 #include "CNLIB\HeapAlloc.h"
+#include "MessagesExt.h"
 #include "CNLIB\Messages.h"
 #include "CNLIB\MsgStream.h"
 
