@@ -76,7 +76,7 @@ bool SocketListen::Bind(const LIB_TCHAR* port, bool ipv6)
 
 void SocketListen::StartThread(TCPServ& serv)
 {
-	openCon = CreateThread(NULL, 0, WaitForConnections, (LPVOID)construct<ConnData>(*this, serv), NULL, NULL);
+	openCon = CreateThread(NULL, 0, WaitForConnections, construct<ConnData>(*this, serv), NULL, NULL);
 }
 
 Socket& SocketListen::GetHost()

@@ -59,4 +59,3 @@
 
 #define TYPE_TOOL 124
 #define MSG_TOOL_CHANGE -127
-

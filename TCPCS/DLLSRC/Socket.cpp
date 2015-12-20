@@ -226,7 +226,7 @@ bool Socket::GetLocalIP(LIB_TCHAR* dest, DWORD buffSize, bool ipv6)
 
 	FreeAddrInfo(pa);
 
-	return  res;
+	return res;
 }
 
 bool Socket::HostNameToIP(const LIB_TCHAR* host, LIB_TCHAR* dest, DWORD buffSize, bool ipv6)
@@ -253,4 +253,3 @@ bool Socket::SetNonBlocking()
 	u_long nbio = 1;
 	return (ioctlsocket(pc, FIONBIO, &nbio) != SOCKET_ERROR);
 }
-

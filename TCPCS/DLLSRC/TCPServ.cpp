@@ -95,7 +95,7 @@ struct SADataEx
 	CompressionType compType;
 };
 
-TCPServ::ClientData::ClientData(TCPServ& serv, Socket pc, sfunc func, USHORT recvIndex)
+TCPServ::ClientData::ClientData(TCPServInterface& serv, Socket pc, sfunc func, USHORT recvIndex)
 	:
 	pc(pc),
 	func(func),
@@ -314,7 +314,7 @@ HANDLE TCPServ::SendClientDataThread(const char* data, DWORD nBytes, Socket exAd
 		else
 			compType = NOCOMPRESSION;
 	}
-	return CreateThread(NULL, 0, &SendAllData, (LPVOID)construct<SAData>(*this, data, nBytes, exAddr, single, compType), NULL, NULL);
+	return CreateThread(NULL, 0, &SendAllData, construct<SAData>(*this, data, nBytes, exAddr, single, compType), NULL, NULL);
 }
 
 HANDLE TCPServ::SendClientDataThread(const char* data, DWORD nBytes, Socket* pcs, USHORT nPcs, CompressionType compType)
@@ -326,7 +326,7 @@ HANDLE TCPServ::SendClientDataThread(const char* data, DWORD nBytes, Socket* pcs
 		else
 			compType = NOCOMPRESSION;
 	}
-	return CreateThread(NULL, 0, &SendAllDataEx, (LPVOID)construct<SADataEx>(*this, data, nBytes, pcs, nPcs, compType), NULL, NULL);
+	return CreateThread(NULL, 0, &SendAllDataEx, construct<SADataEx>(*this, data, nBytes, pcs, nPcs, compType), NULL, NULL);
 }
 
 HANDLE TCPServ::SendClientDataThread(const char* data, DWORD nBytes, std::vector<Socket>& pcs, CompressionType compType)
@@ -405,8 +405,8 @@ TCPServ& TCPServ::operator=(TCPServ&& serv)
 		nClients = serv.nClients;
 		function = serv.function;
 		obj = serv.obj;
-		const_cast<void( *& )(ClientData*)>(conFunc) = serv.conFunc;
-		const_cast<void( *& )(ClientData*)>(disFunc) = serv.disFunc;
+		const_cast<std::remove_const_t<customFunc>&>(conFunc) = serv.conFunc;
+		const_cast<std::remove_const_t<customFunc>&>(disFunc) = serv.disFunc;
 		clientSect = serv.clientSect;
 		sendSect = serv.sendSect;
 		const_cast<int&>(compression) = serv.compression;
@@ -625,4 +625,3 @@ CRITICAL_SECTION* TCPServ::GetSendSect()
 {
 	return &sendSect;
 }
-

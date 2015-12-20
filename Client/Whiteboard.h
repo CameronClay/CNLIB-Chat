@@ -61,4 +61,3 @@ private:
 	IDirect3DSurface9 *pBackBuffer;
 	D3DLOCKED_RECT lockRect;
 };
-

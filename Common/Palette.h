@@ -15,4 +15,3 @@ public:
 private:
 	D3DCOLOR *palette;
 };
-

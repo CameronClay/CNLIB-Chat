@@ -37,7 +37,7 @@ public:
 
 	HANDLE GetPingTimer() const;
 
-private:	
+private:
 	HANDLE pingTimer, pingThread;
 	DWORD pingID;
 	PingData* pingData;
