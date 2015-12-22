@@ -2,7 +2,7 @@
 #include "Typedefs.h"
 #include "Socket.h"
 
-class SocketListen
+class CAMSNETLIB SocketListen
 {
 public:
 	SocketListen();

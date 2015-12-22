@@ -1,5 +1,6 @@
 #include "Whiteboard.h"
 #include "CNLIB\Messages.h"
+#include "MessagesExt.h"
 #include <assert.h>
 #include "CNLIB\HeapAlloc.h"
 #include "CNLIB\MsgStream.h"

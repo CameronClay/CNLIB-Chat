@@ -1,0 +1,5 @@
+1) Start by copying the CNLIB folder to your project
+2) Next copy CNLIB.lib to your project
+3) Copy CNLIB.dll to a location relative to your executable
+4) Now all you need to do is link the library to your project by doing: #pragma comment(lib, "TCPCS.lib")
+5) Include necessary header files and get started :)

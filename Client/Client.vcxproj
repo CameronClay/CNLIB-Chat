@@ -173,6 +173,7 @@
     <ClInclude Include="..\Common\ColorDef.h" />
     <ClInclude Include="..\Common\DebugHelper.h" />
     <ClInclude Include="..\Common\Format.h" />
+    <ClInclude Include="..\Common\MessagesExt.h" />
     <ClInclude Include="..\Common\Mouse.h" />
     <ClInclude Include="..\Common\Palette.h" />
     <ClInclude Include="..\Common\TextDisplay.h" />

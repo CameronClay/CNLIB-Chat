@@ -24,9 +24,6 @@
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\WinFirewall.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Whiteboard.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -42,52 +39,58 @@
     <ClInclude Include="..\Common\Palette.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\File.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\HeapAlloc.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\Messages.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\MsgStream.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\Ping.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\Socket.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\TCPServInterface.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\Typedefs.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\UPNP.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\Vec2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\CircularBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\CompressionTypes.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\TextDisplay.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\StreamExt.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\Common\CNLIB\File.h">
+      <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\HeapAlloc.h">
+      <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\CNLIB\IPV.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\Messages.h">
+      <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\MsgStream.h">
+      <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\Ping.h">
+      <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\Socket.h">
+      <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\CNLIB\SocketListen.h">
+      <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\TCPServInterface.h">
+      <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\StreamExt.h">
+      <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\UPNP.h">
+      <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\WinFirewall.h">
+      <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\Typedefs.h">
+      <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\CompressionTypes.h">
+      <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\MessagesExt.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -102,9 +105,14 @@
     </Filter>
     <Filter Include="Source Files">
       <UniqueIdentifier>{01ef7dcc-1dbc-4f82-85ca-bbb9eee61aba}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{58cb3057-d89a-40b6-9ef4-d574329ea053}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\CNLIB">
+      <UniqueIdentifier>{eb58c982-aba4-4200-abe0-d6b286c2007f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

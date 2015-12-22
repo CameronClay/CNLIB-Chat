@@ -37,7 +37,6 @@ public:
 
 	virtual IPv AllowConnections(const LIB_TCHAR* port, IPv ipv = ipboth) = 0;
 
-
 	virtual void SendClientData(const char* data, DWORD nBytes, Socket addr, bool single, CompressionType compType = BESTFIT) = 0;
 	virtual void SendClientData(const char* data, DWORD nBytes, Socket* pcs, USHORT nPcs, CompressionType compType = BESTFIT) = 0;
 	virtual void SendClientData(const char* data, DWORD nBytes, std::vector<Socket>& pcs, CompressionType compType = BESTFIT) = 0;

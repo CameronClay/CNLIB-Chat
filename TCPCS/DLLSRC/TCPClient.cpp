@@ -194,7 +194,7 @@ static DWORD CALLBACK ReceiveData(LPVOID param)
 }
 
 //IP or HostName for dest
-bool TCPClient::Connect( const LIB_TCHAR* dest, const LIB_TCHAR* port, float timeOut )
+bool TCPClient::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, float timeOut)
 {
 	if(host.IsConnected())
 		return false;
@@ -202,7 +202,7 @@ bool TCPClient::Connect( const LIB_TCHAR* dest, const LIB_TCHAR* port, float tim
 	//reset so it will send correct message
 	SetShutdownReason(true);
 
-	return host.Connect(dest, port, timeOut);
+	return host.Connect(dest, port, ipv6, timeOut);
 }
 
 void TCPClient::Disconnect()
@@ -215,7 +215,6 @@ void TCPClient::Shutdown()
 {
 	if(recv)
 	{
-		SetShutdownReason(false);
 		Disconnect();
 		WaitForSingleObject(recv, INFINITE);//Handle closed in thread
 	}

@@ -5,6 +5,7 @@
 #include "CNLIB\File.h"
 #include "CNLIB\UPNP.h"
 #include "Format.h"
+#include "MessagesExt.h"
 #include "CNLIB\HeapAlloc.h"
 #include "CNLIB\Messages.h"
 #include "TextDisplay.h"
@@ -160,10 +161,8 @@ void DispIPMsg(Socket& pc, const LIB_TCHAR* str)
 {
 	if (pc.IsConnected())
 	{
-		LIB_TCHAR buffer[128] = {};
-		pc.ToIp(buffer);
-		_tcscat(buffer, str);
-		textBuffer.WriteLine(buffer, _tcslen(buffer));
+		std::tstring disp = pc.GetInfo().GetIp() + str;
+		textBuffer.WriteLine(disp);
 	}
 }
 
