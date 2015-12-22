@@ -1448,8 +1448,8 @@ INT_PTR CALLBACK ConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 			std::tstring str;
 			str.resize(len + 1);
 			SendMessage(list, LB_GETTEXT, index, (LPARAM)&str[0]);
-			const UINT pos = str.find(_T(":"));
-			Connect(str.substr(0, pos).c_str(), str.substr(pos + 1).c_str(), false, timeOut);
+			const UINT pos = str.find_last_of(_T(":"));
+			Connect(str.substr(0, pos).c_str(), str.substr(pos + 1).c_str(), str[0] == _T('[') ? true : false, timeOut);
 			if (client->IsConnected())
 			{
 				client->RecvServData();
@@ -1590,7 +1590,7 @@ INT_PTR CALLBACK LogReaderProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 
 INT_PTR CALLBACK ManageProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	static HWND list, ipInput, portInput, add, remove;
+	static HWND list, ipv4Input, ipv6Input, portInput, add, remove;
 	switch (message)
 	{
 	case WM_COMMAND:
@@ -1600,16 +1600,29 @@ INT_PTR CALLBACK ManageProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 		{
 		case ID_MANAGE_PORT:
 		case ID_IP_ADD:
+		switch (HIWORD(wParam))
+		{
+		case EN_CHANGE:
+			if ((SendMessage(ipv4Input, IPM_ISBLANK, 0, 0) == 0) && (SendMessage(portInput, WM_GETTEXTLENGTH, 0, 0) != 0))
+				EnableWindow(add, TRUE);
+			else
+				EnableWindow(add, FALSE);
+			break;
+		}
+		break;
+		case ID_IP_ADD_IPV6:
+		{
 			switch (HIWORD(wParam))
 			{
 			case EN_CHANGE:
-				if((SendMessage(list, IPM_ISBLANK, 0, 0) == 0) && (SendMessage(portInput, WM_GETTEXTLENGTH, 0, 0) > 0))
+				if ((GetWindowTextLength(ipv6Input) != 0) && (SendMessage(portInput, WM_GETTEXTLENGTH, 0, 0) != 0))
 					EnableWindow(add, TRUE);
 				else
 					EnableWindow(add, FALSE);
 				break;
 			}
 			break;
+		}
 		case ID_ADDR_LIST_MANAGE:
 		{
 			if (SendMessage(list, LB_GETCURSEL, 0, 0) != LB_ERR)
@@ -1634,18 +1647,32 @@ INT_PTR CALLBACK ManageProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
 		case ID_BUTTON_ADD:
 		{
-			DWORD ip = 0;
-			SendMessage(ipInput, IPM_GETADDRESS, 0, (LPARAM)&ip);
-			LIB_TCHAR buffer[INET_ADDRSTRLEN] = {};
-			_stprintf(buffer, _T("%d.%d.%d.%d:%d"), FIRST_IPADDRESS(ip), SECOND_IPADDRESS(ip), THIRD_IPADDRESS(ip), FOURTH_IPADDRESS(ip), GetDlgItemInt(hWnd,ID_MANAGE_PORT,NULL,FALSE));
-			SendMessage(ipInput, IPM_CLEARADDRESS, 0, 0);
-			servList.push_back(buffer);
-			SendMessage(list, LB_ADDSTRING, 0, (LPARAM)buffer);
+			const UINT ipv6Len = SendMessage(ipv6Input, WM_GETTEXTLENGTH, 0, 0);
+			if (ipv6Len > 0)
+			{
+				LIB_TCHAR* temp = alloc<LIB_TCHAR>(ipv6Len + 1);
+				SendMessage(ipv6Input, WM_GETTEXT, ipv6Len + 1, (LPARAM)temp);
+				SendMessage(ipv6Input, WM_SETTEXT, NULL, (LPARAM)_T(""));
+				LIB_TCHAR buffer[INET6_ADDRSTRLEN];
+				_stprintf(buffer, _T("[%s]:%d"), temp, GetDlgItemInt(hWnd, ID_MANAGE_PORT, NULL, FALSE));
+				dealloc(temp);
+				servList.push_back(buffer);
+				SendMessage(list, LB_ADDSTRING, 0, (LPARAM)buffer);
+			}
+			else
+			{
+				DWORD ip = 0;
+				SendMessage(ipv4Input, IPM_GETADDRESS, 0, (LPARAM)&ip);
+				LIB_TCHAR buffer[INET_ADDRSTRLEN] = {};
+				_stprintf(buffer, _T("%d.%d.%d.%d:%d"), FIRST_IPADDRESS(ip), SECOND_IPADDRESS(ip), THIRD_IPADDRESS(ip), FOURTH_IPADDRESS(ip), GetDlgItemInt(hWnd, ID_MANAGE_PORT, NULL, FALSE));
+				SendMessage(ipv4Input, IPM_CLEARADDRESS, 0, 0);
+				servList.push_back(buffer);
+				SendMessage(list, LB_ADDSTRING, 0, (LPARAM)buffer);
+			}
 
 			EnableWindow(add, FALSE);
 			break;
 		}
-
 
 		case IDOK:
 			SaveServList();
@@ -1659,7 +1686,10 @@ INT_PTR CALLBACK ManageProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 	}
 	case WM_INITDIALOG:
 	{
-		list = GetDlgItem(hWnd, ID_ADDR_LIST_MANAGE), ipInput = GetDlgItem(hWnd, ID_IP_ADD), portInput = GetDlgItem(hWnd, ID_MANAGE_PORT), add = GetDlgItem(hWnd, ID_BUTTON_ADD), remove = GetDlgItem(hWnd, ID_BUTTON_REMOVE);
+		list = GetDlgItem(hWnd, ID_ADDR_LIST_MANAGE), ipv4Input = GetDlgItem(hWnd, ID_IP_ADD_IPV4), ipv6Input = GetDlgItem(hWnd, ID_IP_ADD_IPV6),
+			portInput = GetDlgItem(hWnd, ID_MANAGE_PORT), add = GetDlgItem(hWnd, ID_BUTTON_ADD), remove = GetDlgItem(hWnd, ID_BUTTON_REMOVE);
+
+		SendMessage(ipv6Input, EM_SETLIMITTEXT, INET6_ADDRSTRLEN, 0);
 		
 		SendMessage(portInput, EM_SETLIMITTEXT, 5, 0);
 		SetDlgItemInt(hWnd, ID_MANAGE_PORT, DEFAULTPORT, FALSE);

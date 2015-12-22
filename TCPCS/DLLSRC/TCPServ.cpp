@@ -472,9 +472,7 @@ void TCPServ::AddClient(Socket pc)
 	clients[nClients] = construct<ClientData>(data->serv, pc, function, data->pos);
 	clients[nClients]->recvThread = CreateThread(NULL, 0, RecvData, data, NULL, NULL);
 
-	RunConFunc(clients[nClients]);
-
-	++nClients;
+	RunConFunc(clients[nClients++]);
 
 	LeaveCriticalSection(&clientSect);
 }

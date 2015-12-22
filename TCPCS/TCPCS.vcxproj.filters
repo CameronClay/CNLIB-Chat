@@ -66,6 +66,9 @@
     <ClInclude Include="..\Common\CNLIB\UPNP.h">
       <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\SocketInfo.h">
+      <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DLLSRC\File.cpp">
@@ -93,6 +96,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\Common\WinFirewall.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\CNLIB\SocketInfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
