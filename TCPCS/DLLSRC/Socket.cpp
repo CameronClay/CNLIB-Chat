@@ -19,35 +19,68 @@ int CleanupNetworking()
 }
 
 Socket::Socket(const LIB_TCHAR* port)
+	:
+	refCount(construct<UINT>(1))
 {
 	Bind(port);
 }
 
 
 Socket::Socket()
-	:
-	pc(INVALID_SOCKET),
-	info()
 {}
 
 Socket::Socket(SOCKET pc)
-	:
-	pc(pc),
-	info()
+	: 
+	pc(construct<SOCKET>(pc)),
+	refCount(construct<UINT>(1))
 {}
+
+Socket::Socket(Socket&& pc)
+	:
+	pc(pc.pc),
+	refCount(pc.refCount),
+	info(std::move(pc.info))
+{
+	ZeroMemory(&pc, sizeof(Socket));
+}
+
+Socket::Socket(const Socket& pc)
+	:
+	pc(pc.pc),
+	refCount(pc.refCount),
+	info(pc.info)
+{
+	if (refCount)
+		++(*refCount);
+}
+
+Socket::~Socket()
+{
+	if (refCount && --(*refCount) == 0)
+		Disconnect();
+}
 
 Socket& Socket::operator= (const Socket& pc)
 {
-	this->pc = pc.pc;
-	this->info = pc.info;
+	if (this != &pc)
+	{
+		this->~Socket();
+		this->pc = pc.pc;
+		this->info = pc.info;
+		refCount = pc.refCount;
+		if (refCount)
+			++(*refCount);
+	}
 	return *this;
 }
 Socket& Socket::operator= (Socket&& pc)
 {
 	if(this != &pc)
 	{
+		this->~Socket();
 		this->pc = pc.pc;
 		this->info = std::move(pc.info);
+		refCount = pc.refCount;
 		ZeroMemory(&pc, sizeof(Socket));
 	}
 	return *this;
@@ -63,21 +96,11 @@ bool Socket::operator!= (const Socket pc) const
 }
 bool Socket::operator== (const SOCKET pc) const
 {
-	return pc == this->pc;
+	return (this->pc && (*this->pc == pc || *this->pc != INVALID_SOCKET));
 }
 bool Socket::operator!= (const SOCKET pc) const
 {
-	return pc != this->pc;
-}
-
-Socket::operator SOCKET&()
-{
-	return pc;
-}
-
-Socket::operator HANDLE&()
-{
-	return (HANDLE&)pc;
+	return !operator==(pc);
 }
 
 bool Socket::Bind(const LIB_TCHAR* port, bool ipv6)
@@ -88,13 +111,18 @@ bool Socket::Bind(const LIB_TCHAR* port, bool ipv6)
 	ADDRINFOT& addr = *paddr;
 
 	bool result = false;
-	pc = socket(addr.ai_family, addr.ai_socktype, addr.ai_protocol);
+	SOCKET pc = socket(addr.ai_family, addr.ai_socktype, addr.ai_protocol);
 	if (pc != INVALID_SOCKET)
 	{
 		if (bind(pc, addr.ai_addr, addr.ai_addrlen) == 0)
 		{
 			if (listen(pc, SOMAXCONN) == 0)
 			{
+				this->pc = construct<SOCKET>(pc);
+
+				if (!refCount)
+					refCount = construct<UINT>(1);
+
 				this->info.SetAddr(addr.ai_addr, addr.ai_addrlen);
 				result = true;
 			}
@@ -112,8 +140,8 @@ Socket Socket::AcceptConnection()
 	{
 		int addrLen = sizeof(sockaddr_in6);
 		sockaddr* addr = (sockaddr*)alloc<sockaddr_in6>();
-		Socket temp(accept(pc, addr, &addrLen));
-		if (temp.IsConnected())
+		Socket temp(accept(*pc, addr, &addrLen));
+		if (temp.IsConnected()) 
 		{
 			temp.info.SetAddr(addr, addrLen);
 			return temp;
@@ -130,31 +158,27 @@ bool Socket::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, fl
 	int result = false;
 	ADDRINFOT* addr = 0;
 	ADDRINFOT info = { 0, ipv6 ? AF_INET6 : AF_INET, SOCK_STREAM, IPPROTO_TCP };
-	//info.ai_flags = AI_NUMERICHOST;
+
 	result = GetAddrInfo(dest, port, &info, &addr);
 	if(!result)
 	{
-		pc = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
-		if(pc != INVALID_SOCKET)
+		pc = construct<SOCKET>(socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol));
+		if (IsConnected())
 		{
+			SOCKET temp = *pc;
 			SetNonBlocking();
-			result = connect(pc, addr->ai_addr, addr->ai_addrlen);
-			if(result == SOCKET_ERROR)
+			result = connect(temp, addr->ai_addr, addr->ai_addrlen);
+			if(result == SOCKET_ERROR)  // connect fails right away
 			{
 				FD_SET fds;
 				FD_ZERO(&fds);
-				FD_SET(pc, &fds);
+				FD_SET(temp, &fds);
 				u_long sec = (long)floor(timeout);
 				TIMEVAL tv = { sec, long((timeout - sec) * 100000.f) };
 				if(select(0, nullptr, &fds, nullptr, &tv) <= 0)
-				{
-					closesocket(pc);
-					pc = INVALID_SOCKET;
-				}
+					closesocket(temp);  // timed out
 				else
-				{
 					SetBlocking();
-				}
 			}
 			else
 			{
@@ -162,7 +186,16 @@ bool Socket::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, fl
 			}
 		}
 		if (IsConnected())
+		{
+			if (!refCount)
+				refCount = construct<UINT>(1);
+
 			this->info.SetAddr(addr->ai_addr, addr->ai_addrlen);
+		}
+		else
+		{
+			destruct(pc);
+		}
 
 		FreeAddrInfo(addr);
 	}
@@ -172,13 +205,14 @@ bool Socket::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, fl
 
 void Socket::Disconnect()
 {
-	if(IsConnected())
+	if (IsConnected())
 	{
-		shutdown(pc, SD_BOTH);
-		closesocket(pc);
-		pc = INVALID_SOCKET;
+		shutdown(*pc, SD_BOTH);
+		closesocket(*pc);
+		destruct(pc);
 		info.Cleanup();
 	}
+	destruct(refCount);
 }
 
 
@@ -190,7 +224,7 @@ long Socket::ReadData(void* dest, DWORD nBytes)
 	long received = 0, temp = SOCKET_ERROR;
 	do
 	{
-		received += temp = recv(pc, ((char*)dest) + received, nBytes - received, 0);
+		received += temp = recv(*pc, ((char*)dest) + received, nBytes - received, 0);
 		if ((temp == 0) || (temp == SOCKET_ERROR))
 			return temp;
 	} while (received != nBytes);
@@ -203,7 +237,7 @@ long Socket::SendData(const void* data, DWORD nBytes)
 	long sent = 0, temp = SOCKET_ERROR;
 	do
 	{
-		sent += temp = send(pc, ((char*)data) + sent, nBytes - sent, 0);
+		sent += temp = send(*pc, ((char*)data) + sent, nBytes - sent, 0);
 		if (temp == SOCKET_ERROR)
 			return temp;
 	} while(sent != nBytes);
@@ -212,20 +246,20 @@ long Socket::SendData(const void* data, DWORD nBytes)
 
 bool Socket::IsConnected() const
 {
-	return pc != INVALID_SOCKET;
+	return pc && *pc != INVALID_SOCKET;
 }
 
 
 bool Socket::SetBlocking()
 {
 	u_long nbio = 0;
-	return (ioctlsocket(pc, FIONBIO, &nbio) != SOCKET_ERROR);
+	return (ioctlsocket(*pc, FIONBIO, &nbio) != SOCKET_ERROR);
 }
 
 bool Socket::SetNonBlocking()
 {
 	u_long nbio = 1;
-	return (ioctlsocket(pc, FIONBIO, &nbio) != SOCKET_ERROR);
+	return (ioctlsocket(*pc, FIONBIO, &nbio) != SOCKET_ERROR);
 }
 
 const SocketInfo& Socket::GetInfo()
@@ -235,7 +269,7 @@ const SocketInfo& Socket::GetInfo()
 
 bool Socket::GetLocalIP(LIB_TCHAR* dest, bool ipv6)
 {
-	DWORD buffSize = 16;
+	DWORD buffSize = INET6_ADDRSTRLEN;
 	LIB_TCHAR buffer[128] = {};
 	ADDRINFOT info = { 0, ipv6 ? AF_INET6 : AF_INET }, *pa = nullptr;
 	GetHostName(buffer, 128);
@@ -249,8 +283,9 @@ bool Socket::GetLocalIP(LIB_TCHAR* dest, bool ipv6)
 	return  res;
 }
 
-bool Socket::HostNameToIP(const LIB_TCHAR* host, LIB_TCHAR* dest, DWORD buffSize, bool ipv6)
+bool Socket::HostNameToIP(const LIB_TCHAR* host, LIB_TCHAR* dest, bool ipv6)
 {
+	DWORD buffSize = INET6_ADDRSTRLEN;
 	ADDRINFOT info = { 0, ipv6 ? AF_INET6 : AF_INET }, *pa = nullptr;
 	bool res = (GetAddrInfo(host, NULL, &info, &pa) == 0);
 
@@ -260,4 +295,9 @@ bool Socket::HostNameToIP(const LIB_TCHAR* host, LIB_TCHAR* dest, DWORD buffSize
 	FreeAddrInfo(pa);
 
 	return res;
+}
+
+UINT Socket::GetRefCount() const
+{
+	return refCount ? *refCount : 0;
 }

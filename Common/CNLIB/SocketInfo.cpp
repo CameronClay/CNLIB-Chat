@@ -3,18 +3,20 @@
 #include <Mstcpip.h>
 #include <tchar.h>
 
-
-SocketInfo::SocketInfo(SocketInfo&& socketInfo)
+SocketInfo::SocketInfo()
 	:
-	addr(socketInfo.addr)
+	addr()
 {}
 
-void SocketInfo::SetAddr(sockaddr* addr, size_t len)
+SocketInfo::SocketInfo(const SocketInfo& socketInfo)
 {
-	if (!this->addr.addr)
-		this->addr = alloc<sockaddr_in6>();
-	memcpy(this->addr.addr, addr, len);
+	*this = socketInfo;
 }
+SocketInfo::SocketInfo(SocketInfo&& socketInfo)
+{
+	*this = std::move(socketInfo);
+}
+
 void SocketInfo::Cleanup()
 {
 	dealloc(addr.inaddr6);
@@ -24,10 +26,7 @@ SocketInfo& SocketInfo::operator=(const SocketInfo& rhs)
 {
 	if (this != &rhs)
 	{
-		if (!addr.addr)
-			this->addr = alloc<sockaddr_in6>();
-
-		memcpy(addr.addr, rhs.addr.addr, sizeof(sockaddr_in6));
+		addr = rhs.addr;
 	}
 	return *this;
 }
@@ -35,11 +34,17 @@ SocketInfo& SocketInfo::operator=(SocketInfo&& rhs)
 {
 	if (this != &rhs)
 	{
-		Cleanup();
 		addr = rhs.addr;
 		memset(&rhs, 0, sizeof(SocketInfo));
 	}
 	return *this;
+}
+
+void SocketInfo::SetAddr(sockaddr* addr, size_t len)
+{
+	if (!this->addr.addr)
+		this->addr.inaddr6 = alloc<sockaddr_in6>();
+	memcpy(this->addr.addr, addr, len);
 }
 
 std::tstring SocketInfo::GetPortStr() const
