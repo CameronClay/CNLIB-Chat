@@ -118,7 +118,10 @@ bool Socket::Bind(const LIB_TCHAR* port, bool ipv6)
 		{
 			if (listen(pc, SOMAXCONN) == 0)
 			{
-				this->pc = construct<SOCKET>(pc);
+				if (!pc)
+					this->pc = construct<SOCKET>(pc);
+				else
+					*this->pc = pc;
 
 				if (!refCount)
 					refCount = construct<UINT>(1);
@@ -162,10 +165,14 @@ bool Socket::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, fl
 	result = GetAddrInfo(dest, port, &info, &addr);
 	if(!result)
 	{
-		pc = construct<SOCKET>(socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol));
+		SOCKET temp = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
+		if (!pc)
+			pc = construct<SOCKET>(temp);
+		else
+			*pc = temp;
+
 		if (IsConnected())
 		{
-			SOCKET temp = *pc;
 			SetNonBlocking();
 			result = connect(temp, addr->ai_addr, addr->ai_addrlen);
 			if(result == SOCKET_ERROR)  // connect fails right away

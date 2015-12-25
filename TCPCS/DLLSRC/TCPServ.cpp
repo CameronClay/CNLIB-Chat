@@ -14,6 +14,7 @@ void DestroyServer(TCPServInterface*& server)
 	destruct((TCPServ*&)server);
 }
 
+
 struct Data
 {
 	Data(TCPServ& serv, USHORT pos)
@@ -95,6 +96,7 @@ struct SADataEx
 	CompressionType compType;
 };
 
+
 TCPServ::ClientData::ClientData(TCPServ& serv, Socket pc, sfunc func, USHORT recvIndex)
 	:
 	pc(pc),
@@ -141,6 +143,7 @@ static void SendDataComp(Socket pc, const char* data, DWORD nBytesDecomp, DWORD 
 	if (pc.SendData(&nBytes, sizeof(DWORD64)) > 0)
 		pc.SendData(data, (nBytesComp != 0) ? nBytesComp : nBytesDecomp);
 }
+
 
 static DWORD CALLBACK SendAllData(LPVOID info)
 {
@@ -305,6 +308,7 @@ void TCPServ::SendClientData(const char* data, DWORD nBytes, std::vector<Socket>
 	SendClientData(data, nBytes, pcs.data(), pcs.size(), compType);
 }
 
+
 HANDLE TCPServ::SendClientDataThread(const char* data, DWORD nBytes, Socket exAddr, bool single, CompressionType compType)
 {
 	if (compType == BESTFIT)
@@ -333,6 +337,7 @@ HANDLE TCPServ::SendClientDataThread(const char* data, DWORD nBytes, std::vector
 {
 	return SendClientDataThread(data, nBytes, pcs.data(), pcs.size(), compType);
 }
+
 
 void TCPServ::SendMsg(Socket pc, bool single, char type, char message)
 {

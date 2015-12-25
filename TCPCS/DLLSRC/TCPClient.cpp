@@ -15,7 +15,6 @@ void DestroyClient(TCPClientInterface*& client)
 }
 
 
-
 struct SendInfo
 {
 	SendInfo(TCPClient& client, char* data, const DWORD nBytes, CompressionType compType)
@@ -44,7 +43,7 @@ struct SendInfo
 
 TCPClient::TCPClient(cfunc func, dcfunc disconFunc, int compression, float pingInterval, void* obj)
 	:
-	host(INVALID_SOCKET),
+	host(),
 	function(func),
 	disconFunc(disconFunc),
 	obj(obj),
@@ -220,6 +219,7 @@ void TCPClient::Shutdown()
 	}
 }
 
+
 void TCPClient::SendServData(const char* data, DWORD nBytes, CompressionType compType)
 {
 	if (compType == BESTFIT)
@@ -244,6 +244,22 @@ HANDLE TCPClient::SendServDataThread(const char* data, DWORD nBytes, Compression
 	return CreateThread(NULL, 0, SendData, (LPVOID)construct<SendInfo>(*this, (char*)data, nBytes, compType), NULL, NULL);
 }
 
+
+void TCPClient::SendMsg(char type, char message)
+{
+	char msg[] = { type, message };
+
+	SendServData(msg, MSG_OFFSET, NOCOMPRESSION);
+}
+
+void TCPClient::SendMsg(const std::tstring& name, char type, char message)
+{
+	MsgStreamWriter streamWriter(type, message, StreamWriter::SizeType(name));
+	streamWriter.Write(name);
+	SendServData(streamWriter, streamWriter.GetSize(), NOCOMPRESSION);
+}
+
+
 bool TCPClient::RecvServData()
 {
 	if (!host.IsConnected())
@@ -264,20 +280,6 @@ bool TCPClient::RecvServData()
 	InitializeCriticalSection(&sendSect);
 
 	return true;
-}
-
-void TCPClient::SendMsg(char type, char message)
-{
-	char msg[] = { type, message };
-
-	SendServData(msg, MSG_OFFSET, NOCOMPRESSION);
-}
-
-void TCPClient::SendMsg(const std::tstring& name, char type, char message)
-{
-	MsgStreamWriter streamWriter(type, message, StreamWriter::SizeType(name));
-	streamWriter.Write(name);
-	SendServData(streamWriter, streamWriter.GetSize(), NOCOMPRESSION);
 }
 
 void TCPClient::Ping()
