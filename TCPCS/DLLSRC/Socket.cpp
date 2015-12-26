@@ -118,7 +118,7 @@ bool Socket::Bind(const LIB_TCHAR* port, bool ipv6)
 		{
 			if (listen(pc, SOMAXCONN) == 0)
 			{
-				if (!pc)
+				if (!this->pc)
 					this->pc = construct<SOCKET>(pc);
 				else
 					*this->pc = pc;
