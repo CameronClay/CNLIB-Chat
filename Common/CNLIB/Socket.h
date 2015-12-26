@@ -36,7 +36,7 @@ public:
 	Socket();
 	Socket(const Socket& pc);
 	Socket(Socket&& pc);
-	Socket(const LIB_TCHAR* port);
+	Socket(const LIB_TCHAR* port, bool ipv6 = false);
 	Socket(SOCKET pc);
 	~Socket();
 

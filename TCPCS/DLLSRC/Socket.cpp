@@ -18,11 +18,11 @@ int CleanupNetworking()
 	return WSACleanup();
 }
 
-Socket::Socket(const LIB_TCHAR* port)
+Socket::Socket(const LIB_TCHAR* port, bool ipv6)
 	:
 	refCount(construct<UINT>(1))
 {
-	Bind(port);
+	Bind(port, ipv6);
 }
 
 
@@ -226,7 +226,7 @@ void Socket::Disconnect()
 long Socket::ReadData(void* dest, DWORD nBytes)
 {
 #if NTDDI_VERSION >= NTDDI_VISTA
-	return recv(pc, (char*)dest, nBytes, MSG_WAITALL);
+	return recv(*pc, (char*)dest, nBytes, MSG_WAITALL);
 #else
 	long received = 0, temp = SOCKET_ERROR;
 	do
