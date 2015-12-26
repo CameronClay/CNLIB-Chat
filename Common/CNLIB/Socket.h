@@ -55,6 +55,8 @@ public:
 	bool operator== (const SOCKET pc) const;
 	bool operator!= (const SOCKET pc) const;
 
+	void SetSocket(SOCKET pc);
+
 	bool Bind(const LIB_TCHAR* port, bool ipv6 = false);
 	Socket AcceptConnection();
 

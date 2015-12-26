@@ -19,8 +19,6 @@ int CleanupNetworking()
 }
 
 Socket::Socket(const LIB_TCHAR* port, bool ipv6)
-	:
-	refCount(construct<UINT>(1))
 {
 	Bind(port, ipv6);
 }
@@ -31,7 +29,7 @@ Socket::Socket()
 
 Socket::Socket(SOCKET pc)
 	: 
-	pc(construct<SOCKET>(pc)),
+	pc((pc != INVALID_SOCKET) ? construct<SOCKET>(pc) : nullptr),
 	refCount(construct<UINT>(1))
 {}
 
@@ -103,6 +101,17 @@ bool Socket::operator!= (const SOCKET pc) const
 	return !operator==(pc);
 }
 
+void Socket::SetSocket(SOCKET pc)
+{
+	if (!refCount)
+	{
+		refCount = construct<UINT>(1);
+		this->pc = (pc != INVALID_SOCKET) ? construct<SOCKET>(pc) : nullptr;
+	}
+	else
+		*this = Socket(pc);
+}
+
 bool Socket::Bind(const LIB_TCHAR* port, bool ipv6)
 {
 	ADDRINFOT info = { AI_PASSIVE, ipv6 ? AF_INET6 : AF_INET, SOCK_STREAM, IPPROTO_TCP };
@@ -118,13 +127,7 @@ bool Socket::Bind(const LIB_TCHAR* port, bool ipv6)
 		{
 			if (listen(pc, SOMAXCONN) == 0)
 			{
-				if (!this->pc)
-					this->pc = construct<SOCKET>(pc);
-				else
-					*this->pc = pc;
-
-				if (!refCount)
-					refCount = construct<UINT>(1);
+				SetSocket(pc);
 
 				this->info.SetAddr(addr.ai_addr, addr.ai_addrlen);
 				result = true;
@@ -165,43 +168,35 @@ bool Socket::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, fl
 	result = GetAddrInfo(dest, port, &info, &addr);
 	if(!result)
 	{
-		SOCKET temp = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
-		if (!pc)
-			pc = construct<SOCKET>(temp);
-		else
-			*pc = temp;
+		Socket temp = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
 
-		if (IsConnected())
+		if (temp.IsConnected())
 		{
-			SetNonBlocking();
-			result = connect(temp, addr->ai_addr, addr->ai_addrlen);
+			SOCKET tmp = *temp.pc;
+			temp.SetNonBlocking();
+			result = connect(tmp, addr->ai_addr, addr->ai_addrlen);
 			if(result == SOCKET_ERROR)  // connect fails right away
 			{
 				FD_SET fds;
 				FD_ZERO(&fds);
-				FD_SET(temp, &fds);
+				FD_SET(tmp, &fds);
 				u_long sec = (long)floor(timeout);
 				TIMEVAL tv = { sec, long((timeout - sec) * 100000.f) };
 				if(select(0, nullptr, &fds, nullptr, &tv) <= 0)
-					closesocket(temp);  // timed out
+					temp.~Socket();  // timed out
 				else
-					SetBlocking();
+					temp.SetBlocking();
 			}
 			else
 			{
-				SetBlocking();
+				temp.SetBlocking();
 			}
 		}
-		if (IsConnected())
+		if (temp.IsConnected())
 		{
-			if (!refCount)
-				refCount = construct<UINT>(1);
+			*this = std::move(temp);
 
 			this->info.SetAddr(addr->ai_addr, addr->ai_addrlen);
-		}
-		else
-		{
-			destruct(pc);
 		}
 
 		FreeAddrInfo(addr);
