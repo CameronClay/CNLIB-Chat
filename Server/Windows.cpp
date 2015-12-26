@@ -161,8 +161,7 @@ void DispIPMsg(Socket& pc, const LIB_TCHAR* str)
 {
 	if (pc.IsConnected())
 	{
-		std::tstring disp = pc.GetInfo().GetIp();
-		disp += str;
+		std::tstring disp = pc.GetInfo().GetIp() + str;
 		textBuffer.WriteLine(disp);
 	}
 }

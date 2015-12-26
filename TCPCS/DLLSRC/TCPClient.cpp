@@ -78,14 +78,14 @@ TCPClient& TCPClient::operator=(TCPClient&& client)
 
 		host = client.host;
 		function = client.function;
-		const_cast<void(*&)(bool unexpected)>(disconFunc) = client.disconFunc;
+		const_cast<std::remove_const_t<dcfunc>&>(disconFunc) = client.disconFunc;
 		obj = client.obj;
 		recv = client.recv;
 		sendSect = client.sendSect;
 		const_cast<int&>(compression) = client.compression;
 		unexpectedShutdown = client.unexpectedShutdown;
 		pingInterval = client.pingInterval;
-		pingHandler = std::move(client.pingHandler);
+		pingHandler = client.pingHandler;
 
 		ZeroMemory(&client, sizeof(TCPClient));
 	}
@@ -241,7 +241,7 @@ HANDLE TCPClient::SendServDataThread(const char* data, DWORD nBytes, Compression
 		else
 			compType = NOCOMPRESSION;
 	}
-	return CreateThread(NULL, 0, SendData, (LPVOID)construct<SendInfo>(*this, (char*)data, nBytes, compType), NULL, NULL);
+	return CreateThread(NULL, 0, SendData, construct<SendInfo>(*this, (char*)data, nBytes, compType), NULL, NULL);
 }
 
 

@@ -19,7 +19,7 @@ public:
 
 	struct CAMSNETLIB ClientData
 	{
-		ClientData(class TCPServ& serv, Socket pc, sfunc func, USHORT recvIndex);
+		ClientData(TCPServInterface& serv, Socket pc, sfunc func, USHORT recvIndex);
 		ClientData(ClientData&& clint);
 		ClientData& operator=(ClientData&& data);
 

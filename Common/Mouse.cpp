@@ -2,19 +2,20 @@
 #include "CNLIB\HeapAlloc.h"
 
 MouseClient::MouseClient( MouseServer& server )
-: server( server )
+	:
+	server( server )
 {}
 MouseEvent MouseClient::Read()
 {
 	if(!server.buffer.empty())
 	{
-		const MouseEvent e = server.buffer.front( );
+		const MouseEvent e = server.buffer.front();
 		server.buffer.pop_front();
 		return e;
 	}
 	else
 	{
-		return MouseEvent( MouseEvent::Invalid,0,0 );
+		return MouseEvent(MouseEvent::Invalid, 0, 0);
 	}
 }
 MouseEvent MouseClient::Peek() const
@@ -43,9 +44,9 @@ void MouseClient::Erase(size_t count)
 
 
 MouseServer::MouseServer(size_t bufferSize, USHORT interval)
-:	
-buffer(bufferSize),
-interval(interval)
+	:
+	buffer(bufferSize),
+	interval(interval)
 {}
 MouseServer::MouseServer(MouseServer&& mServ)
 	:

@@ -50,8 +50,8 @@ auto PingHandler::PingData::operator=(PingData&& data) -> PingData&
 {
 	if(this != &data)
 	{
-		pingHI = std::move(data.pingHI);
-		pingHandler = std::move(data.pingHandler);
+		pingHI = data.pingHI;
+		pingHandler = data.pingHandler;
 
 		ZeroMemory(&data, sizeof(PingData));
 	}
@@ -141,4 +141,3 @@ HANDLE PingHandler::GetPingTimer() const
 {
 	return pingTimer;
 }
-

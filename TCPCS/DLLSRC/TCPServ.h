@@ -76,4 +76,3 @@ private:
 	float pingInterval; //interval at which server pings(technically is a keep alive message that sends data) clients
 	PingHandler* pingHandler; //handles all pings to client, to prevent timeout
 };
-
