@@ -98,7 +98,7 @@
     <ClCompile Include="..\Common\WinFirewall.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Common\CNLIB\SocketInfo.cpp">
+    <ClCompile Include="DLLSRC\SocketInfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

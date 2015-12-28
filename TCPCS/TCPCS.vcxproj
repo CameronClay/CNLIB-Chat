@@ -155,11 +155,11 @@
     <ClInclude Include="DLLSRC\TCPServ.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Common\CNLIB\SocketInfo.cpp" />
     <ClCompile Include="..\Common\WinFirewall.cpp" />
     <ClCompile Include="DLLSRC\File.cpp" />
     <ClCompile Include="DLLSRC\Ping.cpp" />
     <ClCompile Include="DLLSRC\Socket.cpp" />
+    <ClCompile Include="DLLSRC\SocketInfo.cpp" />
     <ClCompile Include="DLLSRC\SocketListen.cpp" />
     <ClCompile Include="DLLSRC\TCPClient.cpp" />
     <ClCompile Include="DLLSRC\TCPServ.cpp" />
