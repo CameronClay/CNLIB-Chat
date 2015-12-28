@@ -5,18 +5,16 @@ Example:
 server Windows.cpp/Messages.h - Adding admin commands - Cameron
 -------------------------------------------------------------------
 
-Crashes:
-
-Bugs:
-client Windows.cpp - Wb settings drop-down color list colors are strange - Luis
-
-Win.cpp files - Whiteboard requests/kicks not working now for some reason
-
+Bugs/Crashes:
 client/server Windows.cpp - Crash on clients still connected to whiteboard after creator closes whiteboard, 
 	possible solution is to remove everyone from list and send a close message to all connected clients
 UI cpp files - MessageBoxes not displayed correctly. - Luis
 
 Progress:
+client/server Filetransfer.h/cpp - New Filetransfer System - Luis/Cameron
+client        Windows.cpp        - Whiteboard Toolbar - Luis
 
-Other:
-Implement better window handling (as figured by comments from web)
+Finished:
+client Windows.cpp - Wb settings drop-down color list colors are strange - Luis
+Win.cpp files - Whiteboard requests/kicks not working now for some reason
+
