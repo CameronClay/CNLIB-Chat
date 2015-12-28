@@ -33,20 +33,4 @@ namespace std
 #define To_String std::to_string
 #endif
 
-
-#ifdef UNICODE
-#define GetHostName(name, namelen)\
-	char host[256];\
-	gethostname(host, 256);\
-	MultiByteToWideChar(CP_ACP, 0, host, 256, name, namelen)
-#define Inet_ntot(inaddr, dest)\
-	char* addr = inet_ntoa(inaddr);\
-	MultiByteToWideChar(CP_ACP, 0, addr, strlen(addr), dest, strlen(addr))
-#else
-#define GetHostName gethostname
-#define Inet_ntot(inaddr, dest);\
-	char* name = inet_ntoa(inaddr);\
-	memcpy(dest, name, sizeof(char) * strlen(name))
-#endif
-
 CAMSNETLIB void WaitAndCloseHandle(HANDLE& hnd);

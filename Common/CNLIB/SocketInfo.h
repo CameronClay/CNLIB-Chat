@@ -12,6 +12,10 @@ public:
 			:
 			addr(nullptr)
 		{}
+		SockaddrU(sockaddr* addr)
+			:
+			addr(addr)
+		{}
 		sockaddr* addr;
 		sockaddr_in* inaddr4;
 		sockaddr_in6* inaddr6;
@@ -30,6 +34,7 @@ public:
 	std::tstring GetPortStr() const;
 	USHORT GetPortInt() const;
 
+	static std::tstring FormatIP(SockaddrU addr);
 	std::tstring GetIp() const;
 	//Use CompareIp if you dont need ip in str format, it is quicker to compare
 	bool CompareIp(const SocketInfo& rhs) const;

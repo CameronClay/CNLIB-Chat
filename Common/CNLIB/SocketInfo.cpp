@@ -59,9 +59,9 @@ USHORT SocketInfo::GetPortInt() const
 		return htons(addr.inaddr6->sin6_port);
 }
 
-std::tstring SocketInfo::GetIp() const
+std::tstring SocketInfo::FormatIP(SockaddrU addr)
 {
-	if (IsIpv4())
+	if (addr.addr->sa_family == AF_INET)
 	{
 		std::tstringstream stream;
 		sockaddr_in& sin4 = *addr.inaddr4;
@@ -74,6 +74,7 @@ std::tstring SocketInfo::GetIp() const
 		sockaddr_in6& sin6 = *addr.inaddr6;
 		std::tstring fmt;
 		int f = -1, l = 0;
+		bool again = false;
 		for (int i = 0; i < 8; i++)
 		{
 			LIB_TCHAR sw[5];
@@ -84,6 +85,8 @@ std::tstring SocketInfo::GetIp() const
 		do
 		{
 			f = fmt.find_first_of(_T('0'), l), l = fmt.find_first_not_of(_T(":0"), f);
+			if (f > 0 && (fmt[f - 1] != _T('0') && fmt[f - 1] != _T(':')))
+				l = f + 2;
 		} while ((f != -1 && l != -1) && (l - f) == 2);
 		if (f != -1)
 			fmt.erase(f, l != -1 ? l - f - 1 : l);
@@ -91,6 +94,11 @@ std::tstring SocketInfo::GetIp() const
 		if (l == -1)fmt.append(_T(":"));
 		return fmt;
 	}
+}
+
+std::tstring SocketInfo::GetIp() const
+{
+	return FormatIP(addr);
 }
 bool SocketInfo::CompareIp(const SocketInfo& rhs) const
 {

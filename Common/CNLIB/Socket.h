@@ -56,6 +56,7 @@ public:
 	bool operator!= (const SOCKET pc) const;
 
 	void SetSocket(SOCKET pc);
+	SOCKET GetSocket() const;
 
 	bool Bind(const LIB_TCHAR* port, bool ipv6 = false);
 	Socket AcceptConnection();
@@ -73,11 +74,13 @@ public:
 
 	const SocketInfo& GetInfo();
 
-	//dest size should be INET6_ADDRSTRLEN for ipv6, or INET_ADDRSTRLEN for ipv4
-	static bool GetLocalIP(LIB_TCHAR* dest, bool ipv6 = false);
-	static bool HostNameToIP(const LIB_TCHAR* host, LIB_TCHAR* dest, bool ipv6 = false);
-
 	UINT GetRefCount() const;
+
+	static int GetHostName(LIB_TCHAR* dest, DWORD nameLen);
+	static char* Inet_ntot(in_addr inaddr, LIB_TCHAR* dest);
+	static std::tstring GetLocalIP(bool ipv6 = false);
+	static std::tstring HostNameToIP(const LIB_TCHAR* host, bool ipv6 = false);
+
 private:
 	SOCKET* pc = nullptr;
 	UINT* refCount = nullptr;

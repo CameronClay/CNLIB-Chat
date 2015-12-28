@@ -112,6 +112,11 @@ void Socket::SetSocket(SOCKET pc)
 		*this = Socket(pc);
 }
 
+SOCKET Socket::GetSocket() const
+{
+	return pc ? *pc : INVALID_SOCKET;
+}
+
 bool Socket::Bind(const LIB_TCHAR* port, bool ipv6)
 {
 	ADDRINFOT info = { AI_PASSIVE, ipv6 ? AF_INET6 : AF_INET, SOCK_STREAM, IPPROTO_TCP };
@@ -269,37 +274,70 @@ const SocketInfo& Socket::GetInfo()
 	return info;
 }
 
-bool Socket::GetLocalIP(LIB_TCHAR* dest, bool ipv6)
+UINT Socket::GetRefCount() const
+{
+	return refCount ? *refCount : 0;
+}
+
+std::tstring Socket::GetLocalIP(bool ipv6)
 {
 	DWORD buffSize = INET6_ADDRSTRLEN;
 	LIB_TCHAR buffer[128] = {};
-	ADDRINFOT info = { 0, ipv6 ? AF_INET6 : AF_INET }, *pa = nullptr;
-	GetHostName(buffer, 128);
-	bool res = (GetAddrInfo(buffer, NULL, &info, &pa) == 0);
-
+	bool res = (GetHostName(buffer, 128) == 0);
 	if (res)
-		res &= WSAAddressToString(pa->ai_addr, pa->ai_addrlen, NULL, dest, &buffSize);
+	{
+		std::tstring temp;
+		ADDRINFOT info = { 0, ipv6 ? AF_INET6 : AF_INET }, *pa = nullptr;
+		res &= (GetAddrInfo(buffer, NULL, &info, &pa) == 0);
 
-	FreeAddrInfo(pa);
+		if (res)
+			temp = SocketInfo::FormatIP(pa->ai_addr);
 
-	return  res;
+		FreeAddrInfo(pa);
+
+		return temp;
+	}
+
+	return std::tstring();
 }
 
-bool Socket::HostNameToIP(const LIB_TCHAR* host, LIB_TCHAR* dest, bool ipv6)
+std::tstring Socket::HostNameToIP(const LIB_TCHAR* host, bool ipv6)
 {
+	std::tstring temp;
 	DWORD buffSize = INET6_ADDRSTRLEN;
 	ADDRINFOT info = { 0, ipv6 ? AF_INET6 : AF_INET }, *pa = nullptr;
 	bool res = (GetAddrInfo(host, NULL, &info, &pa) == 0);
 
 	if (res)
-		res &= WSAAddressToString(pa->ai_addr, pa->ai_addrlen, NULL, dest, &buffSize);
+		temp = SocketInfo::FormatIP(pa->ai_addr);
 
 	FreeAddrInfo(pa);
 
+	return temp;
+}
+
+int Socket::GetHostName(LIB_TCHAR* dest, DWORD nameLen)
+{
+	int res = 0;
+#ifdef UNICODE
+	char host[256];
+	res = gethostname(host, 256);
+	MultiByteToWideChar(CP_ACP, 0, host, 256, dest, nameLen);
+#else
+	res = gethostname(dest, nameLen);
+#endif
 	return res;
 }
 
-UINT Socket::GetRefCount() const
+char* Socket::Inet_ntot(in_addr inaddr, LIB_TCHAR* dest)
 {
-	return refCount ? *refCount : 0;
+	char* addr = nullptr;
+#ifdef UNICODE
+	addr = inet_ntoa(inaddr);
+	MultiByteToWideChar(CP_ACP, 0, addr, strlen(addr), dest, strlen(addr));
+#else
+	addr = inet_ntoa(inaddr);
+	memcpy(dest, addr, sizeof(char) * strlen(addr));
+#endif
+	return addr;
 }

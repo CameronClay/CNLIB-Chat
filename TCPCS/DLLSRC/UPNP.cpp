@@ -77,12 +77,11 @@ bool MapPort(USHORT port, const LIB_TCHAR* protocal, const LIB_TCHAR* name)
 
 	if (upnp.Initialize())
 	{
-		LIB_TCHAR IP[16] = {};
-		Socket::GetLocalIP(IP, false);
+		const std::tstring str = Socket::GetLocalIP();
 		if (upnp.PortMapExists(port, protocal))
 			result = upnp.RemovePortMap(port, protocal);
 
-		result = upnp.AddPortMap(port, protocal, IP, name, true);
+		result = upnp.AddPortMap(port, protocal, str.c_str(), name, true);
 	}
 	return result;
 }
