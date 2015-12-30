@@ -133,7 +133,7 @@ void Whiteboard::RemoveClient(Socket pc)
 	EnterCriticalSection(&mapSect);
 
 	clients.erase(pc);
-	for (USHORT i = 0; i < sendPcs.size(); i++)
+	for (USHORT i = 0, size = sendPcs.size(); i < size; i++)
 	{
 		if (sendPcs[i] == pc)
 		{

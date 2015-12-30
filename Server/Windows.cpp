@@ -562,9 +562,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 			else
 				wbClientData.thickness += sizeAmount;
 
-			const BYTE clr = streamReader.Read<BYTE>();
-			if(clr != WBClientData::UNCHANGEDCOLOR)
-				wbClientData.clrIndex = clr;
+			wbClientData.clrIndex = streamReader.Read<BYTE>();
 			break;
 		}
 		}

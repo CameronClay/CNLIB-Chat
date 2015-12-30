@@ -1210,6 +1210,8 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	//static DWORD mouseThreadID;
 	static USHORT prevX = 0, prevY = 0;
 	static bool leftPressed = false;
+	static Whiteboard& wb = *pWhiteboard;
+	static USHORT width = 0, height = 0;
 
 	switch (message)
 	{
@@ -1273,8 +1275,7 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if((x == prevX) && (y == prevY))
 				break;
 
-			Whiteboard& wb = *pWhiteboard;
-			if (x < wb.GetD3D().GetWidth() && y < wb.GetD3D().GetHeight())
+			if (x < width && y < height)
 			{
 				wb.GetMServ().OnMouseMove(x, y);
 				prevX = x;
@@ -1291,8 +1292,7 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		SetCapture(hWnd);
 		const USHORT x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
 
-		Whiteboard& wb = *pWhiteboard;
-		if (x < wb.GetD3D().GetWidth() && y < wb.GetD3D().GetHeight())
+		if (x < width && y < height)
 		{
 			wb.GetMServ().OnLeftPressed(x, y);
 			leftPressed = true;
@@ -1311,8 +1311,8 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if(leftPressed)
 		{
 			const USHORT x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
-			Whiteboard& wb = *pWhiteboard;
-			if (x < wb.GetD3D().GetWidth() && y < wb.GetD3D().GetHeight())
+			
+			if (x < width && y < height)
 			{
 				wb.GetMServ().OnLeftReleased(x, y);
 				leftPressed = false;
@@ -1395,12 +1395,14 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if(wbCanDraw)
 			pWhiteboard->StartThread(client);
 
+		width = wb.GetD3D().GetWidth(), height = wb.GetD3D().GetHeight();
+
 		client->SendMsg(TYPE_RESPONSE, MSG_RESPONSE_WHITEBOARD_INITED);
 		break;
 
 	case WM_ACTIVATE:
-		pWhiteboard->GetD3D().BeginFrame();
-		pWhiteboard->GetD3D().EndFrame();
+		wb.GetD3D().BeginFrame();
+		wb.GetD3D().EndFrame();
 		break;
 
 	case WM_CLOSE:
