@@ -39,43 +39,6 @@ DWORD CALLBACK WBThread(LPVOID param)
 	}
 }
 
-DWORD CALLBACK SendBitmapThread(LPVOID param)
-{
-	Whiteboard::SendThread& st = *(Whiteboard::SendThread*)param;
-	Whiteboard& wb = st.GetWhiteboard();
-	HANDLE ev = st.GetSendThreadEv();
-	HANDLE wbEv = st.GetWbThreadEv();
-
-	while(true)
-	{
-		const DWORD ret = MsgWaitForMultipleObjects(1, &ev, FALSE, INFINITE, QS_ALLINPUT);
-		if(ret == WAIT_OBJECT_0)
-		{
-			if(st.GetSocket().IsConnected())
-				wb.SendBitmap(st.GetRect(), st.GetSocket(), true);
-			else
-				wb.SendBitmap(st.GetRect());
-
-
-			ResetEvent(ev);
-			SetEvent(wbEv);
-		}
-
-		else if(ret == WAIT_OBJECT_0 + 1)
-		{
-			MSG msg;
-			while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) != 0)
-			{
-				if(msg.message == WM_QUIT)
-					return 0;
-			}
-		}
-
-		else
-			return 0;
-	}
-}
-
 Whiteboard::Whiteboard(TCPServInterface &serv, WBParams params, std::tstring creator)
 	:
 	pixels(alloc<BYTE>(params.width * params.height)),
@@ -85,8 +48,7 @@ Whiteboard::Whiteboard(TCPServInterface &serv, WBParams params, std::tstring cre
 	interval(1.0f / (float)params.fps),
 	timer(CreateWaitableTimer(NULL, FALSE, NULL)),
 	thread(NULL),
-	threadID(NULL),
-	sendThread(*this)
+	threadID(NULL)
 {
 	FillMemory(pixels, params.width * params.height, params.clrIndex);
 
@@ -105,32 +67,85 @@ Whiteboard::Whiteboard(Whiteboard &&wb)
 	timer(wb.timer),
 	thread(wb.thread),
 	threadID(wb.threadID),
-	sendThread(std::move(wb.sendThread), *this),
 	clients(std::move(wb.clients)),
 	sendPcs(std::move(wb.sendPcs))
 {
 	wb.pixels = nullptr;
 }
 
-BYTE* Whiteboard::GetBitmap()
+
+void Whiteboard::SendBitmap(RectU& rect)
 {
-	return pixels;
+	const DWORD nBytes = GetBufferLen(rect) + MSG_OFFSET;
+	char* msg = alloc<char>(nBytes);
+
+	msg[0] = TYPE_DATA;
+	msg[1] = MSG_DATA_BITMAP;
+
+	MakeRectPixels(rect, &msg[MSG_OFFSET]);
+
+	serv.SendClientData(msg, nBytes, sendPcs);
+	dealloc(msg);
 }
 
-CRITICAL_SECTION* Whiteboard::GetMapSect()
+void Whiteboard::SendBitmap(RectU& rect, const Socket& sock, bool single)
 {
-	return &mapSect;
+	const DWORD nBytes = GetBufferLen(rect) + MSG_OFFSET;
+	char* msg = alloc<char>(nBytes);
+
+	msg[0] = TYPE_DATA;
+	msg[1] = MSG_DATA_BITMAP;
+
+	MakeRectPixels(rect, &msg[MSG_OFFSET]);
+
+	serv.SendClientData(msg, nBytes, sock, single);
+	dealloc(msg);
 }
 
-WBClientData& Whiteboard::GetClientData(Socket pc)
+void Whiteboard::StartThread()
 {
-	return clients[pc];
+	LARGE_INTEGER LI;
+	LI.QuadPart = (LONGLONG)(interval * -10000000.0f);
+	SetWaitableTimer(timer, &LI, (LONG)(interval * 1000.0f), NULL, NULL, FALSE);
+
+	thread = CreateThread(NULL, 0, WBThread, this, NULL, &threadID);
 }
+
 
 bool Whiteboard::IsCreator(const std::tstring& user) const
 {
 	return creator.compare(user) == 0;
 }
+
+
+void Whiteboard::AddClient(Socket pc)
+{
+	EnterCriticalSection(&mapSect);
+
+	clients.emplace(pc, WBClientData(params.fps, params.clrIndex));
+	sendPcs.push_back(pc);
+
+	LeaveCriticalSection(&mapSect);
+}
+
+void Whiteboard::RemoveClient(Socket pc)
+{
+	EnterCriticalSection(&mapSect);
+
+	clients.erase(pc);
+	for (USHORT i = 0; i < sendPcs.size(); i++)
+	{
+		if (sendPcs[i] == pc)
+		{
+			sendPcs[i] = sendPcs.back();
+			sendPcs.pop_back();
+			break;
+		}
+	}
+
+	LeaveCriticalSection(&mapSect);
+}
+
 
 void Whiteboard::PaintBrush(WBClientData& clientData)
 {
@@ -245,8 +260,8 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 
 	mouse.Erase(evCount);
 
-	if(send)
-		QueueSendBitmap(rect, Socket());
+	if (send)
+		SendBitmap(rect);
 }
 
 void Whiteboard::Draw()
@@ -438,6 +453,7 @@ void Whiteboard::MakeRectPixels(RectU& rect, char* ptr)
 	}
 }
 
+
 std::unordered_map<Socket, WBClientData, Socket::Hash>& Whiteboard::GetMap()
 {
 	return clients;
@@ -453,74 +469,9 @@ const WBParams& Whiteboard::GetParams() const
 	return params;
 }
 
-void Whiteboard::AddClient(Socket pc)
-{
-	EnterCriticalSection(&mapSect);
-
-	clients.emplace(pc, WBClientData(params.fps, params.clrIndex));
-	sendPcs.push_back(pc);
-
-	LeaveCriticalSection(&mapSect);
-}
-
-void Whiteboard::RemoveClient(Socket pc)
-{
-	EnterCriticalSection(&mapSect);
-
-	clients.erase(pc);
-	for(USHORT i = 0; i < sendPcs.size(); i++)
-	{
-		if(sendPcs[i] == pc)
-		{
-			sendPcs[i] = sendPcs.back();
-			sendPcs.pop_back();
-			break;
-		}
-	}
-
-	LeaveCriticalSection(&mapSect);
-}
-
 const Palette& Whiteboard::GetPalette() const
 {
 	return palette;
-}
-
-void Whiteboard::SendBitmap(RectU& rect)
-{
-	const DWORD nBytes = GetBufferLen(rect) + MSG_OFFSET;
-	char* msg = alloc<char>(nBytes);
-
-	msg[0] = TYPE_DATA;
-	msg[1] = MSG_DATA_BITMAP;
-
-	MakeRectPixels(rect, &msg[MSG_OFFSET]);
-
-	serv.SendClientData(msg, nBytes, sendPcs);
-	dealloc(msg);
-}
-
-void Whiteboard::SendBitmap(RectU& rect, const Socket& sock, bool single)
-{
-	const DWORD nBytes = GetBufferLen(rect) + MSG_OFFSET;
-	char* msg = alloc<char>(nBytes);
-
-	msg[0] = TYPE_DATA;
-	msg[1] = MSG_DATA_BITMAP;
-
-	MakeRectPixels(rect, &msg[MSG_OFFSET]);
-
-	serv.SendClientData(msg, nBytes, sock, single);
-	dealloc(msg);
-}
-
-void Whiteboard::QueueSendBitmap(const RectU& rect, const Socket& sock)
-{	
-	WaitForSingleObject(sendThread.GetWbThreadEv(), INFINITE);
-	sendThread.SetRect(rect);
-	sendThread.SetSinglePC(sock);
-	sendThread.SignalSendThread();
-	sendThread.ResetWbEv();
 }
 
 HANDLE Whiteboard::GetTimer() const
@@ -528,23 +479,26 @@ HANDLE Whiteboard::GetTimer() const
 	return timer;
 }
 
-void Whiteboard::StartThread()
+BYTE* Whiteboard::GetBitmap()
 {
-	LARGE_INTEGER LI;
-	LI.QuadPart = (LONGLONG)(interval * -10000000.0f);
-	SetWaitableTimer(timer, &LI, (LONG)(interval * 1000.0f), NULL, NULL, FALSE);
-
-	thread = CreateThread(NULL, 0, WBThread, this, NULL, &threadID);
-
-	sendThread.Start(SendBitmapThread);
+	return pixels;
 }
+
+CRITICAL_SECTION* Whiteboard::GetMapSect()
+{
+	return &mapSect;
+}
+
+WBClientData& Whiteboard::GetClientData(Socket pc)
+{
+	return clients[pc];
+}
+
 
 Whiteboard::~Whiteboard()
 {
 	if(pixels)
 	{
-		sendThread.Exit();
-
 		PostThreadMessage(threadID, WM_QUIT, 0, 0);
 		WaitAndCloseHandle(thread);
 

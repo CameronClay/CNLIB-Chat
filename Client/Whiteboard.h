@@ -15,30 +15,53 @@ public:
 	~Whiteboard();
 	Whiteboard operator=(Whiteboard) = delete;
 
+	void Initialize(HWND WinHandle);
+
 	void StartThread(TCPClientInterface* client);
 
-	void Initialize(HWND WinHandle);
 	void Frame(const RectU &rect, const BYTE *pixelData);
 	void SendMouseData(TCPClientInterface* client);
-	void BeginFrame();
-	void EndFrame();
 
 	//brushSize is relative
 	void ChangeTool(Tool tool, float brushSize, BYTE palIndex);
 
 	MouseServer& GetMServ();
-	USHORT GetWidth() const;
-	USHORT GetHeight() const;
 	HANDLE GetTimer() const;
 	BYTE GetDefaultColor() const;
 	float GetBrushThickness() const;
+
+	class D3D
+	{
+	public:
+		D3D(USHORT width, USHORT height);
+		D3D(D3D&& d3d);
+		~D3D();
+		D3D operator=(D3D) = delete;
+
+		void Initialize(HWND WinHandle);
+		void Draw(const RectU &rect, const BYTE *pixelData, const Palette& palette);
+
+		void Clear(D3DCOLOR clr);
+
+		void BeginFrame();
+		void EndFrame();
+
+		USHORT GetWidth() const;
+		USHORT GetHeight() const;
+	private:
+		IDirect3D9 *pDirect3D;
+		IDirect3DDevice9 *pDevice;
+		IDirect3DSurface9 *pBackBuffer;
+		D3DLOCKED_RECT lockRect;
+		HWND hWnd;
+
+		USHORT width, height, pitch;
+	};
+
+	D3D& GetD3D();
 private:
-	void InitD3D();
-	void Draw(const RectU &rect, const BYTE *pixelData);
-	void ComposeImage(USHORT Width, USHORT Height, const BYTE *pixelData);
-
+	D3D d3d;
 	const Palette& GetPalette(BYTE& count);
-
 
 	TCPClientInterface& clint;
 	MouseServer mouse;
@@ -46,9 +69,6 @@ private:
 	const BYTE defaultColor;
 	BYTE palIndex;
 
-	HWND hWnd;
-
-	USHORT width, height, pitch;
 	float brushThickness;
 
 	const float interval;
@@ -56,9 +76,4 @@ private:
 	DWORD threadID;
 
 	Palette& palette;
-
-	IDirect3D9 *pDirect3D;
-	IDirect3DDevice9 *pDevice;
-	IDirect3DSurface9 *pBackBuffer;
-	D3DLOCKED_RECT lockRect;
 };

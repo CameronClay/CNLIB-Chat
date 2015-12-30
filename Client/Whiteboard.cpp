@@ -5,6 +5,141 @@
 #include "CNLIB\HeapAlloc.h"
 #include "CNLIB\MsgStream.h"
 
+typedef Whiteboard::D3D D3D;
+
+D3D::D3D(USHORT width, USHORT height)
+	:
+	hWnd(NULL),
+	width(width),
+	height(height),
+	pitch(0),
+	pDirect3D(nullptr),
+	pDevice(nullptr),
+	pBackBuffer(nullptr),
+	lockRect()
+{
+
+}
+D3D::D3D(D3D&& d3d)
+	:
+	hWnd(d3d.hWnd),
+	width(d3d.width),
+	height(d3d.height),
+	pitch(d3d.pitch),
+	pDirect3D(d3d.pDirect3D),
+	pDevice(d3d.pDevice),
+	pBackBuffer(d3d.pBackBuffer),
+	lockRect(d3d.lockRect)
+{
+	ZeroMemory(&d3d, sizeof(D3D));
+}
+
+D3D::~D3D()
+{
+	if (pBackBuffer)
+	{
+		pBackBuffer->Release();
+		pBackBuffer = nullptr;
+	}
+	if (pDevice)
+	{
+		pDevice->Release();
+		pDevice = nullptr;
+	}
+	if (pDirect3D)
+	{
+		pDirect3D->Release();
+		pDirect3D = nullptr;
+	}
+}
+
+void D3D::Initialize(HWND WinHandle)
+{
+	hWnd = WinHandle;
+	HRESULT hr = S_OK;
+
+	lockRect.pBits = NULL;
+	pDirect3D = Direct3DCreate9(D3D_SDK_VERSION);
+
+	D3DPRESENT_PARAMETERS d3dpp;
+	ZeroMemory(&d3dpp, sizeof(d3dpp));
+	d3dpp.Windowed = TRUE;
+	d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
+	d3dpp.BackBufferFormat = D3DFMT_UNKNOWN;
+	d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
+	d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+
+	BOOL isWindow = IsWindow(hWnd);
+	d3dpp.hDeviceWindow = hWnd;
+
+	hr = pDirect3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,
+		D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE, &d3dpp, &pDevice);
+	if (FAILED(hr))
+	{
+		hr = pDirect3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,
+			D3DCREATE_MIXED_VERTEXPROCESSING | D3DCREATE_PUREDEVICE, &d3dpp, &pDevice);
+	}
+	if (FAILED(hr))
+	{
+		hr = pDirect3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,
+			D3DCREATE_SOFTWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE, &d3dpp, &pDevice);
+	}
+	assert(SUCCEEDED(hr));
+
+	hr = pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
+	assert(SUCCEEDED(hr));
+
+	hr = pBackBuffer->LockRect(&lockRect, nullptr, NULL);
+	assert(SUCCEEDED(hr));
+
+	pitch = (USHORT)lockRect.Pitch / width;
+
+	hr = pBackBuffer->UnlockRect();
+	assert(SUCCEEDED(hr));
+}
+void D3D::Draw(const RectU &rect, const BYTE *pixelData, const Palette& palette)
+{
+	const size_t rHeight = rect.bottom - rect.top;
+	const size_t rWidth = rect.right - rect.left;
+	for (size_t y = 0; y < rHeight; y++)
+	{
+		for (size_t x = 0; x < rWidth; x++)
+		{
+			D3DCOLOR* d3dSurf = (D3DCOLOR*)((char*)lockRect.pBits + pitch * ((x + rect.left) + (y + rect.top) * width));
+			*d3dSurf = palette.GetRGBColor(pixelData[x + y * rWidth]);
+		}
+	}
+}
+
+void D3D::BeginFrame()
+{
+	HRESULT hr = pBackBuffer->LockRect(&lockRect, nullptr, NULL);
+	assert(SUCCEEDED(hr));
+}
+void D3D::EndFrame()
+{
+	HRESULT hr = 0;
+	hr = pBackBuffer->UnlockRect();
+	assert(SUCCEEDED(hr));
+
+	hr = pDevice->Present(nullptr, nullptr, nullptr, nullptr);
+	assert(SUCCEEDED(hr));
+}
+
+void D3D::Clear(D3DCOLOR clr)
+{
+	pDevice->Clear(0, NULL, D3DCLEAR_TARGET, clr, 0.0f, 0);
+}
+
+USHORT D3D::GetWidth() const
+{
+	return width;
+}
+USHORT D3D::GetHeight() const
+{
+	return height;
+}
+
 struct WBThreadParams
 {
 	WBThreadParams(Whiteboard* wb, TCPClientInterface* client)
@@ -69,82 +204,57 @@ DWORD CALLBACK WBThread(LPVOID param)
 
 Whiteboard::Whiteboard(TCPClientInterface& clint, Palette& palette, USHORT Width, USHORT Height, USHORT FPS, BYTE palIndex)
 	:
+	d3d(Width, Height),
 	clint(clint),
 	mouse((FPS < 60 ? 4500 / FPS : 75), (USHORT)((1000.0f / (float)FPS) + 0.5f)),
 	defaultColor(palIndex),
 	palIndex(palIndex),
-	hWnd(NULL),
-	width(Width),
-	height(Height),
-	pitch(0),
 	brushThickness(1.0f),
 	interval(1.0f / (float)FPS),
 	timer(CreateWaitableTimer(NULL, FALSE, NULL)),
 	thread(NULL),
 	threadID(NULL),
-	palette(palette),
-	pDirect3D(nullptr),
-	pDevice(nullptr),
-	pBackBuffer(nullptr),
-	lockRect()
+	palette(palette)
 {}
 
 Whiteboard::Whiteboard(Whiteboard&& wb)
 	:
+	d3d(wb.d3d),
 	clint(wb.clint),
 	mouse(std::move(wb.mouse)),
 	defaultColor(wb.defaultColor),
 	palIndex(wb.palIndex),
-	hWnd(wb.hWnd),
-	width(wb.width),
-	height(wb.height),
-	pitch(wb.pitch),
 	brushThickness(wb.brushThickness),
 	interval(wb.interval),
 	timer(wb.timer),
 	thread(wb.thread),
 	threadID(wb.threadID),
-	pDirect3D(wb.pDirect3D),
-	pDevice(wb.pDevice),
-	pBackBuffer(wb.pBackBuffer),
-	lockRect(wb.lockRect),
 	palette(wb.palette)
 {
 	thread = NULL;
+	ZeroMemory(&wb, sizeof(Whiteboard));
 }
 
 void Whiteboard::Initialize(HWND WinHandle)
 {
-	hWnd = WinHandle;
-	InitD3D();
+	d3d.Initialize(WinHandle);
 
-	BeginFrame();
-	pDevice->Clear(0, NULL, D3DCLEAR_TARGET, palette.GetRGBColor(palIndex), 0.0f, 0);
-	EndFrame();
+	d3d.BeginFrame();
+	d3d.Clear(palette.GetRGBColor(palIndex));
+	d3d.EndFrame();
 }
 
 void Whiteboard::Frame(const RectU &rect, const BYTE *pixelData)
 {
-	BeginFrame();
-	Draw(rect, pixelData);
-	EndFrame();
+	d3d.BeginFrame();
+	d3d.Draw(rect, pixelData, palette);
+	d3d.EndFrame();
 }
 
 MouseServer& Whiteboard::GetMServ()
 {
 	return mouse;
 }
-
-USHORT Whiteboard::GetWidth() const
-{
-	return width;
-}
-
-USHORT Whiteboard::GetHeight() const
-{
-	return height;
-}
-
 
 void Whiteboard::SendMouseData(TCPClientInterface* client)
 {
@@ -161,96 +271,6 @@ void Whiteboard::SendMouseData(TCPClientInterface* client)
 		dealloc(msg);
 	}
 }
-
-void Whiteboard::BeginFrame()
-{
-	HRESULT hr = 0;
-	hr = pBackBuffer->LockRect(&lockRect, nullptr, NULL);
-	assert(SUCCEEDED(hr));
-}
-
-void Whiteboard::Draw(const RectU &rect, const BYTE *pixelData)
-{
-	const size_t rHeight = rect.bottom - rect.top;
-	const size_t rWidth = rect.right - rect.left;
-	for(size_t y = 0; y < rHeight; y++)
-	{
-		for(size_t x = 0; x < rWidth; x++)
-		{
-			D3DCOLOR* d3dSurf = (D3DCOLOR*)&((char*)lockRect.pBits)[pitch * ((x + rect.left) + (y + rect.top) * width)];
-			*d3dSurf = palette.GetRGBColor(pixelData[x + y * rWidth]);
-		}
-	}
-}
-
-void Whiteboard::EndFrame()
-{
-	HRESULT hr = 0;
-	hr = pBackBuffer->UnlockRect();
-	assert(SUCCEEDED(hr));
-
-	hr = pDevice->Present(nullptr, nullptr, nullptr, nullptr);
-	assert(SUCCEEDED(hr));
-}
-
-//void Whiteboard::ComposeImage(USHORT Width, USHORT Height, const BYTE *pixelData)
-//{
-//	tempSurface =  alloc<D3DCOLOR>(Width * Height);
-//
-//	for (USHORT y = 0; y < Height; y++)
-//	{
-//		for (USHORT x = 0; x < Width; x++)
-//		{
-//			const UINT index = x + (y * Width);
-//			tempSurface[index] = palette.GetRGBColor(pixelData[index]);
-//		}
-//	}
-//}
-
-void Whiteboard::InitD3D()
-{
-	HRESULT hr = S_OK;
-
-	lockRect.pBits = NULL;
-	pDirect3D = Direct3DCreate9(D3D_SDK_VERSION);
-
-	D3DPRESENT_PARAMETERS d3dpp;
-	ZeroMemory(&d3dpp, sizeof(d3dpp));
-	d3dpp.Windowed = TRUE;
-	d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
-	d3dpp.BackBufferFormat = D3DFMT_UNKNOWN;
-	d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
-	d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
-
-	BOOL isWindow = IsWindow(hWnd);
-	d3dpp.hDeviceWindow = hWnd;
-
-	hr = pDirect3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,
-		D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE, &d3dpp, &pDevice);
-	if (FAILED(hr))
-	{
-		hr = pDirect3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,
-			D3DCREATE_MIXED_VERTEXPROCESSING| D3DCREATE_PUREDEVICE, &d3dpp, &pDevice);
-	}
-	if (FAILED(hr))
-	{
-		hr = pDirect3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,
-			D3DCREATE_SOFTWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE, &d3dpp, &pDevice);
-	}
-	assert(SUCCEEDED(hr));
-
-	hr = pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
-	assert(SUCCEEDED(hr));
-
-	hr = pBackBuffer->LockRect(&lockRect, nullptr, NULL);
-	assert(SUCCEEDED(hr));
-
-	pitch = (USHORT)lockRect.Pitch / width;
-
-	hr = pBackBuffer->UnlockRect();
-	assert(SUCCEEDED(hr));
-}
-
 
 void Whiteboard::ChangeTool(Tool tool, float brushSize, BYTE palIndex)
 {
@@ -296,6 +316,10 @@ void Whiteboard::StartThread(TCPClientInterface* client)
 	thread = CreateThread(NULL, 0, WBThread, construct<WBThreadParams>(this, client), NULL, &threadID);
 }
 
+D3D& Whiteboard::GetD3D()
+{
+	return d3d;
+}
 
 Whiteboard::~Whiteboard()
 {
@@ -303,21 +327,5 @@ Whiteboard::~Whiteboard()
 	{
 		PostThreadMessage(threadID, WM_QUIT, 0, 0);
 		WaitAndCloseHandle(thread);
-
-		if(pBackBuffer)
-		{
-			pBackBuffer->Release();
-			pBackBuffer = nullptr;
-		}
-		if(pDevice)
-		{
-			pDevice->Release();
-			pDevice = nullptr;
-		}
-		if(pDirect3D)
-		{
-			pDirect3D->Release();
-			pDirect3D = nullptr;
-		}
 	}
 }

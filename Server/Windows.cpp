@@ -315,10 +315,8 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 		case MSG_DATA_MOUSE:
 		{
 			if(wb)
-			{
-				WBClientData& wbClientData = wb->GetClientData(clint->pc);
-				wbClientData.mServ.Insert((BYTE*)dat, nBytes);
-			}
+				wb->GetClientData(clint->pc).mServ.Insert((BYTE*)dat, nBytes);
+
 			break;
 		}
 		break;
@@ -382,7 +380,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 				//Send out initial bitmap
 				const WBParams& wbParams = wb->GetParams();
 				RectU rect(0, 0, wbParams.width, wbParams.height);
-				wb->QueueSendBitmap(rect, clint->pc);
+				wb->SendBitmap(rect, clint->pc, true);
 			}
 			else
 			{
@@ -515,8 +513,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 					serv.SendMsg(clint->user, TYPE_ADMIN, MSG_ADMIN_CANNOTKICK);
 					break;
 				}
-				// BUG: Creator leaving before clients causes clients to crash
-				// TODO: Before destroying whiteboard, remove all clients, check for wb before accessing.
+
 				TransferMessageWithName(serv, user, clint->user, streamReader);
 				break;
 			}

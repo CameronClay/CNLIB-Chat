@@ -8,8 +8,8 @@ public:
 	Palette();
 	Palette(Palette &&pal);
 	D3DCOLOR *Get(BYTE &numColors);
-	COLORREF GetBGRColor(BYTE index);
-	D3DCOLOR GetRGBColor(BYTE index);
+	COLORREF GetBGRColor(BYTE index) const;
+	D3DCOLOR GetRGBColor(BYTE index) const;
 
 	~Palette();
 private:

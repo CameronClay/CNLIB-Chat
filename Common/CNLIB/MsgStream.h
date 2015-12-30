@@ -113,8 +113,9 @@ public:
 		Helper<T>(*this).WriteEnd(t);
 	}
 
+	//no constexpr in vs13 :(
 	template<typename... T>
-	static UINT SizeType()
+	static inline UINT SizeType()
 	{
 		return TypeSize<T...>::value;
 	}

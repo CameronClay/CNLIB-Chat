@@ -52,7 +52,7 @@ D3DCOLOR *Palette::Get(BYTE &numColors)
 	return palette;
 }
 
-COLORREF Palette::GetBGRColor(BYTE index)
+COLORREF Palette::GetBGRColor(BYTE index) const
 {
 	union Color
 	{
@@ -69,7 +69,7 @@ COLORREF Palette::GetBGRColor(BYTE index)
 	return RGB(color1.r, color1.g, color1.b);
 }
 
-D3DCOLOR Palette::GetRGBColor(BYTE index)
+D3DCOLOR Palette::GetRGBColor(BYTE index) const
 {
 	return palette[index];
 }

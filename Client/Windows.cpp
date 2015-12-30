@@ -385,7 +385,7 @@ void MsgHandler(TCPClientInterface&, const BYTE* data, DWORD nBytes, void*)
 				{
 					if(pWhiteboard)
 					{
-						RectU& rect = streamReader.Read<RectU>();
+						RectU rect = streamReader.Read<RectU>();
 						BYTE* pixels = streamReader.ReadEnd<BYTE>();
 						pWhiteboard->Frame(rect, pixels);
 					}
@@ -611,6 +611,7 @@ void MsgHandler(TCPClientInterface&, const BYTE* data, DWORD nBytes, void*)
 				// in case user declined
 				if(IsWindow(wbHandle))
 				{
+					SetForegroundWindow(wbHandle);
 					MessageBox(wbHandle, _T("Whiteboard has been shutdown!"), _T("Whiteboard Status"), MB_ICONINFORMATION);
 					SendMessage(wbHandle, WM_CLOSE, 0, 0);
 				}
@@ -1170,6 +1171,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	}
 
+	case WM_CLOSE:
+		if (pWhiteboard)
+		{
+			MessageBox(hMainWind, _T("Must exit whiteboard before closing client"), _T("Exit"), MB_OK);
+			break;
+		}
+
+		DestroyWindow(hWnd);
+		break;
+
+
 	case WM_DESTROY:
 		if(opts->SaveLogs())
 		{
@@ -1262,7 +1274,7 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			Whiteboard& wb = *pWhiteboard;
-			if(x < wb.GetWidth() && y < wb.GetHeight())
+			if (x < wb.GetD3D().GetWidth() && y < wb.GetD3D().GetHeight())
 			{
 				wb.GetMServ().OnMouseMove(x, y);
 				prevX = x;
@@ -1280,7 +1292,7 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		const USHORT x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
 
 		Whiteboard& wb = *pWhiteboard;
-		if(x < wb.GetWidth() && y < wb.GetHeight())
+		if (x < wb.GetD3D().GetWidth() && y < wb.GetD3D().GetHeight())
 		{
 			wb.GetMServ().OnLeftPressed(x, y);
 			leftPressed = true;
@@ -1300,7 +1312,7 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			const USHORT x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
 			Whiteboard& wb = *pWhiteboard;
-			if(x < wb.GetWidth() && y < wb.GetHeight())
+			if (x < wb.GetD3D().GetWidth() && y < wb.GetD3D().GetHeight())
 			{
 				wb.GetMServ().OnLeftReleased(x, y);
 				leftPressed = false;
@@ -1387,8 +1399,8 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_ACTIVATE:
-		pWhiteboard->BeginFrame();
-		pWhiteboard->EndFrame();
+		pWhiteboard->GetD3D().BeginFrame();
+		pWhiteboard->GetD3D().EndFrame();
 		break;
 
 	case WM_CLOSE:
@@ -2053,7 +2065,6 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM)
 				(USHORT)GetDlgItemInt(hWnd, WHITEBOARD_FPS, NULL, FALSE), 
 				(BYTE)ComboBox_GetCurSel(Colors)));
 
-			//Problem in here client is invalid
 			client->SendServData(streamWriter, streamWriter.GetSize());
 
 			EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_GRAYED);
