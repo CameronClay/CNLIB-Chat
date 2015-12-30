@@ -142,7 +142,7 @@ private:
 			:
 			stream(stream)
 		{}
-
+		HelpBase operator=(const HelpBase) = delete;
 	protected:
 		MsgStreamWriter& stream;
 	};
@@ -230,7 +230,7 @@ private:
 			:
 			stream(stream)
 		{}
-
+		HelpBase operator=(HelpBase) = delete;
 	protected:
 		MsgStreamReader& stream;
 	};

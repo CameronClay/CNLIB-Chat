@@ -30,7 +30,7 @@ struct PointU
 	{
 		ZeroMemory(&pt, sizeof(PointU));
 	}
-	PointU operator*(const int val)
+	PointU operator*(const short val)
 	{
 		PointU temp;
 		temp.x = x * val;
@@ -97,7 +97,7 @@ struct PointU
 	USHORT x, y;
 };
 
-struct RectU :RECT
+struct RectU
 {
 	RectU()
 	{
@@ -204,6 +204,7 @@ struct RectU :RECT
 			bottom = (p1.y < bottom) ? bottom : p1.y;;
 		}
 	}
+	USHORT left, top, right, bottom;
 };
 
 
@@ -292,8 +293,7 @@ struct WBClientData
 	BYTE clrIndex;							// Palette color is 1 bytes
 	float thickness, prevThickness;
 
-	static const size_t UNCHANGEDCOLOR;
+	static const BYTE UNCHANGEDCOLOR;
 	static const float MINBRUSHSIZE;
 	static const float MAXBRUSHSIZE;
 };
-

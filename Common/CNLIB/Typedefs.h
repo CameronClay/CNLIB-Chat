@@ -21,16 +21,15 @@ namespace std
 #ifdef UNICODE
 	typedef wstring tstring;
 	typedef wstringstream tstringstream;
+#define to_tstring to_wstring
+#define To_String std::to_wstring
 #else
 	typedef string tstring;
 	typedef stringstream tstringstream;
+#define to_tstring to_string
+#define To_String std::to_string
 #endif
 };
 
-#ifdef UNICODE
-#define To_String std::to_wstring
-#else
-#define To_String std::to_string
-#endif
 
 CAMSNETLIB void WaitAndCloseHandle(HANDLE& hnd);

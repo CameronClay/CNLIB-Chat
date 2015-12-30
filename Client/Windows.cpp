@@ -222,8 +222,8 @@ void RecalcSizeVars(USHORT width, USHORT height)
 {
 	screenWidth = width;
 	screenHeight = height;
-	left = screenWidth * (8.75f / 10.0f), leftLen = (screenWidth - left) - 10;
-	top = screenHeight * (8.0f / 10.0f), topLen = screenHeight - top;
+	left = USHORT(screenWidth * (8.75f / 10.0f)), leftLen = (screenWidth - left) - 10;
+	top = USHORT(screenHeight * (8.0f / 10.0f)), topLen = screenHeight - top;
 }
 
 void Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, float timeOut)
@@ -256,7 +256,7 @@ void Flash()
 //returns index if found, -1 if not found
 int FindClient(const std::tstring& name)
 {
-	const USHORT count = SendMessage(listClients, LB_GETCOUNT, 0, 0);
+	const USHORT count = (USHORT)SendMessage(listClients, LB_GETCOUNT, 0, 0);
 	LIB_TCHAR* buffer = alloc<LIB_TCHAR>(maxUserLen + 1);
 	int found = -1;
 
@@ -274,7 +274,7 @@ int FindClient(const std::tstring& name)
 	return found;
 }
 
-void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void* obj)
+void MsgHandler(TCPClientInterface&, const BYTE* data, DWORD nBytes, void*)
 {
 	char* dat = (char*)(data + MSG_OFFSET);
 	nBytes -= MSG_OFFSET;
@@ -346,7 +346,7 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 				{
 					if(name.compare(fileSend->GetUser()) == 0)
 					{
-						fileSend->StopSend();	
+						fileSend->StopSend();
 						//fileSend->RunCanceled(); not required because of msgloop in sendfiles
 					}
 				}
@@ -593,17 +593,17 @@ void MsgHandler(TCPClientInterface& clint, const BYTE* data, DWORD nBytes, void*
 
 				const D3DCOLOR clr = *(D3DCOLOR*)(&dat[pos]);*/
 
-				WBParams *pParams =	&streamReader.Read<WBParams>();
+				WBParams pParams = streamReader.Read<WBParams>();
 
 				pWhiteboard = construct<Whiteboard>(
 					*client,
 					palette,
-					pParams->width,
-					pParams->height,
-					pParams->fps,
-					pParams->clrIndex);
+					pParams.width,
+					pParams.height,
+					pParams.fps,
+					pParams.clrIndex );
 
-				SendMessage(hMainWind, WM_CREATEWIN, ID_WB, (LPARAM)pParams);
+				SendMessage( hMainWind, WM_CREATEWIN, ID_WB, (LPARAM)&pParams );
 				break;
 			}
 			case MSG_WHITEBOARD_TERMINATE:
@@ -657,7 +657,7 @@ void DisconnectHandler(bool unexpected) // for disconnection
 
 void SaveServList()
 {
-	File file(servListFilePath, FILE_GENERIC_WRITE, FILE_ATTRIBUTE_HIDDEN, CREATE_ALWAYS);
+	File file(servListFilePath, FILE_GENERIC_WRITE, FILE_ATTRIBUTE_NORMAL, CREATE_ALWAYS);
 	for (auto& i : servList)
 	{
 		file.WriteString(i);
@@ -694,7 +694,7 @@ void WinMainInit()
 	FileMisc::SetCurDirectory(folderPath);
 
 	_stprintf(servListFilePath, _T("%s\\%s"), folderPath, servListFileName);
-	File file(servListFilePath, FILE_GENERIC_READ, FILE_ATTRIBUTE_HIDDEN);
+	File file(servListFilePath, FILE_GENERIC_READ);
 
 	std::tstring temp;
 	while(file.ReadString(temp))
@@ -716,10 +716,7 @@ void WinMainInit()
 	opts->Load(windowName);
 }
 
-int WINAPI WinMain(HINSTANCE hInstance,
-	HINSTANCE hPrevInstance,
-	LPSTR lpCmdLine,
-	int nCmdShow)
+int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE, LPTSTR, int nCmdShow)
 {
 	WinMainInit();
 
@@ -749,7 +746,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		return 1;
 	}
 
-	hInst = hInstance; 
+	hInst = hInstance;
 
 	hMainWind = CreateWindow(
 		szWindowClass,
@@ -1076,7 +1073,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		textBuffer.SetHandle(textDisp);
 
 		textInput = CreateWindow(WC_EDIT, NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_MULTILINE | WS_VSCROLL, 0, top, left, topLen, hWnd, (HMENU)ID_TEXTBOX_INPUT, hInst, NULL);
-		listClients = CreateWindow(WC_LISTBOX, NULL, WS_CHILD | WS_VISIBLE | LBS_STANDARD, left, 0, leftLen, top, hWnd, (HMENU)ID_LISTBOX_CLIENTS, hInst, NULL);
+		listClients = CreateWindow(WC_LISTBOX, NULL, WS_CHILD | WS_VISIBLE | LBS_STANDARD | LBS_NOINTEGRALHEIGHT, left, 0, leftLen, top, hWnd, (HMENU)ID_LISTBOX_CLIENTS, hInst, NULL);
 
 		buttonEnter = CreateWindow(WC_BUTTON, _T("Enter"), WS_CHILD | WS_VISIBLE | WS_DISABLED, left, top, leftLen, topLen, hWnd, (HMENU)ID_BUTTON_ENTER, hInst, NULL);
 
@@ -1103,7 +1100,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 		case ID_WB:
 		{
-			HANDLE wbPThread = CreateThread(NULL, 0, WBPThread, construct<WBParams>(WBParams(*(WBParams*)lParam)), NULL, &wbPThreadID);
+			CloseHandle(CreateThread(NULL, 0, WBPThread, construct<WBParams>(*(WBParams*)lParam), NULL, &wbPThreadID));
 		}	break;
 		}
 	}	break;
@@ -1483,7 +1480,7 @@ INT_PTR CALLBACK ConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 	return 0;
 }
 
-INT_PTR CALLBACK LogsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK LogsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM)
 {
 	static HWND nameList;
 
@@ -1588,7 +1585,7 @@ INT_PTR CALLBACK LogReaderProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 	return 0;
 }
 
-INT_PTR CALLBACK ManageProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK ManageProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM)
 {
 	static HWND list, ipv4Input, ipv6Input, portInput, add, remove;
 	switch (message)
@@ -1697,8 +1694,6 @@ INT_PTR CALLBACK ManageProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 		for (auto& i : servList)
 			SendMessage(list, LB_ADDSTRING, 0, (LPARAM)i.c_str());
 
-		EnableWindow(add, FALSE);
-		EnableWindow(remove, FALSE);
 		return 1;
 	}
 	}
@@ -1713,7 +1708,7 @@ DWORD CALLBACK InvalidUserPass(LPVOID hWnd)
 	return 0;
 }
 
-INT_PTR CALLBACK AuthenticateProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK AuthenticateProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM)
 {
 	static HWND textUsername, textPassword;
 	switch (message)
@@ -1753,7 +1748,7 @@ INT_PTR CALLBACK AuthenticateProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 
 			if ((user.find_first_of(_T(":")) != std::tstring::npos) || (pass.find_first_of(_T(":")) != std::tstring::npos) || (user.back() == ' '))
 			{
-				CloseHandle(CreateThread(NULL, 0, InvalidUserPass, (LPVOID)hWnd, NULL, NULL));
+				CloseHandle(CreateThread(NULL, 0, InvalidUserPass, hWnd, NULL, NULL));
 				break;
 			}
 
@@ -2039,7 +2034,7 @@ INT_PTR CALLBACK RequestWBProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 	return 0;
 }
 
-INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM)
 {
 	static HWND X, Y, FPS, Colors;
 	switch(message)
@@ -2053,10 +2048,10 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		{
 			MsgStreamWriter streamWriter(TYPE_WHITEBOARD, MSG_WHITEBOARD_SETTINGS, sizeof(WBParams));
 			streamWriter.Write(WBParams(
-				GetDlgItemInt(hWnd, WHITEBOARD_RES_X, NULL, FALSE), 
-				GetDlgItemInt(hWnd, WHITEBOARD_RES_Y, NULL, FALSE),
-				GetDlgItemInt(hWnd, WHITEBOARD_FPS, NULL, FALSE), 
-				ComboBox_GetCurSel(Colors)));
+				(USHORT)GetDlgItemInt(hWnd, WHITEBOARD_RES_X, NULL, FALSE), 
+				(USHORT)GetDlgItemInt(hWnd, WHITEBOARD_RES_Y, NULL, FALSE),
+				(USHORT)GetDlgItemInt(hWnd, WHITEBOARD_FPS, NULL, FALSE), 
+				(BYTE)ComboBox_GetCurSel(Colors)));
 
 			//Problem in here client is invalid
 			client->SendServData(streamWriter, streamWriter.GetSize());
@@ -2131,7 +2126,7 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 	return 0;
 }
 
-INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM)
 {
 	static HWND draw, invite;
 	static std::tstring usersel;

@@ -63,30 +63,30 @@ DWORD CALLBACK WBThread(LPVOID param)
 			return 0;
 		}
 	}
-
+	return 0;
 }
 
 
 Whiteboard::Whiteboard(TCPClientInterface& clint, Palette& palette, USHORT Width, USHORT Height, USHORT FPS, BYTE palIndex)
 	:
-clint(clint),
-mouse((FPS < 60 ? 4500 / FPS : 75), (USHORT)((1000.0f / (float)FPS) + 0.5f)),
-defaultColor(palIndex),
-palIndex(palIndex),
-hWnd(NULL),
-width(Width),
-height(Height),
-pitch(0),
-brushThickness(1.0f),
-interval(1.0f / (float)FPS),
-timer(CreateWaitableTimer(NULL, FALSE, NULL)),
-thread(NULL),
-threadID(NULL),
-palette(palette),
-pDirect3D(nullptr),
-pDevice(nullptr),
-pBackBuffer(nullptr),
-lockRect()
+	clint(clint),
+	mouse((FPS < 60 ? 4500 / FPS : 75), (USHORT)((1000.0f / (float)FPS) + 0.5f)),
+	defaultColor(palIndex),
+	palIndex(palIndex),
+	hWnd(NULL),
+	width(Width),
+	height(Height),
+	pitch(0),
+	brushThickness(1.0f),
+	interval(1.0f / (float)FPS),
+	timer(CreateWaitableTimer(NULL, FALSE, NULL)),
+	thread(NULL),
+	threadID(NULL),
+	palette(palette),
+	pDirect3D(nullptr),
+	pDevice(nullptr),
+	pBackBuffer(nullptr),
+	lockRect()
 {}
 
 Whiteboard::Whiteboard(Whiteboard&& wb)
@@ -169,7 +169,7 @@ void Whiteboard::BeginFrame()
 	assert(SUCCEEDED(hr));
 }
 
-void Whiteboard::Draw(const RECT &rect, const BYTE *pixelData)
+void Whiteboard::Draw(const RectU &rect, const BYTE *pixelData)
 {
 	const size_t rHeight = rect.bottom - rect.top;
 	const size_t rWidth = rect.right - rect.left;
@@ -209,7 +209,7 @@ void Whiteboard::EndFrame()
 
 void Whiteboard::InitD3D()
 {
-	HRESULT hr = 0;
+	HRESULT hr = S_OK;
 
 	lockRect.pBits = NULL;
 	pDirect3D = Direct3DCreate9(D3D_SDK_VERSION);
@@ -245,7 +245,7 @@ void Whiteboard::InitD3D()
 	hr = pBackBuffer->LockRect(&lockRect, nullptr, NULL);
 	assert(SUCCEEDED(hr));
 
-	pitch = lockRect.Pitch / width;
+	pitch = (USHORT)lockRect.Pitch / width;
 
 	hr = pBackBuffer->UnlockRect();
 	assert(SUCCEEDED(hr));

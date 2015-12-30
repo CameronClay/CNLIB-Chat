@@ -78,36 +78,36 @@ DWORD CALLBACK SendBitmapThread(LPVOID param)
 
 Whiteboard::Whiteboard(TCPServInterface &serv, WBParams params, std::tstring creator)
 	:
-pixels(alloc<BYTE>(params.width * params.height)),
-params(std::move(params)),
-serv(serv),
-creator(creator),
-interval(1.0f / (float)params.fps),
-timer(CreateWaitableTimer(NULL, FALSE, NULL)),
-thread(NULL),
-threadID(NULL),
-sendThread(*this)
+	pixels(alloc<BYTE>(params.width * params.height)),
+	params(std::move(params)),
+	serv(serv),
+	creator(creator),
+	interval(1.0f / (float)params.fps),
+	timer(CreateWaitableTimer(NULL, FALSE, NULL)),
+	thread(NULL),
+	threadID(NULL),
+	sendThread(*this)
 {
 	FillMemory(pixels, params.width * params.height, params.clrIndex);
 
 	InitializeCriticalSection(&mapSect);
-	srand(time(NULL));
+	srand((unsigned)time(NULL));
 }
 
 Whiteboard::Whiteboard(Whiteboard &&wb)
 	:
-pixels(wb.pixels),
-params(std::move(wb.params)),
-mapSect(wb.mapSect),
-serv(std::move(wb.serv)),
-creator(std::move(wb.creator)),
-interval(wb.interval),
-timer(wb.timer),
-thread(wb.thread),
-threadID(wb.threadID),
-sendThread(std::move(wb.sendThread), *this),
-clients(std::move(wb.clients)),
-sendPcs(std::move(wb.sendPcs))
+	pixels(wb.pixels),
+	params(std::move(wb.params)),
+	mapSect(wb.mapSect),
+	serv(std::move(wb.serv)),
+	creator(std::move(wb.creator)),
+	interval(wb.interval),
+	timer(wb.timer),
+	thread(wb.thread),
+	threadID(wb.threadID),
+	sendThread(std::move(wb.sendThread), *this),
+	clients(std::move(wb.clients)),
+	sendPcs(std::move(wb.sendPcs))
 {
 	wb.pixels = nullptr;
 }
@@ -199,7 +199,7 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 				}
 				else
 				{
-					DrawLine(clientData.vertices[0].x, clientData.vertices[0].y, vect.x, vect.y, clientData.clrIndex);
+					DrawLine((int)clientData.vertices[0].x, (int)clientData.vertices[0].y, (int)vect.x, (int)vect.y, clientData.clrIndex);
 					rect.Modify(vect);
 					//-1 for single line identifer
 					clientData.nVertices = -1;
@@ -217,7 +217,7 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 			{
 				if(clientData.thickness == 1.0f)
 				{
-					PutPixel(clientData.vertices[0].x, clientData.vertices[0].y, clientData.clrIndex);
+					PutPixel((int)clientData.vertices[0].x, (int)clientData.vertices[0].y, clientData.clrIndex);
 					rect = RectU::Create(vect);
 				}
 				else
@@ -488,7 +488,7 @@ const Palette& Whiteboard::GetPalette() const
 
 void Whiteboard::SendBitmap(RectU& rect)
 {
-	const DWORD nBytes = GetBufferLen(rect) + MSG_OFFSET ;
+	const DWORD nBytes = GetBufferLen(rect) + MSG_OFFSET;
 	char* msg = alloc<char>(nBytes);
 
 	msg[0] = TYPE_DATA;

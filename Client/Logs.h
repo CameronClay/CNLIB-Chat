@@ -64,7 +64,7 @@ public:
 		}
 		else
 		{
-			DWORD read = log.Read((void*)nBytes, sizeof(DWORD));
+			log.Read((void*)nBytes, sizeof(DWORD));
 		}
 	}
 

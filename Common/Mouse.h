@@ -69,6 +69,7 @@ class MouseClient
 {
 public:
 	MouseClient(MouseServer& server);
+	MouseClient operator=(MouseClient) = delete;
 	bool IsInWindow() const;
 	MouseEvent Read();
 	MouseEvent Peek() const;

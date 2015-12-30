@@ -13,6 +13,7 @@ public:
 	Whiteboard(TCPClientInterface& clint, Palette& palette, USHORT Width, USHORT Height, USHORT FPS, BYTE palIndex = 0);
 	Whiteboard(Whiteboard&& wb);
 	~Whiteboard();
+	Whiteboard operator=(Whiteboard) = delete;
 
 	void StartThread(TCPClientInterface* client);
 
@@ -33,7 +34,7 @@ public:
 	float GetBrushThickness() const;
 private:
 	void InitD3D();
-	void Draw(const RECT &rect, const BYTE *pixelData);
+	void Draw(const RectU &rect, const BYTE *pixelData);
 	void ComposeImage(USHORT Width, USHORT Height, const BYTE *pixelData);
 
 	const Palette& GetPalette(BYTE& count);
