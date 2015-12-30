@@ -22,13 +22,6 @@ struct Data
 		serv(serv),
 		pos(pos)
 	{}
-	Data(Data&& data)
-		:
-		serv(data.serv),
-		pos(data.pos)
-	{
-		ZeroMemory(&data, sizeof(Data));
-	}
 
 	TCPServ& serv;
 	USHORT pos;
@@ -45,17 +38,6 @@ struct SAData
 		single(single),
 		compType(compType)
 	{}
-	SAData(SAData&& data)
-		:
-		serv(data.serv),
-		data(data.data),
-		nBytesDecomp(data.nBytesDecomp),
-		exAddr(data.exAddr),
-		single(data.single),
-		compType(data.compType)
-	{
-		ZeroMemory(&data, sizeof(SAData));
-	}
 
 	TCPServ& serv;
 	DWORD nBytesDecomp;
@@ -76,17 +58,6 @@ struct SADataEx
 		nPcs(nPcs),
 		compType(compType)
 	{}
-	SADataEx(SADataEx&& data)
-		:
-		serv(data.serv),
-		data(data.data),
-		nBytesDecomp(data.nBytesDecomp),
-		pcs(data.pcs),
-		nPcs(data.nPcs),
-		compType(data.compType)
-	{
-		ZeroMemory(&data, sizeof(SADataEx));
-	}
 
 	TCPServ& serv;
 	DWORD nBytesDecomp;

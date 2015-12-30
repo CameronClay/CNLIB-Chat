@@ -23,7 +23,7 @@ public:
 	bool SaveLogs() const;
 	UINT GetFlashCount() const;
 	bool FlashTaskbar(HWND hWnd);
-	std::tstring& GetDownloadPath();
+	const std::tstring& GetDownloadPath() const;
 private:
 	std::tstring filePath;
 	FLASHWINFO info;

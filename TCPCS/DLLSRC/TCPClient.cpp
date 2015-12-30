@@ -25,16 +25,6 @@ struct SendInfo
 		compType(compType)
 	{}
 
-	SendInfo(SendInfo&& info)
-		:
-		client(info.client),
-		data(info.data),
-		nBytes(info.nBytes),
-		compType(info.compType)
-	{
-		ZeroMemory(&info, sizeof(SendInfo));
-	}
-
 	TCPClient& client;
 	char* data;
 	const DWORD nBytes;

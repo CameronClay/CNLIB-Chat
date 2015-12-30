@@ -32,7 +32,6 @@ public:
 		x(USHRT_MAX),
 		y(USHRT_MAX)
 	{}
-
 	MouseEvent(Type type, USHORT x, USHORT y)
 		:
 		type( type ),
@@ -41,9 +40,12 @@ public:
 	{}
 	MouseEvent& operator=(const MouseEvent& mevt)
 	{
-		type = mevt.type;
-		x = mevt.x;
-		y = mevt.y;
+		if (this != &mevt)
+		{
+			type = mevt.type;
+			x = mevt.x;
+			y = mevt.y;
+		}
 		return *this;
 	}
 
@@ -70,13 +72,16 @@ class MouseClient
 public:
 	MouseClient(MouseServer& server);
 	MouseClient operator=(MouseClient) = delete;
-	bool IsInWindow() const;
+
+	bool MouseEmpty() const;
+
 	MouseEvent Read();
 	MouseEvent Peek() const;
+
 	size_t EventCount() const;
 	const MouseEvent& GetEvent(size_t i);
+
 	void Erase(size_t count);
-	bool MouseEmpty() const;
 private:
 	MouseServer& server;
 };
@@ -87,6 +92,7 @@ class MouseServer
 public:
 	MouseServer(size_t bufferSize, USHORT interval);
 	MouseServer(MouseServer&& mServ);
+
 	void OnMouseMove(USHORT x, USHORT y);
 	void OnLeftPressed(USHORT x, USHORT y);
 	void OnLeftReleased(USHORT x, USHORT y);
@@ -94,7 +100,7 @@ public:
 	void OnRightReleased(USHORT x, USHORT y);
 	void OnWheelUp(USHORT x, USHORT y);
 	void OnWheelDown(USHORT x, USHORT y);
-	bool IsInWindow() const;
+
 	void Extract(BYTE *byteBuffer, UINT count);
 	void Insert(BYTE *byteBuffer, DWORD nBytes);
 	UINT GetBufferLen(UINT& count) const;

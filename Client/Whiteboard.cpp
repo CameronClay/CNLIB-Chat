@@ -17,9 +17,7 @@ D3D::D3D(USHORT width, USHORT height)
 	pDevice(nullptr),
 	pBackBuffer(nullptr),
 	lockRect()
-{
-
-}
+{}
 D3D::D3D(D3D&& d3d)
 	:
 	hWnd(d3d.hWnd),
@@ -147,7 +145,6 @@ struct WBThreadParams
 		wb(wb),
 		client(client)
 	{}
-
 	WBThreadParams(WBThreadParams&& params)
 		:
 		wb(params.wb),
@@ -155,7 +152,6 @@ struct WBThreadParams
 	{
 		ZeroMemory(&params, sizeof(WBThreadParams));
 	}
-
 	~WBThreadParams(){}
 
 	Whiteboard* wb;

@@ -5,6 +5,7 @@ MouseClient::MouseClient( MouseServer& server )
 	:
 	server( server )
 {}
+
 MouseEvent MouseClient::Read()
 {
 	if(!server.buffer.empty())
@@ -25,10 +26,12 @@ MouseEvent MouseClient::Peek() const
 	else
 		return MouseEvent(MouseEvent::Invalid, 0, 0);
 }
+
 bool MouseClient::MouseEmpty() const
 {
 	return server.buffer.empty( );
 }
+
 size_t MouseClient::EventCount() const
 {
 	return server.buffer.size();
@@ -37,6 +40,7 @@ const MouseEvent& MouseClient::GetEvent(size_t i)
 {
 	return server.buffer[i];
 }
+
 void MouseClient::Erase(size_t count)
 {
 	server.buffer.erase(count);
@@ -100,9 +104,7 @@ UINT MouseServer::GetBufferLen(UINT& count) const
 void MouseServer::Extract(BYTE *byteBuffer, UINT count)
 {
 	for(UINT i = 0; i < count; i++)
-	{
 		((MouseEvent*)(byteBuffer))[i] = buffer[i];
-	}
 
 	buffer.erase(count);
 }
@@ -110,15 +112,10 @@ void MouseServer::Insert(BYTE *byteBuffer, DWORD nBytes)
 {
 	const size_t count = nBytes / sizeof(MouseEvent);
 	while((int)buffer.max_size() - (int)(buffer.size() + count) < 0)
-	{
 		Sleep(interval);
-	}
-
 
 	for(UINT i = 0; i < count; i++)
-	{
 		buffer.push_back_ninc(*(((MouseEvent*)byteBuffer) + i));
-	}
 
 	buffer.IncreaseWritten(count);
 }

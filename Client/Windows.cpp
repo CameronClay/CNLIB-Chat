@@ -459,7 +459,7 @@ void MsgHandler(TCPClientInterface&, const BYTE* data, DWORD nBytes, void*)
 			{
 				case MSG_FILE_LIST:
 				{
-					fileReceive->RecvFileNameList(streamReader, opts->GetDownloadPath());
+					fileReceive->RecvFileNameList(streamReader, (std::tstring&)opts->GetDownloadPath());//temp cast because filetransfer stuff will be redone
 					break;
 				}
 				case MSG_FILE_DATA:
@@ -1210,8 +1210,8 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	//static DWORD mouseThreadID;
 	static USHORT prevX = 0, prevY = 0;
 	static bool leftPressed = false;
-	static Whiteboard& wb = *pWhiteboard;
 	static USHORT width = 0, height = 0;
+	Whiteboard& wb = *pWhiteboard;
 
 	switch (message)
 	{
@@ -1390,10 +1390,10 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	//}
 
 	case WM_CREATE:
-		pWhiteboard->Initialize(hWnd);
+		wb.Initialize(hWnd);
 
 		if(wbCanDraw)
-			pWhiteboard->StartThread(client);
+			wb.StartThread(client);
 
 		width = wb.GetD3D().GetWidth(), height = wb.GetD3D().GetHeight();
 
@@ -1401,16 +1401,18 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_ACTIVATE:
-		wb.GetD3D().BeginFrame();
-		wb.GetD3D().EndFrame();
+		if (pWhiteboard)
+		{
+			wb.GetD3D().BeginFrame();
+			wb.GetD3D().EndFrame();
+		}
 		break;
 
 	case WM_CLOSE:
 		client->SendMsg(TYPE_WHITEBOARD, MSG_WHITEBOARD_LEFT);
 		PostThreadMessage(wbPThreadID, WM_QUIT, NULL, NULL);
-		WaitForSingleObject(wbPThread, INFINITE);
+		WaitAndCloseHandle(wbPThread);
 
-		CloseHandle(wbPThread);
 		DestroyWindow(hWnd);
 		break;
 	case WM_DESTROY:

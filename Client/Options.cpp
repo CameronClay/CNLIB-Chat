@@ -20,14 +20,10 @@ Options::Options(Options&& opts)
 	saveLogs(opts.saveLogs),
 	flashCount(opts.flashCount),
 	info(opts.info)
-{
-
-}
+{}
 
 Options::~Options()
-{
-
-}
+{}
 
 void Options::Load(const LIB_TCHAR* windowName)
 {
@@ -182,7 +178,7 @@ UINT Options::GetFlashCount() const
 	return flashCount;
 }
 
-std::tstring& Options::GetDownloadPath()
+const std::tstring& Options::GetDownloadPath() const
 {
 	return downloadPath;
 }

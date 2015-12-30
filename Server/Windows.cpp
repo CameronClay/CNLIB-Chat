@@ -160,10 +160,7 @@ void RequestTransfer(TCPServInterface& serv, std::tstring& srcUserName, MsgStrea
 void DispIPMsg(Socket& pc, const LIB_TCHAR* str)
 {
 	if (pc.IsConnected())
-	{
-		std::tstring disp = pc.GetInfo().GetIp() + str;
-		textBuffer.WriteLine(disp);
-	}
+		textBuffer.WriteLine(pc.GetInfo().GetIp() + str);
 }
 
 void DisconnectHandler(ClientData* data)
