@@ -315,6 +315,7 @@ void MsgHandler(TCPClientInterface&, const BYTE* data, DWORD nBytes, void*)
 				std::tstring str;
 				Format::FormatText(buffer, str, opts->TimeStamps());
 				textBuffer.WriteLine(str);
+				opts->WriteLine(str);
 
 				if (FindClient(name) == -1)
 					SendMessage(listClients, LB_ADDSTRING, 0, (LPARAM)name.c_str());
@@ -361,6 +362,7 @@ void MsgHandler(TCPClientInterface&, const BYTE* data, DWORD nBytes, void*)
 				std::tstring str;
 				Format::FormatText(buffer, str, opts->TimeStamps());
 				textBuffer.WriteLine(str);
+				opts->WriteLine(str);
 
 				Flash();
 				break;
@@ -377,6 +379,7 @@ void MsgHandler(TCPClientInterface&, const BYTE* data, DWORD nBytes, void*)
 					std::tstring str = streamReader.Read<std::tstring>();
 					Format::FormatText(str, str, opts->TimeStamps());
 					textBuffer.WriteLine(str);
+					opts->WriteLine(str);
 
 					Flash();
 					break;
@@ -903,7 +906,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			std::tstring dest;
 			Format::FormatText(str, dest, user, opts->TimeStamps());
-			textBuffer.WriteLine(dest);
+			textBuffer.WriteLine(dest); 
+			opts->WriteLine(dest);
 
 			MsgStreamWriter streamWriter(TYPE_DATA, MSG_DATA_TEXT, StreamWriter::SizeType(str));
 			streamWriter.Write(str);
@@ -970,7 +974,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			auto& list = fileSend->GetList();
 
-			FileMisc::GetFileNameList(buffer, NULL, list);
+			list = FileMisc::GetFileNameList(buffer);
 			if (!list.empty())
 			{
 				std::tstring path = buffer;
@@ -1183,14 +1187,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 	case WM_DESTROY:
-		if(opts->SaveLogs())
-		{
-			const std::tstring& text = textBuffer.GetText();
-			if (!text.empty())
-			{
-				opts->AddLog((const char*)text.c_str(), (text.size() + 1) * sizeof(LIB_TCHAR));
-			}
-		}
+		opts->SaveLog(); //log is removed if blank, and is blank if opts->SaveLogs() is false
+
 		DestroyClient(client);
 		CleanupNetworking();
 		CoUninitialize();
@@ -1834,12 +1832,23 @@ INT_PTR CALLBACK Opt_GeneralProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 			LIB_TCHAR buffer[4];
 			SendMessage(flashCount, WM_GETTEXT, 4, (LPARAM)buffer);
 
+			bool prevSaveLogs = opts->SaveLogs();
+
 			opts->SetGeneral(
 				(BST_CHECKED == IsDlgButtonChecked(hWnd, ID_TIMESTAMPS)), 
 				(BST_CHECKED == IsDlgButtonChecked(hWnd, ID_STARTUP)), 
 				(BST_CHECKED == IsDlgButtonChecked(hWnd, ID_FLASH_TASKBAR)), 
 				(BST_CHECKED == IsDlgButtonChecked(hWnd, ID_SAVELOGS)),
-				(UCHAR)abs(_tstoi(buffer)));
+				GetDlgItemInt(hWnd, ID_FLASH_COUNT, NULL, FALSE));
+
+			if (!prevSaveLogs && opts->SaveLogs())
+			{
+				opts->CreateLog();
+				opts->WriteLine(textBuffer.GetText());
+			}
+
+			if (prevSaveLogs && !opts->SaveLogs())
+				opts->RemoveTempLog();
 			
 			opts->Save(windowName);
 

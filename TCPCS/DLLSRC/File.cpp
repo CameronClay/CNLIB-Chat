@@ -12,9 +12,11 @@
 #pragma comment( lib, "zlib/lib/zdll.lib" )
 
 
-
-
 FileMisc::FileData::FileData()
+	:
+	fileName(),
+	dateModified({}),
+	size(0)
 {}
 
 FileMisc::FileData::FileData(std::tstring fileName, SYSTEMTIME dateModified, DWORD64 size)
@@ -37,6 +39,12 @@ bool FileMisc::FileData::operator()(FileData& fd)
 		return !CompareTime(fd.dateModified, dateModified);
 	return false;
 }
+
+bool FileMisc::FileData::Valid() const
+{
+	return !fileName.empty();
+}
+
 
 File::File(const LIB_TCHAR* fileName, DWORD desiredAccess, DWORD fileAttributes, DWORD creationFlag)
 {
@@ -83,6 +91,11 @@ void File::SetCursor(UCHAR Location)
 void File::MoveCursor(LONG nBytes)
 {
 	SetFilePointer(hnd, nBytes, NULL, FILE_CURRENT);
+}
+
+DWORD File::GetCursor()
+{
+	return SetFilePointer(hnd, 0, NULL, FILE_CURRENT);
 }
 
 DWORD File::Write(const void* data, DWORD nBytes)
@@ -195,6 +208,11 @@ void File::ChangeDate(const SYSTEMTIME& t)
 	FILETIME ft;
 	SystemTimeToFileTime(&t, &ft);
 	SetFileTime(hnd, nullptr, nullptr, &ft);
+}
+
+void File::SetAttrib(DWORD attrib)
+{
+	// bleh i will leave xD
 }
 
 void FileMisc::SetAttrib(const LIB_TCHAR* fileName, DWORD attrib)
@@ -318,19 +336,19 @@ DWORD FileMisc::Decompress(BYTE* dest, DWORD destLen, const BYTE* src, DWORD src
 }
 
 
-void FileMisc::GetFileNameList(const LIB_TCHAR* folder, DWORD filter, std::vector<FileMisc::FileData>& list)
+std::vector<FileMisc::FileData> FileMisc::GetFileNameList(const LIB_TCHAR* folder, DWORD filter, bool inclusion)
 {
 	WIN32_FIND_DATA fileSearch;
 	LIB_TCHAR buffer[MAX_PATH] = {};
 	_stprintf_s(buffer, _T("%s\\*"), folder);
-
+	std::vector<FileData> list;
 
 	HANDLE hnd = FindFirstFile(buffer, &fileSearch);
 	if(hnd != INVALID_HANDLE_VALUE)
 	{
 		do
 		{
-			if(!(fileSearch.dwFileAttributes & filter))
+			if (inclusion ? (fileSearch.dwFileAttributes & filter) : !(fileSearch.dwFileAttributes & filter))
 			{
 				if(fileSearch.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
 				{
@@ -338,8 +356,7 @@ void FileMisc::GetFileNameList(const LIB_TCHAR* folder, DWORD filter, std::vecto
 					{
 						//std::tstring temp = folder != "" ? std::tstring( folder ) + std::tstring("\\") : "";
 
-						std::vector<FileData> a;
-						GetFileNameList((std::tstring(folder) + _T("\\") + std::tstring(fileSearch.cFileName)).c_str(), filter, a);
+						std::vector<FileData> a = GetFileNameList((std::tstring(folder) + _T("\\") + std::tstring(fileSearch.cFileName)).c_str(), filter, inclusion);
 						for(auto i = a.begin(); i != a.end(); i++)
 						{
 							list.push_back(FileData(std::tstring(fileSearch.cFileName) + _T("\\") + i->fileName, i->dateModified, i->size));
@@ -356,6 +373,8 @@ void FileMisc::GetFileNameList(const LIB_TCHAR* folder, DWORD filter, std::vecto
 		} while(FindNextFile(hnd, &fileSearch));
 		FindClose(hnd);
 	}
+
+	return list;
 }
 
 bool FileMisc::CompareTime(SYSTEMTIME& t1, SYSTEMTIME& t2)

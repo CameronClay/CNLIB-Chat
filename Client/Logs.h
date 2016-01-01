@@ -22,28 +22,42 @@ public:
 	void LoadLogList(const std::tstring& path)
 	{
 		this->path = path;
-		FileMisc::GetFileNameList(path.c_str(), NULL, logList);
+		logList = FileMisc::GetFileNameList(path.c_str(), FILE_ATTRIBUTE_TEMPORARY, false);
+		CompressTempLogs(FileMisc::GetFileNameList(path.c_str(), FILE_ATTRIBUTE_TEMPORARY));
 	}
 
-	void AddLog(const char* data, DWORD nBytes)
+	void CreateLog()
 	{
 		TCHAR buffer[512];
 		_stprintf(buffer, _T("%s\\Log%.2d.txt"), path.c_str(), logList.size());
+		fileName = buffer;
 
-		File log(buffer, FILE_GENERIC_WRITE, FILE_ATTRIBUTE_NORMAL, CREATE_ALWAYS);
+		log.Open(buffer, FILE_GENERIC_WRITE, FILE_ATTRIBUTE_TEMPORARY, CREATE_ALWAYS);
+	}
 
-		const DWORD maxCompLen = FileMisc::GetCompressedBufferSize(nBytes);
-		char* compBuffer = alloc<char>(maxCompLen);
-		const DWORD compLen = FileMisc::Compress((BYTE*)compBuffer, maxCompLen, (const BYTE*)data, nBytes, 9);
-		log.Write((void*)&nBytes, sizeof(DWORD));
-		log.Write((void*)&compLen, sizeof(DWORD));
-		log.Write(compBuffer, compLen);
+	void SaveLog()
+	{
+		if (log.IsOpen())
+		{
+			if (log.GetCursor() != 0)
+				CompressTempLog(log, fileName);
+			else
+				FileMisc::Remove(fileName.c_str());
+		}
+	}
 
-		dealloc(compBuffer);
+	void WriteLine(const std::tstring& str)
+	{
+		if (log.IsOpen())
+		{
+			std::tstring temp;
+			if (log.GetCursor() != 0)
+				temp.append(_T("\r\n"));
 
-		SYSTEMTIME currentTime;
-		GetSystemTime(&currentTime);
-		logList.push_back(FileMisc::FileData(std::tstring(buffer), currentTime, nBytes));
+			temp.append(str);
+
+			log.Write(temp.c_str(), temp.size() * sizeof(LIB_TCHAR));
+		}
 	}
 
 	//if nBytes is specified copies that many bytes into dest, otherwise outputs the number of bytes into the nBytes var
@@ -66,6 +80,12 @@ public:
 		{
 			log.Read((void*)nBytes, sizeof(DWORD));
 		}
+	}
+
+	void RemoveTempLog()
+	{
+		log.Close();
+		FileMisc::Remove(fileName.c_str());
 	}
 
 	void RemoveLog(int index)
@@ -101,6 +121,62 @@ public:
 		return logList;
 	}
 private:
+	FileMisc::FileData CompressTempLog(const FileMisc::FileData& fd)
+	{
+		std::tstring logName;
+		if (fileName == fd.fileName)
+		{
+			logName = fd.fileName;
+			log.Close();
+		}
+		else
+		{
+			logName = path + _T("\\") + fd.fileName;
+		}
+
+		File log(logName.c_str(), FILE_GENERIC_READ, FILE_FLAG_DELETE_ON_CLOSE);
+		const DWORD tempLogSize = (DWORD)log.GetSize() + sizeof(LIB_TCHAR);
+		if (tempLogSize == sizeof(LIB_TCHAR))
+			return {};
+
+		DWORD compLogSize = FileMisc::GetCompressedBufferSize((DWORD)tempLogSize);
+		char* buffer = alloc<char>(tempLogSize + compLogSize);
+		char* newBuffer = buffer + tempLogSize;
+
+		*(LIB_TCHAR*)(buffer + tempLogSize - sizeof(LIB_TCHAR)) = _T('\0');
+
+		log.Read(buffer, tempLogSize);
+		compLogSize = FileMisc::Compress((BYTE*)newBuffer, compLogSize, (BYTE*)buffer, tempLogSize, 9);
+		log.Close();
+
+		//*(LIB_TCHAR*)(newBuffer + compLogSize + sizeof(LIB_TCHAR)) = _T('\0');
+
+		log.Open(logName.c_str(), FILE_GENERIC_WRITE, FILE_ATTRIBUTE_NORMAL, CREATE_ALWAYS);
+		log.Write((void*)&tempLogSize, sizeof(DWORD));
+		log.Write((void*)&compLogSize, sizeof(DWORD));
+		log.Write(newBuffer, compLogSize);
+		log.ChangeDate(fd.dateModified);
+
+		dealloc(buffer);
+
+		return { fd.fileName, fd.dateModified, log.GetSize() };
+	}
+	FileMisc::FileData CompressTempLog(const File& file, const std::tstring& fileName)
+	{
+		return CompressTempLog({ fileName, file.GetDate(), file.GetSize() });
+	}
+	void CompressTempLogs(const std::vector<FileMisc::FileData>& fileList)
+	{
+		for (auto& it : fileList)
+		{
+			const FileMisc::FileData fd = CompressTempLog(it);
+			if (fd.Valid())
+				logList.push_back(std::move(fd));
+		}
+	}
+
 	std::vector<FileMisc::FileData> logList;
+	File log;
+	std::tstring fileName;
 	std::tstring path;
 };

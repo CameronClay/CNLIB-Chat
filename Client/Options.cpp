@@ -65,6 +65,9 @@ void Options::Load(const LIB_TCHAR* windowName)
 
 	LoadLogList(std::tstring(buffer));
 
+	if (SaveLogs())
+		CreateLog();
+
 	dealloc(buffer);
 }
 

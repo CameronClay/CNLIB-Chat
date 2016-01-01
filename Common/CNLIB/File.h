@@ -22,6 +22,7 @@ public:
 	// begining or end, location FILE_BEGIN or FILE_END
 	void SetCursor(UCHAR Location);
 	void MoveCursor(LONG nBytes);
+	DWORD GetCursor();
 
 	DWORD Write(const void* data, DWORD nBytes);
 	DWORD Read(void* dest, DWORD nBytes);
@@ -33,12 +34,12 @@ public:
 	bool ReadDate(SYSTEMTIME& dest);
 
 	void ChangeDate(const SYSTEMTIME& t);
+	void SetAttrib(DWORD attrib);
 
 	bool IsOpen() const;
 
 	DWORD64 GetSize() const;
 	SYSTEMTIME GetDate() const;
-
 private:
 	HANDLE hnd;
 };
@@ -52,6 +53,7 @@ namespace FileMisc
 		bool operator==(const FileData& fd) const;
 		bool operator<(const FileData& fd) const;
 		bool operator()(FileData& fd);
+		bool Valid() const;
 
 		std::tstring fileName;
 		SYSTEMTIME dateModified;
@@ -68,7 +70,7 @@ namespace FileMisc
 	CAMSNETLIB void GetFullFilePathName(const LIB_TCHAR* fileName, LIB_TCHAR* buffer);
 
 	// folder = "" or full directory path, filter = NULL for no filter
-	CAMSNETLIB void GetFileNameList(const LIB_TCHAR* folder, DWORD filter, std::vector<FileMisc::FileData>& list);
+	CAMSNETLIB std::vector<FileMisc::FileData> GetFileNameList(const LIB_TCHAR* folder, DWORD filter = NULL, bool inclusion = true);
 
 	// returns true when t1 > t2, false when t2 <= t1
 	CAMSNETLIB bool CompareTime(SYSTEMTIME& t1, SYSTEMTIME& t2);
