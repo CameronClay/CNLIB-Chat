@@ -28,7 +28,7 @@ Socket::Socket()
 {}
 
 Socket::Socket(SOCKET pc)
-	: 
+	:
 	pc((pc != INVALID_SOCKET) ? construct<SOCKET>(pc) : nullptr),
 	refCount(construct<UINT>(1))
 {}
@@ -147,19 +147,19 @@ bool Socket::Bind(const LIB_TCHAR* port, bool ipv6)
 
 Socket Socket::AcceptConnection()
 {
+	Socket temp;
 	if(IsConnected())
 	{
 		int addrLen = sizeof(sockaddr_in6);
 		sockaddr* addr = (sockaddr*)alloc<sockaddr_in6>();
-		Socket temp(accept(*pc, addr, &addrLen));
-		if (temp.IsConnected()) 
+		temp = accept(*pc, addr, &addrLen);
+		if (temp.IsConnected())
 		{
 			temp.info.SetAddr(addr, addrLen);
-			return temp;
 		}
 		dealloc(addr);
 	}
-	return Socket();
+	return temp;
 }
 
 
