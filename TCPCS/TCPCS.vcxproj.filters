@@ -48,9 +48,6 @@
     <ClInclude Include="..\Common\CNLIB\Socket.h">
       <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\SocketListen.h">
-      <Filter>Header Files\CNLIB</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\CNLIB\StreamExt.h">
       <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
@@ -67,6 +64,15 @@
       <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\CNLIB\SocketInfo.h">
+      <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\IOCP.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\OverlappedExt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\MemPool.h">
       <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
   </ItemGroup>
@@ -92,13 +98,16 @@
     <ClCompile Include="DLLSRC\UPNP.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DLLSRC\SocketListen.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\Common\WinFirewall.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DLLSRC\SocketInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DLLSRC\IOCP.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DLLSRC\HeapAlloc.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -1,12 +1,9 @@
 //Copyright (c) <2015> <Cameron Clay>
 
 #pragma once
-#include <WinSock2.h>
+#include <Windows.h>
 #include <string>
 #include <sstream>
-
-#pragma comment(lib,"Ws2_32.lib")
-
 
 #ifdef TCPCS_EXPORTS
 #define CAMSNETLIB __declspec(dllexport)

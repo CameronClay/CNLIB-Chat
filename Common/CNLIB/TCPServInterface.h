@@ -14,12 +14,12 @@ class CAMSNETLIB TCPServInterface : public PingHI
 {
 public:
 	struct ClientData;
-	typedef void(*sfunc)(TCPServInterface& serv, ClientData* const client, const BYTE* data, DWORD nBytes, void* obj);
-	typedef void(**const sfuncP)(TCPServInterface& serv, ClientData* const client, const BYTE* data, DWORD nBytes, void* obj);
+	typedef void(*sfunc)(TCPServInterface& serv, ClientData* const client, const BYTE* data, DWORD nBytes);
+	typedef void(**const sfuncP)(TCPServInterface& serv, ClientData* const client, const BYTE* data, DWORD nBytes);
 
 	struct CAMSNETLIB ClientData
 	{
-		ClientData(TCPServInterface& serv, Socket pc, sfunc func, USHORT recvIndex);
+		ClientData(TCPServInterface& serv, Socket pc, sfunc func);
 		ClientData(ClientData&& clint);
 		ClientData& operator=(ClientData&& data);
 
@@ -27,23 +27,28 @@ public:
 		sfunc func;
 		std::tstring user;
 
-		//DO NOT TOUCH
-		USHORT recvIndex;
-		HANDLE recvThread;
-
 		//User defined object to store extra data in the struct
 		void* obj;
 	};
 
+	class CAMSNETLIB ClientAccess
+	{
+	public:
+		ClientAccess(ClientData** clients);
+		ClientData* operator+(USHORT amount);
+		ClientData* operator-(USHORT amount);
+		ClientData* operator[](USHORT index);
+	private:
+		const ClientData** clients;
+	};
+
 	virtual IPv AllowConnections(const LIB_TCHAR* port, IPv ipv = ipboth) = 0;
+
+	virtual char* GetSendBuffer() = 0;
 
 	virtual void SendClientData(const char* data, DWORD nBytes, Socket addr, bool single, CompressionType compType = BESTFIT) = 0;
 	virtual void SendClientData(const char* data, DWORD nBytes, Socket* pcs, USHORT nPcs, CompressionType compType = BESTFIT) = 0;
 	virtual void SendClientData(const char* data, DWORD nBytes, std::vector<Socket>& pcs, CompressionType compType = BESTFIT) = 0;
-
-	virtual HANDLE SendClientDataThread(const char* data, DWORD nBytes, Socket addr, bool single, CompressionType compType = BESTFIT) = 0;
-	virtual HANDLE SendClientDataThread(const char* data, DWORD nBytes, Socket* pcs, USHORT nPcs, CompressionType compType = BESTFIT) = 0;
-	virtual HANDLE SendClientDataThread(const char* data, DWORD nBytes, std::vector<Socket>& pcs, CompressionType compType = BESTFIT) = 0;
 
 	virtual void SendMsg(Socket pc, bool single, char type, char message) = 0;
 	virtual void SendMsg(Socket* pcs, USHORT nPcs, char type, char message) = 0;
@@ -55,19 +60,26 @@ public:
 
 	virtual void Shutdown() = 0;
 
-	virtual ClientData** GetClients() const = 0;
+	virtual ClientAccess GetClients() const = 0;
 	virtual USHORT ClientCount() const = 0;
+
+	virtual Socket GetHostIPv4() const = 0;
+	virtual Socket GetHostIPv6() const = 0;
 
 	virtual void Ping(Socket client) = 0;
 
 	virtual bool MaxClients() const = 0;
 	virtual bool IsConnected() const = 0;
 
-	virtual std::vector<SocketListen>& GetHost() = 0;
+	virtual UINT MaxDataSize() const = 0;
+	virtual UINT MaxCompSize() const = 0;
+
+	virtual int GetCompressionCO() const = 0;
 
 	virtual void* GetObj() const = 0;
 };
 
+typedef TCPServInterface::ClientAccess ClientAccess;
 typedef TCPServInterface::ClientData ClientData;
 typedef void(*const customFunc)(ClientData* data);
 
@@ -75,5 +87,5 @@ typedef TCPServInterface::sfunc sfunc;
 typedef TCPServInterface::sfuncP sfuncP;
 
 
-CAMSNETLIB TCPServInterface* CreateServer(sfunc msgHandler, customFunc conFunc, customFunc disFunc, USHORT maxCon = 20, int compression = 9, float pingInterval = 30.0f, void* obj = nullptr);
+CAMSNETLIB TCPServInterface* CreateServer(sfunc msgHandler, customFunc conFunc, customFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxDataSize = 8192, USHORT maxCon = 20, int compression = 9, int compressionCO = 512, float pingInterval = 30.0f, void* obj = nullptr);
 CAMSNETLIB void DestroyServer(TCPServInterface*& server);

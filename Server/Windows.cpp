@@ -176,7 +176,7 @@ void ConnectHandler(ClientData* data)
 }
 
 //Handles all incoming packets
-void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* data, DWORD nBytes, void* obj)
+void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* data, DWORD nBytes)
 {
 	auto clients = serv.GetClients();
 	const USHORT nClients = serv.ClientCount();

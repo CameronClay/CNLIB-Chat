@@ -1,11 +1,16 @@
+#include <WinSock2.h>
 #include "Socket.h"
 
 #include <ws2tcpip.h>
 #include <Mstcpip.h>
 #include <functional>
+#include <Mswsock.h> //for AcceptEx
 
 #include "HeapAlloc.h"
 #include "File.h"
+
+#pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "Mswsock.lib") //for AcceptEx
 
 int InitializeNetworking()
 {
@@ -29,8 +34,8 @@ Socket::Socket()
 
 Socket::Socket(SOCKET pc)
 	:
-	pc((pc != INVALID_SOCKET) ? construct<SOCKET>(pc) : nullptr),
-	refCount(construct<UINT>(1))
+	pc(pc),
+	refCount(pc != INVALID_SOCKET ? construct<UINT>(1) : nullptr)
 {}
 
 Socket::Socket(Socket&& pc)
@@ -94,7 +99,7 @@ bool Socket::operator!= (const Socket pc) const
 }
 bool Socket::operator== (const SOCKET pc) const
 {
-	return (this->pc && (*this->pc == pc || *this->pc != INVALID_SOCKET));
+	return this->pc == pc;
 }
 bool Socket::operator!= (const SOCKET pc) const
 {
@@ -103,10 +108,10 @@ bool Socket::operator!= (const SOCKET pc) const
 
 void Socket::SetSocket(SOCKET pc)
 {
-	if (!refCount)
+	if (!IsConnected())
 	{
-		refCount = construct<UINT>(1);
-		this->pc = (pc != INVALID_SOCKET) ? construct<SOCKET>(pc) : nullptr;
+		refCount = (pc != INVALID_SOCKET) ? construct<UINT>(1) : nullptr;
+		this->pc = pc;
 	}
 	else
 		*this = Socket(pc);
@@ -114,7 +119,7 @@ void Socket::SetSocket(SOCKET pc)
 
 SOCKET Socket::GetSocket() const
 {
-	return pc ? *pc : INVALID_SOCKET;
+	return pc;
 }
 
 bool Socket::Bind(const LIB_TCHAR* port, bool ipv6)
@@ -134,7 +139,9 @@ bool Socket::Bind(const LIB_TCHAR* port, bool ipv6)
 			{
 				SetSocket(pc);
 
-				this->info.SetAddr(addr.ai_addr, addr.ai_addrlen);
+				sockaddr* temp = (sockaddr*)alloc<char>(addr.ai_addrlen);
+				memcpy(temp, addr.ai_addr, addr.ai_addrlen);
+				this->info.SetAddr(temp, addr.ai_addrlen);
 				result = true;
 			}
 		}
@@ -152,7 +159,7 @@ Socket Socket::AcceptConnection()
 	{
 		int addrLen = sizeof(sockaddr_in6);
 		sockaddr* addr = (sockaddr*)alloc<sockaddr_in6>();
-		temp = accept(*pc, addr, &addrLen);
+		temp = accept(pc, addr, &addrLen);
 		if (temp.IsConnected())
 		{
 			temp.info.SetAddr(addr, addrLen);
@@ -177,7 +184,7 @@ bool Socket::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, fl
 
 		if (temp.IsConnected())
 		{
-			SOCKET tmp = *temp.pc;
+			SOCKET tmp = temp.pc;
 			temp.SetNonBlocking();
 			result = connect(tmp, addr->ai_addr, addr->ai_addrlen);
 			if(result == SOCKET_ERROR)  // connect fails right away
@@ -201,7 +208,9 @@ bool Socket::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, fl
 		{
 			*this = std::move(temp);
 
-			this->info.SetAddr(addr->ai_addr, addr->ai_addrlen);
+			sockaddr* temp = (sockaddr*)alloc<char>(addr->ai_addrlen);
+			memcpy(temp, addr->ai_addr, addr->ai_addrlen);
+			this->info.SetAddr(temp, addr->ai_addrlen);
 		}
 
 		FreeAddrInfo(addr);
@@ -214,9 +223,8 @@ void Socket::Disconnect()
 {
 	if (IsConnected())
 	{
-		shutdown(*pc, SD_BOTH);
-		closesocket(*pc);
-		destruct(pc);
+		shutdown(pc, SD_BOTH);
+		closesocket(pc);
 		info.Cleanup();
 	}
 	destruct(refCount);
@@ -231,7 +239,7 @@ long Socket::ReadData(void* dest, DWORD nBytes)
 	long received = 0, temp = SOCKET_ERROR;
 	do
 	{
-		received += temp = recv(*pc, ((char*)dest) + received, nBytes - received, 0);
+		received += temp = recv(pc, ((char*)dest) + received, nBytes - received, 0);
 		if ((temp == 0) || (temp == SOCKET_ERROR))
 			return temp;
 	} while (received != nBytes);
@@ -244,34 +252,60 @@ long Socket::SendData(const void* data, DWORD nBytes)
 	long sent = 0, temp = SOCKET_ERROR;
 	do
 	{
-		sent += temp = send(*pc, ((char*)data) + sent, nBytes - sent, 0);
+		sent += temp = send(pc, ((char*)data) + sent, nBytes - sent, 0);
 		if (temp == SOCKET_ERROR)
 			return temp;
 	} while(sent != nBytes);
 	return sent;
 }
 
-bool Socket::IsConnected() const
+bool Socket::AcceptOl(SOCKET acceptSocket, void* infoBuffer, DWORD localAddrLen, DWORD remoteAddrLen, OVERLAPPED* ol)
 {
-	return pc && *pc != INVALID_SOCKET;
+	return AcceptEx(pc, acceptSocket, infoBuffer, 0, localAddrLen, remoteAddrLen, NULL, ol);
 }
 
+long Socket::ReadDataOl(WSABUF* buffer, OVERLAPPED* ol, UINT bufferCount, LPWSAOVERLAPPED_COMPLETION_ROUTINE cr)
+{
+	return WSARecv(pc, buffer, bufferCount, NULL, NULL, ol, cr);
+}
+
+long Socket::SendDataOl(WSABUF* buffer, OVERLAPPED* ol, UINT bufferCount, LPWSAOVERLAPPED_COMPLETION_ROUTINE cr)
+{
+	return WSASend(pc, buffer, bufferCount, NULL, NULL, ol, cr);
+}
+
+bool Socket::IsConnected() const
+{
+	return refCount;
+}
+
+void Socket::ZeroTCPStack()
+{
+	int val = 0;
+	setsockopt(pc, SOL_SOCKET, SO_RCVBUF, (const char*)&val, sizeof(int));
+	setsockopt(pc, SOL_SOCKET, SO_SNDBUF, (const char*)&val, sizeof(int));
+}
 
 bool Socket::SetBlocking()
 {
 	u_long nbio = 0;
-	return (ioctlsocket(*pc, FIONBIO, &nbio) != SOCKET_ERROR);
+	return (ioctlsocket(pc, FIONBIO, &nbio) != SOCKET_ERROR);
 }
 
 bool Socket::SetNonBlocking()
 {
 	u_long nbio = 1;
-	return (ioctlsocket(*pc, FIONBIO, &nbio) != SOCKET_ERROR);
+	return (ioctlsocket(pc, FIONBIO, &nbio) != SOCKET_ERROR);
 }
 
 const SocketInfo& Socket::GetInfo()
 {
 	return info;
+}
+
+void Socket::SetAddrInfo(sockaddr* addr, size_t len)
+{
+	info.SetAddr(addr, len);
 }
 
 UINT Socket::GetRefCount() const
@@ -340,4 +374,8 @@ char* Socket::Inet_ntot(in_addr inaddr, LIB_TCHAR* dest)
 	memcpy(dest, addr, sizeof(char) * strlen(addr));
 #endif
 	return addr;
+}
+void Socket::GetAcceptExAddrs(void* buffer, DWORD localAddrLen, DWORD remoteAddrLen, sockaddr** local, int* localLen, sockaddr** remote, int* remoteLen)
+{
+	GetAcceptExSockaddrs(buffer, 0, localAddrLen, remoteAddrLen, local, localLen, remote, remoteLen);
 }

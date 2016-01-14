@@ -2,7 +2,7 @@
 #pragma once
 
 //Minimum bytes required when compression is on BESTFIT to choose compression over raw data(compression byte cutoff)
-#define COMPBYTECO 128
+#define COMPBYTECO 512
 
 enum CompressionType
 {

@@ -1,7 +1,7 @@
 // Client version of Windows.cpp
 #include "resource.h"
-#include "CNLIB\Typedefs.h"
 #include <ws2tcpip.h>
+#include "CNLIB\Typedefs.h"
 #include "CNLIB\MsgStream.h"
 #include "CNLIB\File.h"
 #include "FileTransfer.h"

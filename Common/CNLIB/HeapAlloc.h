@@ -2,8 +2,9 @@
 
 #pragma once
 
+#include "Typedefs.h"
 #include <stdlib.h>
-#include <Windows.h>
+//#include <Windows.h>
 #include <memory>
 
 //---------------------------------------------DOCUMENTATION---------------------------------------------
@@ -12,48 +13,121 @@
 //constructa and destructa are together, for a constructed array : new type[count] var{v1,v2,v3} : constructa<type>(value, value) or constructa<type>(type(), type()) : uqpca/m_casp
 //pmconstruct and pmdestruct are together, for constructing at a specified memory region : new (ptr) T() : pmconstruct<type>(ptr, ...) or pmconstruct <type>(ptr, value) : pmuqp/m_pmsp
 
-template<typename T> inline T* alloc()
+class CAMSNETLIB Alloc
 {
-	return (T*)HeapAlloc(GetProcessHeap(), NULL, sizeof(T));
-}
-template<typename T> inline T* alloc(size_t count)
-{
-	return (T*)(count != 0 ? HeapAlloc(GetProcessHeap(), NULL, sizeof(T) * count) : nullptr);
-}
-template<typename T> inline void dealloc(T*& p)
-{
-	if (p)
+public:
+	Alloc() = default;
+	Alloc(size_t initialSize, size_t maxSize) : heap(HeapCreate(0, initialSize, maxSize))
 	{
-		HeapFree(GetProcessHeap(), NULL, p);
-		p = nullptr;
+		ULONG ptr = 2;
+		HeapSetInformation(heap, HeapCompatibilityInformation, &ptr, sizeof(ULONG));
 	}
+	Alloc(HANDLE heap) : heap(heap){}
+	Alloc(const Alloc&) = delete;
+	Alloc(Alloc&& al) :heap(al.heap)
+	{
+		memset(&al, 0, sizeof(al));
+	}
+	~Alloc()
+	{
+		if (heap && heap != GetProcessHeap())
+			HeapDestroy(heap);
+	}
+
+	template<typename T>
+	inline T* alloc(size_t count = 1) const
+	{
+		return (T*)(count != 0 ? HeapAlloc(heap, HEAP_GENERATE_EXCEPTIONS, sizeof(T) * count) : nullptr);
+	}
+
+	template<typename T>
+	inline void dealloc(T*& p) const
+	{
+		if (p)
+		{
+			HeapFree(heap, NULL, p);
+			p = nullptr;
+		}
+	}
+
+	template<typename T, typename... Args>
+	inline T* construct(Args&&... vals) const
+	{
+		return pmconstruct<T>(alloc<T>(), std::forward<Args>(vals)...);
+	}
+
+	template<typename T>
+	inline void destruct(T*& p) const
+	{
+		pmdestruct(p);
+		dealloc(p);
+	}
+
+	template<typename T, typename... Args>
+	inline T* constructa(Args&&... vals) const
+	{
+		T *p = alloc<T>(sizeof...(vals));
+		if (!std::is_scalar<T>())
+		{
+			size_t size = HeapSize(heap, 0, p);
+			p = (T*)HeapReAlloc(heap, 0, p, sizeof(size_t) + size);
+		}
+		return pmconstructa<T>(p, std::forward<Args>(vals)...);
+	}
+
+	template<typename T>
+	inline void destructa(T*& p) const
+	{
+		pmdestructa(p);
+		dealloc(p);
+	}
+
+
+private:
+	const HANDLE heap = GetProcessHeap();
+};
+
+extern const CAMSNETLIB Alloc ProcHeap;
+
+template<typename T>
+inline T* alloc(size_t count = 1)
+{
+	return ProcHeap.alloc<T>(count);
 }
 
-template<typename T, typename... Args> inline T* construct(Args&&... vals)
+template<typename T>
+inline void dealloc(T*& p)
 {
-	return new(alloc<T>()) T(std::forward<Args>(vals)...);
-}
-template<typename T> inline T* construct(T&& obj)
-{
-	return new(alloc<T>()) T(std::forward<T>(obj));
-}
-template<typename T> inline void destruct(T*& p)
-{
-	if (p)
-	{
-		p->~T();
-		HeapFree(GetProcessHeap(), NULL, p);
-		p = nullptr;
-	}
+	ProcHeap.dealloc(p);
 }
 
-template<typename T, typename P, typename... Args> inline void pmconstruct(P* ptr, Args&&... vals)
+template<typename T, typename... Args>
+inline T* construct(Args&&... vals)
 {
-	new(ptr) T(std::forward<Args>(vals)...);
+	return ProcHeap.construct<T>(std::forward<Args>(vals)...);
 }
-template<typename T, typename P> inline void pmconstruct(P* ptr, T&& obj)
+
+template<typename T>
+inline void destruct(T*& p)
 {
-	new(ptr) T(std::forward<T>(obj));
+	ProcHeap.destruct(p);
+}
+
+template<typename T, typename... Args>
+inline T* constructa(Args&&... vals)
+{
+	return ProcHeap.constructa<T>(std::forward<Args>(vals)...);
+}
+
+template<typename T>
+inline void destructa(T*& p)
+{
+	ProcHeap.destructa(p);
+}
+
+template<typename T, typename P, typename... Args> inline T* pmconstruct(P* ptr, Args&&... vals)
+{
+	return new(ptr)T(std::forward<Args>(vals)...);
 }
 template<typename T> inline void pmdestruct(T* p)
 {
@@ -61,38 +135,21 @@ template<typename T> inline void pmdestruct(T* p)
 		p->~T();
 }
 
-template<typename T, typename... Args> T* constructa(Args&&... vals)
+template<typename T, typename... Args> inline T* pmconstructa(T* ptr, Args&&... vals)
 {
-	const size_t count = sizeof...(vals);
-	if (count != 0)
-	{
-		T* p = nullptr;
-		if (std::is_integral<T>::value) p = (T*)HeapAlloc(GetProcessHeap(), NULL, sizeof(T) * count);
-		else
-		{
-			p = (T*)HeapAlloc(GetProcessHeap(), NULL, (sizeof(T) * count) + sizeof(size_t));
-			*((size_t*)p) = count;
-		}
-		return new(p)T[]{ std::forward<T>(vals)... };
-	}
-	return nullptr;
+	return new(ptr)T[sizeof...(vals)]{std::forward<Args>(vals)...};
 }
-template<typename T> void destructa(T*& p)
+template<typename T> inline void pmdestructa(T*& p)
 {
-	if (p)
+	if (p && !std::is_scalar<T>())
 	{
-		size_t* s = (size_t*)p;
-		if (!std::is_integral<T>::value)
-		{
-			const size_t hSize = HeapSize(GetProcessHeap(), NULL, --s) - sizeof(size_t);
-			const size_t size = hSize / *s;
-			for (char* i = (char*)p, *e = i + hSize; i != e; i += size) ((T*)i)->~T();
-		}
-		HeapFree(GetProcessHeap(), NULL, s);
-		p = nullptr;
+		const size_t count = *((size_t*)p - 1);
+		const size_t size = sizeof(T) * count + sizeof(size_t);
+		for (T *e = p + count; p < e; p++)
+			pmdestruct(p);
+		p = (T*)((char*)p - size);
 	}
 }
-
 template<class T> class HeapAllocator
 {
 public:
@@ -115,7 +172,7 @@ public:
 	typedef std::true_type is_always_equal;
 
 	HeapAllocator<T> select_on_container_copy_construction() const
-	{	
+	{
 		return (*this);
 	}
 
@@ -125,12 +182,12 @@ public:
 	};
 
 	pointer address(reference _Val) const _NOEXCEPT
-	{	
+	{
 		return (_STD addressof(_Val));
 	}
 
 	const_pointer address(const_reference _Val) const _NOEXCEPT
-	{	
+	{
 		return (_STD addressof(_Val));
 	}
 
@@ -141,7 +198,7 @@ public:
 	template<class _Other> HeapAllocator(const HeapAllocator<_Other>&) _THROW0(){}
 
 	template<class _Other> HeapAllocator<T>& operator=(const HeapAllocator<_Other>&)
-	{	
+	{
 		return (*this);
 	}
 
@@ -155,7 +212,7 @@ public:
 		return alloc<T>(n);
 	}
 	static inline pointer allocate(size_type n, const void *)
-	{	
+	{
 		return allocate(n);
 	}
 	static inline void deallocate(pointer p, size_type n = 0)
