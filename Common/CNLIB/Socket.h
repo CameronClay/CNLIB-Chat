@@ -73,7 +73,8 @@ public:
 
 	bool IsConnected() const;
 
-	void ZeroTCPStack();
+	void SetTCPStack(int size = 0);
+	void SetNoDelay(bool b = true);
 
 	bool SetBlocking();
 	bool SetNonBlocking();

@@ -279,11 +279,16 @@ bool Socket::IsConnected() const
 	return refCount;
 }
 
-void Socket::ZeroTCPStack()
+void Socket::SetTCPStack(int size)
 {
-	int val = 0;
-	setsockopt(pc, SOL_SOCKET, SO_RCVBUF, (const char*)&val, sizeof(int));
-	setsockopt(pc, SOL_SOCKET, SO_SNDBUF, (const char*)&val, sizeof(int));
+	setsockopt(pc, SOL_SOCKET, SO_RCVBUF, (const char*)&size, sizeof(int));
+	setsockopt(pc, SOL_SOCKET, SO_SNDBUF, (const char*)&size, sizeof(int));
+}
+
+void Socket::SetNoDelay(bool b)
+{
+	BOOL temp = b;
+	setsockopt(pc, IPPROTO_TCP, TCP_NODELAY, (const char*)&temp, sizeof(BOOL));
 }
 
 bool Socket::SetBlocking()

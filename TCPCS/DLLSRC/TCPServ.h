@@ -7,6 +7,7 @@
 #include "IOCP.h"
 #include "OverlappedExt.h"
 #include "MemPool.h"
+#include "BufSize.h"
 
 class TCPServ : public TCPServInterface
 {
@@ -24,10 +25,11 @@ public:
 		~ClientDataEx();
 
 		TCPServ& serv;
-		WSABUF recvBuff;
+		WSABUF sizeBuff, recvBuff;
 		char* decompBuff;
-		DWORD nBytesComp, nBytesDecomp;
+		BufSize bufSize;
 		OverlappedExt ol;
+		bool finished;
 
 		USHORT arrayIndex;
 	};
