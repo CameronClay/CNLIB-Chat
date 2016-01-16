@@ -33,7 +33,6 @@ struct SendInfo
 
 TCPClient::TCPClient(cfunc func, dcfunc disconFunc, int compression, float pingInterval, void* obj)
 	:
-	host(),
 	function(func),
 	disconFunc(disconFunc),
 	obj(obj),

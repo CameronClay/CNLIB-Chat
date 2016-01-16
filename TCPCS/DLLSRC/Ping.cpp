@@ -84,11 +84,10 @@ PingHandler& PingHandler::operator=(PingHandler&& data)
 	{
 		this->~PingHandler();
 		pingTimer = data.pingTimer;
-		pingThread = data.pingThread;
 		pingID = data.pingID;
+		pingThread = data.pingThread;
 		pingData = data.pingData;
 		pingData->pingHandler = this;
-
 		ZeroMemory(&data, sizeof(PingHandler));
 	}
 	return *this;
@@ -120,9 +119,7 @@ PingHandler::~PingHandler()
 	if(pingThread)
 	{
 		PostThreadMessage(pingID, WM_QUIT, 0, 0);
-		WaitForSingleObject(pingThread, INFINITE);
-		CloseHandle(pingThread);
-		pingThread = NULL;
+		WaitAndCloseHandle(pingThread);
 	}
 
 	destruct(pingData);

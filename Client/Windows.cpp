@@ -1935,7 +1935,7 @@ INT_PTR CALLBACK Opt_FilesProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 			LIB_TCHAR buffer[MAX_PATH] = {};
 			if (FileMisc::BrowseFolder(_T("Browse directories"), buffer, hWnd))
 			{
-				opts->SetDownloadPath(std::tstring(buffer));
+				opts->SetDownloadPath(buffer);
 				SendMessage(pathDisp, WM_SETTEXT, 0, (LPARAM)opts->GetDownloadPath().c_str());
 			}
 			break;

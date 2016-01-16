@@ -275,7 +275,7 @@ void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket* pcs, USHORT
 
 void TCPServ::SendClientData(const char* data, DWORD nBytes, std::vector<Socket>& pcs, CompressionType compType)
 {
-	SendClientData(data, nBytes, pcs.data(), pcs.size(), compType);
+	SendClientData(data, nBytes, pcs.data(), (USHORT)pcs.size(), compType);
 }
 
 
@@ -305,7 +305,7 @@ HANDLE TCPServ::SendClientDataThread(const char* data, DWORD nBytes, Socket* pcs
 
 HANDLE TCPServ::SendClientDataThread(const char* data, DWORD nBytes, std::vector<Socket>& pcs, CompressionType compType)
 {
-	return SendClientDataThread(data, nBytes, pcs.data(), pcs.size(), compType);
+	return SendClientDataThread(data, nBytes, pcs.data(), (USHORT)pcs.size(), compType);
 }
 
 
@@ -325,7 +325,7 @@ void TCPServ::SendMsg(Socket* pcs, USHORT nPcs, char type, char message)
 
 void TCPServ::SendMsg(std::vector<Socket>& pcs, char type, char message)
 {
-	SendMsg(pcs.data(), pcs.size(), type, message);
+	SendMsg(pcs.data(), (USHORT)pcs.size(), type, message);
 }
 
 void TCPServ::SendMsg(const std::tstring& user, char type, char message)
@@ -336,7 +336,6 @@ void TCPServ::SendMsg(const std::tstring& user, char type, char message)
 
 TCPServ::TCPServ(sfunc func, customFunc conFunc, customFunc disFunc, USHORT maxCon, int compression, float pingInterval, void* obj)
 	:
-	host(),
 	clients(nullptr),
 	nClients(0),
 	function(func),
@@ -347,9 +346,7 @@ TCPServ::TCPServ(sfunc func, customFunc conFunc, customFunc disFunc, USHORT maxC
 	maxCon(maxCon),
 	pingInterval(pingInterval),
 	pingHandler(nullptr)
-{
-	
-}
+{}
 
 TCPServ::TCPServ(TCPServ&& serv)
 	:
