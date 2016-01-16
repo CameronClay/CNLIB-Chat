@@ -158,6 +158,7 @@
     <ClInclude Include="..\Common\CNLIB\TCPServInterface.h" />
     <ClInclude Include="..\Common\CNLIB\Typedefs.h" />
     <ClInclude Include="..\Common\CNLIB\UPNP.h" />
+    <ClInclude Include="..\Common\CNLIB\WSABufExt.h" />
     <ClInclude Include="DLLSRC\TCPClient.h" />
     <ClInclude Include="DLLSRC\TCPServ.h" />
   </ItemGroup>

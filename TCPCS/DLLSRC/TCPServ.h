@@ -8,6 +8,7 @@
 #include "OverlappedExt.h"
 #include "MemPool.h"
 #include "BufSize.h"
+#include "WSABufExt.h"
 
 class TCPServ : public TCPServInterface
 {
@@ -25,11 +26,8 @@ public:
 		~ClientDataEx();
 
 		TCPServ& serv;
-		WSABUF sizeBuff, recvBuff;
-		char* decompBuff;
-		BufSize bufSize;
+		WSABufExt buff;
 		OverlappedExt ol;
-		bool finished;
 
 		USHORT arrayIndex;
 	};
@@ -104,6 +102,7 @@ public:
 
 	UINT MaxDataSize() const override;
 	UINT MaxCompSize() const override;
+	UINT MaxBufferSize() const;
 
 	IOCP& GetIOCP();
 
@@ -124,7 +123,7 @@ private:
 	void* obj; //passed to function/msgHandler for oop programming
 	customFunc conFunc, disFunc; //function called when connect/disconnect occurs
 	CRITICAL_SECTION clientSect; //used for synchonization
-	const UINT maxDataSize, maxCompSize; //maximum packet size to send or recv, maximum compressed data size
+	const UINT maxDataSize, maxCompSize, maxBufferSize; //maximum packet size to send or recv, maximum compressed data size
 	const int compression, compressionCO; //compression server sends packets at
 	const USHORT maxCon; //max clients
 	float pingInterval; //interval at which server pings(technically is a keep alive message that sends data) clients

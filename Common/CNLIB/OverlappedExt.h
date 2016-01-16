@@ -8,6 +8,11 @@ struct OverlappedExt : OVERLAPPED //dont wanna use virtual func because of mem p
 		memset(this, 0, sizeof(OverlappedExt));
 	}
 
+	OverlappedExt(OverlappedExt&& ol)
+		:
+		opType(ol.opType)
+	{}
+
 	enum class OpType : int
 	{
 		recv,
@@ -41,6 +46,7 @@ struct OverlappedSend : OverlappedExt
 	void InitInstance(OpType opType, const WSABUF& buf, OverlappedExt* hd)
 	{
 		Reset();
+		this->opType = opType;
 		sendBuff = buf;
 		head = hd;
 	}

@@ -169,7 +169,6 @@ Socket Socket::AcceptConnection()
 	return temp;
 }
 
-
 //IP or HostName for dest
 bool Socket::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, float timeout)
 {

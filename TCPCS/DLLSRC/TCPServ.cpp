@@ -118,31 +118,20 @@ ClientDataEx::ClientDataEx(TCPServ& serv, Socket pc, sfunc func, USHORT arrayInd
 	:
 	ClientData(serv, pc, func),
 	serv((TCPServ&)serv),
-	sizeBuff({NULL, nullptr}),
-	recvBuff({ NULL, nullptr }),
-	decompBuff(nullptr),
 	ol(OpType::recv),
-	arrayIndex(arrayIndex),
-	finished(false)
+	arrayIndex(arrayIndex)
 {
-	//const UINT maxDataSize = serv.MaxDataSize();
-	const UINT compBuffSize = serv.MaxCompSize();
-	sizeBuff.buf = (char*)&bufSize.size;
-	sizeBuff.len = sizeof(DWORD64);
-
-	recvBuff.buf = serv.GetRecvBuffPool().alloc<char>(false);
-	decompBuff = (recvBuff.buf + compBuffSize);
+	MemPool& pool = serv.GetRecvBuffPool();
+	const UINT maxDataSize = serv.MaxDataSize();
+	buff.Initalize(maxDataSize, pool.alloc<char>(false));
 }
 ClientDataEx::ClientDataEx(ClientDataEx&& clint)
 	:
 	ClientData(std::forward<ClientData>(*this)),
 	serv(clint.serv),
-	recvBuff(clint.recvBuff),
-	decompBuff(clint.decompBuff),
-	sizeBuff(clint.sizeBuff),
+	buff(clint.buff),
 	ol(clint.ol),
-	arrayIndex(clint.arrayIndex),
-	finished(clint.finished)
+	arrayIndex(clint.arrayIndex)
 {
 	ZeroMemory(&clint, sizeof(ClientDataEx));
 }
@@ -151,19 +140,18 @@ ClientDataEx& TCPServ::ClientDataEx::operator=(ClientDataEx&& data)
 	if (this != &data)
 	{
 		this->__super::operator=(std::forward<ClientData>(data));
-		recvBuff = data.recvBuff;
-		decompBuff = data.decompBuff;
-		sizeBuff = data.sizeBuff;
+		buff = data.buff;
 		arrayIndex = data.arrayIndex;
 		ol = data.ol;
-		finished = data.finished;
+
+		memset(&data, 0, sizeof(ClientDataEx));
 	}
 
 	return *this;
 }
 ClientDataEx::~ClientDataEx()
 {
-	serv.GetRecvBuffPool().dealloc(recvBuff.buf, false);
+	serv.GetRecvBuffPool().dealloc(buff.head, false);
 }
 
 
@@ -251,37 +239,84 @@ DWORD CALLBACK IOCPThread(LPVOID info)
 		case OpType::recv:
 		{
 			ClientDataEx& cd = *(ClientDataEx*)key;
-			if (cd.finished)//If ready to decompress/call msgHandler
+			const DWORD maxCompSize = cd.serv.MaxCompSize();
+			char* ptr = cd.buff.head;
+			do
 			{
-				DWORD byComp = cd.bufSize.up.nBytesDecomp, 
-					byDecomp = cd.bufSize.up.nBytesDecomp;		// Create temporary size vars because buffer cant be accessed while reading
-				cd.bufSize.size = 0;							// Zero out size of buffer so it doesnt trigger uncompression when it shouldnt
-				cd.finished = false;							// Set finished state to false
-				ol->Reset();									// Reset overlapped structure
-				cd.pc.ReadDataOl(&cd.sizeBuff, &cd.ol); 		// Queue another read
+				BufSize bufSize(*(DWORD64*)cd.buff.head);
+				const DWORD bytesToRecv = (bufSize.up.nBytesComp) ? bufSize.up.nBytesComp : bufSize.up.nBytesDecomp;
 
-				if (byComp)
+				//If there is a full data block ready for proccessing
+				if (bytesToRecv >= bytesTrans)
 				{
-					FileMisc::Decompress((BYTE*)cd.decompBuff, byDecomp, (const BYTE*)cd.recvBuff.buf, byComp);	// Decompress data
-					(cd.func)(cd.serv, &cd, (const BYTE*)cd.decompBuff, byDecomp);								// Call msgHandler
+					cd.buff.curBytes += min(bytesTrans, bytesToRecv);
+					//If data was comprsesed
+					if (bufSize.up.nBytesComp)
+					{
+						BYTE* dest = (BYTE*)(cd.buff.buf + maxCompSize);
+						FileMisc::Decompress(dest, maxCompSize, (const BYTE*)(cd.buff.buf), bytesToRecv);	// Decompress data
+						(cd.func)(cd.serv, &cd, dest, bufSize.up.nBytesDecomp);
+					}
+					//If data was not compressed
+					else
+					{
+						(cd.func)(cd.serv, &cd, (const BYTE*)cd.buff.buf, bufSize.up.nBytesDecomp);
+					}
+					//If no partial blocks to copy to start of buffer
+					if (cd.buff.curBytes == bytesTrans)
+					{
+						cd.buff.buf = cd.buff.head;
+						cd.buff.curBytes = 0;
+						break;
+					}
 				}
 				else
 				{
-					(cd.func)(cd.serv, &cd, (const BYTE*)cd.recvBuff.buf, byDecomp);							// Call msgHandler
+					//Concatenate remaining data to buffer
+					DWORD temp = cd.buff.curBytes - bytesTrans;
+					if (cd.buff.buf != ptr)
+						memcpy(cd.buff.buf, ptr, temp);
+					cd.buff.curBytes = temp;
+					cd.buff.buf = cd.buff.head + temp;
+					break;
 				}
-			}
-			else //If received number of bytes to receive
-			{
-				//Setup buffer for next read
-				if (cd.bufSize.up.nBytesComp)
-					cd.recvBuff.len = cd.bufSize.up.nBytesComp;
-				else
-					cd.recvBuff.len = cd.bufSize.up.nBytesDecomp;
+				ptr += bytesToRecv;
+			} while (cd.buff.curBytes < bytesTrans);
 
-				//No need to reset overlapped because it is reset on construction
-				//Read in nBytes data
-				cd.pc.ReadDataOl(&cd.recvBuff, &cd.ol);
-			}
+			cd.ol.Reset();
+			cd.pc.ReadDataOl(&cd.buff, &cd.ol);
+
+			//if (cd.finished)//If ready to decompress/call msgHandler
+			//{
+			//	DWORD byComp = cd.bufSize.up.nBytesDecomp, 
+			//		byDecomp = cd.bufSize.up.nBytesDecomp;		// Create temporary size vars because buffer cant be accessed while reading
+			//	cd.bufSize.size = 0;							// Zero out size of buffer so it doesnt trigger uncompression when it shouldnt
+			//	cd.finished = false;							// Set finished state to false
+			//	ol->Reset();									// Reset overlapped structure
+			//	cd.pc.ReadDataOl(&cd.sizeBuff, &cd.ol); 		// Queue another read
+
+			//	if (byComp)
+			//	{
+			//		FileMisc::Decompress((BYTE*)cd.decompBuff, byDecomp, (const BYTE*)cd.recvBuff.buf, byComp);	// Decompress data
+			//		(cd.func)(cd.serv, &cd, (const BYTE*)cd.decompBuff, byDecomp);								// Call msgHandler
+			//	}
+			//	else
+			//	{
+			//		(cd.func)(cd.serv, &cd, (const BYTE*)cd.recvBuff.buf, byDecomp);							// Call msgHandler
+			//	}
+			//}
+			//else //If received number of bytes to receive
+			//{
+			//	//Setup buffer for next read
+			//	if (cd.bufSize.up.nBytesComp)
+			//		cd.recvBuff.len = cd.bufSize.up.nBytesComp;
+			//	else
+			//		cd.recvBuff.len = cd.bufSize.up.nBytesDecomp;
+
+			//	//No need to reset overlapped because it is reset on construction
+			//	//Read in nBytes data
+			//	cd.pc.ReadDataOl(&cd.recvBuff, &cd.ol);
+			//}
 		}
 		break;
 		case OpType::send:
@@ -671,17 +706,18 @@ TCPServ::TCPServ(sfunc func, customFunc conFunc, customFunc disFunc, DWORD nThre
 	disFunc(disFunc),
 	maxDataSize(maxDataSize),
 	maxCompSize(FileMisc::GetCompressedBufferSize(maxDataSize)),
+	maxBufferSize(sizeof(DWORD64) + maxDataSize + maxCompSize),
 	compression(compression),
 	compressionCO(compressionCO),
 	maxCon(maxCon),
 	pingInterval(pingInterval),
 	pingHandler(nullptr),
 	clientPool(sizeof(ClientDataEx), maxCon),
-	recvBuffPool(maxDataSize + maxCompSize, maxCon),
+	recvBuffPool(maxBufferSize, maxCon),
 	sendOlPoolSingle(sizeof(OverlappedSend), nClients),
 	sendOlPoolAll(sizeof(OverlappedSend), 5),
-	sendDataPool(sizeof(DWORD64) + MSG_OFFSET + maxDataSize + maxCompSize, nClients * 2),
-	sendMsgPool(sizeof(DWORD64) + MSG_OFFSET, nClients * 2)
+	sendDataPool(MSG_OFFSET + maxBufferSize, nClients * 2),
+	sendMsgPool(MSG_OFFSET + sizeof(DWORD64), nClients * 2)
 {
 	
 }
@@ -700,6 +736,7 @@ TCPServ::TCPServ(TCPServ&& serv)
 	clientSect(serv.clientSect),
 	maxDataSize(serv.maxDataSize),
 	maxCompSize(serv.maxCompSize),
+	maxBufferSize(serv.maxBufferSize),
 	compression(serv.compression),
 	compressionCO(serv.compressionCO),
 	maxCon(serv.maxCon),
@@ -732,6 +769,7 @@ TCPServ& TCPServ::operator=(TCPServ&& serv)
 		clientSect = serv.clientSect;
 		const_cast<UINT&>(maxDataSize) = serv.maxDataSize;
 		const_cast<UINT&>(maxCompSize) = serv.maxCompSize;
+		const_cast<UINT&>(maxBufferSize) = serv.maxBufferSize;
 		const_cast<int&>(compression) = serv.compression;
 		const_cast<int&>(compressionCO) = serv.compressionCO;
 		const_cast<USHORT&>(maxCon) = serv.maxCon;
@@ -810,7 +848,7 @@ void TCPServ::AddClient(Socket pc)
 	LeaveCriticalSection(&clientSect);
 
 	iocp.LinkHandle((HANDLE)pc.GetSocket(), cd);
-	pc.ReadDataOl(&cd->sizeBuff, &cd->ol);
+	pc.ReadDataOl(&cd->buff, &cd->ol);
 
 	RunConFunc(clients[nClients]);
 }
@@ -965,6 +1003,10 @@ UINT TCPServ::MaxDataSize() const
 UINT TCPServ::MaxCompSize() const
 {
 	return maxCompSize;
+}
+UINT TCPServ::MaxBufferSize() const
+{
+	return sizeof(DWORD64) + maxDataSize + maxCompSize;
 }
 
 IOCP& TCPServ::GetIOCP()
