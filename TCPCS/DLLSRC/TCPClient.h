@@ -4,12 +4,12 @@
 #include "TCPClientInterface.h"
 #include "HeapAlloc.h"
 
-class VerifyPing;
+class VerifyKeepAlive;
 class TCPClient : public TCPClientInterface
 {
 public:
 	//cfunc is a message handler, compression 1-9
-	TCPClient(cfunc func, dcfunc disconFunc, int compression = 9, float pingInterval = 30.0f, void* obj = nullptr);
+	TCPClient(cfunc func, dcfunc disconFunc, int compression = 9, float keepAliveInterval = 30.0f, void* obj = nullptr);
 	TCPClient(TCPClient&& client);
 	~TCPClient();
 
@@ -29,13 +29,13 @@ public:
 	bool RecvServData();
 
 	//send msg funtions used for requests, replies ect. they do not send data
-	void SendMsg(char type, char message);
-	void SendMsg(const std::tstring& user, char type, char message);
+	void SendMsg(short type, short message);
+	void SendMsg(const std::tstring& user, short type, short message);
 
-	void Ping();
+	void KeepAlive();
 
-	void SetPingInterval(float interval);
-	float GetPingInterval() const;
+	void SetKeepAliveInterval(float interval);
+	float GetKeepAliveInterval() const;
 
 	void SetFunction(cfunc function);
 
@@ -60,6 +60,6 @@ private:
 	CRITICAL_SECTION sendSect; //used for synchonization
 	const int compression; //compression client sends packets at
 	bool unexpectedShutdown; //passed to disconnect handler
-	float pingInterval; //interval at which client pings server
-	PingHandler* pingHandler; //handles all pings(technically is a keep alive message that sends data) to server, to prevent timeout
+	float keepAliveInterval; //interval at which client KeepAlives server
+	KeepAliveHandler* keepAliveHandler; //handles all KeepAlives(technically is a keep alive message that sends data) to server, to prevent timeout
 };

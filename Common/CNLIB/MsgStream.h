@@ -31,13 +31,13 @@ public:
 		ZeroMemory(&stream, sizeof(MsgStream));
 	}
 
-	char GetType() const
+	short GetType() const
 	{
-		return begin[0];
+		return *(short*)begin;
 	}
-	char GetMsg() const
+	short GetMsg() const
 	{
-		return begin[1];
+		return *(short*)(begin + 2);
 	}
 
 	UINT GetSize() const
@@ -70,7 +70,7 @@ typedef class MsgStreamWriter : public MsgStream
 {
 public:
 	//capacity not including MSG_OFFSET
-	MsgStreamWriter(char type, char msg, UINT capacity)
+	MsgStreamWriter(short type, short msg, UINT capacity)
 		:
 		MsgStream(alloc<char>(capacity + MSG_OFFSET), capacity)
 	{

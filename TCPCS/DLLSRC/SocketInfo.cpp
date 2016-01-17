@@ -19,7 +19,8 @@ SocketInfo::SocketInfo(SocketInfo&& socketInfo)
 
 void SocketInfo::Cleanup()
 {
-	dealloc(addr.inaddr6);
+	if (cleanup)
+		dealloc(addr.addr);
 }
 
 SocketInfo& SocketInfo::operator=(const SocketInfo& rhs)
@@ -27,6 +28,7 @@ SocketInfo& SocketInfo::operator=(const SocketInfo& rhs)
 	if (this != &rhs)
 	{
 		addr = rhs.addr;
+		cleanup = rhs.cleanup;
 	}
 	return *this;
 }
@@ -35,16 +37,16 @@ SocketInfo& SocketInfo::operator=(SocketInfo&& rhs)
 	if (this != &rhs)
 	{
 		addr = rhs.addr;
+		cleanup = rhs.cleanup;
 		memset(&rhs, 0, sizeof(SocketInfo));
 	}
 	return *this;
 }
 
-void SocketInfo::SetAddr(sockaddr* addr, size_t len)
+void SocketInfo::SetAddr(sockaddr* addr, bool dealloc)
 {
 	if (!this->addr.addr)
-		this->addr.inaddr6 = alloc<sockaddr_in6>();
-	memcpy(this->addr.addr, addr, len);
+		this->addr.addr = addr;
 }
 
 std::tstring SocketInfo::GetPortStr() const

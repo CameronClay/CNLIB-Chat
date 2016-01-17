@@ -26,7 +26,7 @@ public:
 
 	void Cleanup();
 
-	void SetAddr(sockaddr* addr, size_t len);
+	void SetAddr(sockaddr* addr, bool cleanup);
 
 	SocketInfo& operator=(const SocketInfo& rhs);
 	SocketInfo& operator=(SocketInfo&& rhs);
@@ -46,4 +46,5 @@ public:
 	SockaddrU GetSockAddr() const;
 private:
 	SockaddrU addr;
+	bool cleanup;
 };

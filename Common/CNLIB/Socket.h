@@ -44,7 +44,7 @@ public:
 	{
 		size_t operator()(const Socket& sock) const
 		{
-			return std::hash<SOCKET>()(*sock.pc);
+			return std::hash<SOCKET>()(sock.pc);
 		}
 	};
 
@@ -67,11 +67,20 @@ public:
 	long ReadData(void* dest, DWORD nBytes);
 	long SendData(const void* data, DWORD nBytes);
 
+	bool AcceptOl(SOCKET acceptSocket, void* infoBuffer, DWORD localAddrLen, DWORD remoteAddrLen, OVERLAPPED* ol);
+	long ReadDataOl(WSABUF* buffer, OVERLAPPED* ol, DWORD flags = 0, UINT bufferCount = 1, LPWSAOVERLAPPED_COMPLETION_ROUTINE cr = NULL);
+	long SendDataOl(WSABUF* buffer, OVERLAPPED* ol, DWORD flags = 0, UINT bufferCount = 1, LPWSAOVERLAPPED_COMPLETION_ROUTINE cr = NULL);
+
 	bool IsConnected() const;
+
+	bool SetTCPRecvStack(int size = 0);
+	bool SetTCPSendStack(int size = 0);
+	bool SetNoDelay(bool b = true);
 
 	bool SetBlocking();
 	bool SetNonBlocking();
 
+	void SetAddrInfo(sockaddr* addr, bool cleanup);
 	const SocketInfo& GetInfo();
 
 	UINT GetRefCount() const;
@@ -80,9 +89,10 @@ public:
 	static char* Inet_ntot(in_addr inaddr, LIB_TCHAR* dest);
 	static std::tstring GetLocalIP(bool ipv6 = false);
 	static std::tstring HostNameToIP(const LIB_TCHAR* host, bool ipv6 = false);
+	static void GetAcceptExAddrs(void* buffer, DWORD localAddrLen, DWORD remoteAddrLen, sockaddr** local, int* localLen, sockaddr** remote, int* remoteLen);
 
 private:
-	SOCKET* pc = nullptr;
+	SOCKET pc = INVALID_SOCKET;
 	UINT* refCount = nullptr;
 	SocketInfo info;
 };

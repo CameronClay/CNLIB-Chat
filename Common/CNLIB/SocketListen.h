@@ -16,5 +16,4 @@ public:
 	Socket& GetHost();
 private:
 	Socket host;
-	HANDLE openCon;
 };
