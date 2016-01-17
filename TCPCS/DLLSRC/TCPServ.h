@@ -14,7 +14,7 @@ class TCPServ : public TCPServInterface
 {
 public:
 	//sfunc is a message handler, compression is 1-9
-	TCPServ(sfunc func, customFunc conFunc, customFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxDataSize = 8192, USHORT maxCon = 20, int compression = 9, int compressionCO = 512, float pingInterval = 30.0f, void* obj = nullptr);
+	TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxDataSize = 8192, USHORT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, void* obj = nullptr);
 	TCPServ(TCPServ&& serv);
 	~TCPServ();
 
@@ -66,24 +66,24 @@ public:
 	void SendClientData(const char* data, DWORD nBytes, std::vector<Socket>& pcs, CompressionType compType = BESTFIT) override;
 
 	//Send msg funtions used for requests, replies ect. they do not send data
-	void SendMsg(Socket pc, bool single, char type, char message) override;
-	void SendMsg(Socket* pcs, USHORT nPcs, char type, char message) override;
-	void SendMsg(std::vector<Socket>& pcs, char type, char message) override;
-	void SendMsg(const std::tstring& user, char type, char message) override;
+	void SendMsg(Socket pc, bool single, short type, short message) override;
+	void SendMsg(Socket* pcs, USHORT nPcs, short type, short message) override;
+	void SendMsg(std::vector<Socket>& pcs, short type, short message) override;
+	void SendMsg(const std::tstring& user, short type, short message) override;
 
 	ClientData* FindClient(const std::tstring& user) const override;
-	void DisconnectClient(ClientData* client) override;
+	void DisconnectClient(ClientData* client, bool unexpected = true) override;
 
 	void Shutdown() override;
 
 	void AddClient(Socket pc);
-	void RemoveClient(ClientDataEx* client);
+	void RemoveClient(ClientDataEx* client, bool unexpected = true);
 
-	void Ping() override;
-	void Ping(Socket client) override;
+	void KeepAlive() override;
+	void KeepAlive(Socket client) override;
 
 	void RunConFunc(ClientData* client);
-	void RunDisFunc(ClientData* client);
+	void RunDisFunc(ClientData* client, bool unexpected);
 
 	ClientAccess GetClients() const override;
 	USHORT ClientCount() const override;
@@ -91,8 +91,8 @@ public:
 	Socket GetHostIPv4() const override;
 	Socket GetHostIPv6() const override;
 
-	void SetPingInterval(float interval) override;
-	float GetPingInterval() const override;
+	void SetKeepAliveInterval(float interval) override;
+	float GetKeepAliveInterval() const override;
 
 	bool MaxClients() const override;
 	void* GetObj() const override;
@@ -121,13 +121,14 @@ private:
 	IOCP iocp; //IO completion port
 	sfunc function; //used to intialize what clients default function/msghandler is
 	void* obj; //passed to function/msgHandler for oop programming
-	customFunc conFunc, disFunc; //function called when connect/disconnect occurs
+	ConFunc conFunc; //function called when connect
+	DisconFunc disFunc; //function called when disconnect occurs
 	CRITICAL_SECTION clientSect; //used for synchonization
 	const UINT maxDataSize, maxCompSize, maxBufferSize; //maximum packet size to send or recv, maximum compressed data size
 	const int compression, compressionCO; //compression server sends packets at
 	const USHORT maxCon; //max clients
-	float pingInterval; //interval at which server pings(technically is a keep alive message that sends data) clients
-	PingHandler* pingHandler; //handles all pings to client, to prevent timeout
+	float keepAliveInterval; //interval at which server KeepAlives(technically is a keep alive message that sends data) clients
+	KeepAliveHandler* keepAliveHandler; //handles all KeepAlives to client, to prevent timeout
 	MemPool clientPool, recvBuffPool; //Used to help speed up allocation of client resources
 	MemPool sendOlPoolSingle, sendOlPoolAll; //Used to help speed up allocation of structures needed to send Ol data
 	MemPool sendDataPool, sendMsgPool; //Used to help speed up allocation of send buffers

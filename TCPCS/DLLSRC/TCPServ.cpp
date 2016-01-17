@@ -4,9 +4,9 @@
 #include "Messages.h"
 #include "MsgStream.h"
 
-TCPServInterface* CreateServer(sfunc msgHandler, customFunc conFunc, customFunc disFunc, DWORD nThreads, DWORD nConcThreads, UINT maxDataSize, USHORT maxCon, int compression, int compressionCO, float pingInterval, void* obj)
+TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads, DWORD nConcThreads, UINT maxDataSize, USHORT maxCon, int compression, int compressionCO, float keepAliveInterval, void* obj)
 {
-	return construct<TCPServ>(msgHandler, conFunc, disFunc, nThreads, nConcThreads, maxDataSize, maxCon, compression, compressionCO, pingInterval, obj);
+	return construct<TCPServ>(msgHandler, conFunc, disFunc, nThreads, nConcThreads, maxDataSize, maxCon, compression, compressionCO, keepAliveInterval, obj);
 }
 void DestroyServer(TCPServInterface*& server)
 {
@@ -682,29 +682,29 @@ void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket* pcs, USHORT
 	}
 }
 
-void TCPServ::SendMsg(Socket pc, bool single, char type, char message)
+void TCPServ::SendMsg(Socket pc, bool single, short type, short message)
 {
 	char msg[] = { type, message };
 
 	SendClientData(msg, MSG_OFFSET, pc, single, OpType::sendmsg, NOCOMPRESSION);
 }
-void TCPServ::SendMsg(Socket* pcs, USHORT nPcs, char type, char message)
+void TCPServ::SendMsg(Socket* pcs, USHORT nPcs, short type, short message)
 {
 	char msg[] = { type, message };
 
 	SendClientData(msg, MSG_OFFSET, pcs, nPcs, OpType::sendmsg, NOCOMPRESSION);
 }
-void TCPServ::SendMsg(std::vector<Socket>& pcs, char type, char message)
+void TCPServ::SendMsg(std::vector<Socket>& pcs, short type, short message)
 {
 	SendMsg(pcs.data(), pcs.size(), type, message);
 }
-void TCPServ::SendMsg(const std::tstring& user, char type, char message)
+void TCPServ::SendMsg(const std::tstring& user, short type, short message)
 {
 	SendMsg(FindClient(user)->pc, true, type, message);
 }
 
 
-TCPServ::TCPServ(sfunc func, customFunc conFunc, customFunc disFunc, DWORD nThreads, DWORD nConcThreads, UINT maxDataSize, USHORT maxCon, int compression, int compressionCO, float pingInterval, void* obj)
+TCPServ::TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads, DWORD nConcThreads, UINT maxDataSize, USHORT maxCon, int compression, int compressionCO, float keepAliveInterval, void* obj)
 	:
 	ipv4Host(*this),
 	ipv6Host(*this),
@@ -721,8 +721,8 @@ TCPServ::TCPServ(sfunc func, customFunc conFunc, customFunc disFunc, DWORD nThre
 	compression(compression),
 	compressionCO(compressionCO),
 	maxCon(maxCon),
-	pingInterval(pingInterval),
-	pingHandler(nullptr),
+	keepAliveInterval(keepAliveInterval),
+	keepAliveHandler(nullptr),
 	clientPool(sizeof(ClientDataEx), maxCon),
 	recvBuffPool(maxBufferSize, maxCon),
 	sendOlPoolSingle(sizeof(OverlappedSend), nClients),
@@ -750,7 +750,7 @@ TCPServ::TCPServ(TCPServ&& serv)
 	compression(serv.compression),
 	compressionCO(serv.compressionCO),
 	maxCon(serv.maxCon),
-	pingHandler(std::move(serv.pingHandler)),
+	keepAliveHandler(std::move(serv.keepAliveHandler)),
 	clientPool(std::move(serv.clientPool)),
 	recvBuffPool(std::move(serv.recvBuffPool)),
 	sendOlPoolSingle(std::move(serv.sendOlPoolSingle)),
@@ -773,8 +773,8 @@ TCPServ& TCPServ::operator=(TCPServ&& serv)
 		iocp = std::move(serv.iocp);
 		function = serv.function;
 		obj = serv.obj;
-		const_cast<std::remove_const_t<customFunc>&>(conFunc) = serv.conFunc;
-		const_cast<std::remove_const_t<customFunc>&>(disFunc) = serv.disFunc;
+		const_cast<std::remove_const_t<ConFunc>&>(conFunc) = serv.conFunc;
+		const_cast<std::remove_const_t<DisconFunc>&>(disFunc) = serv.disFunc;
 		clientSect = serv.clientSect;
 		const_cast<UINT&>(maxDataSize) = serv.maxDataSize;
 		const_cast<UINT&>(maxCompSize) = serv.maxCompSize;
@@ -782,7 +782,7 @@ TCPServ& TCPServ::operator=(TCPServ&& serv)
 		const_cast<int&>(compression) = serv.compression;
 		const_cast<int&>(compressionCO) = serv.compressionCO;
 		const_cast<USHORT&>(maxCon) = serv.maxCon;
-		pingHandler = std::move(serv.pingHandler);
+		keepAliveHandler = std::move(serv.keepAliveHandler);
 		clientPool = std::move(serv.clientPool);
 		recvBuffPool = std::move(serv.recvBuffPool);
 		sendOlPoolSingle = std::move(serv.sendOlPoolSingle);
@@ -835,12 +835,12 @@ IPv TCPServ::AllowConnections(const LIB_TCHAR* port, IPv ipv)
 		}
 	}
 	
-	pingHandler = construct<PingHandler>(this);
+	keepAliveHandler = construct<KeepAliveHandler>(this);
 
-	if (!pingHandler)
+	if (!keepAliveHandler)
 		return ipvnone;
 
-	pingHandler->SetPingTimer(pingInterval);
+	keepAliveHandler->SetKeepAliveTimer(keepAliveInterval);
 
 	InitializeCriticalSection(&clientSect);
 
@@ -861,11 +861,11 @@ void TCPServ::AddClient(Socket pc)
 
 	RunConFunc(cd);
 }
-void TCPServ::RemoveClient(ClientDataEx* client)
+void TCPServ::RemoveClient(ClientDataEx* client, bool unexpected)
 {
-	//If user wasn't removed intentionaly
+	//If client wasn't removed intentionaly
 	if (client->pc.IsConnected())
-		RunDisFunc(client);
+		RunDisFunc(client, unexpected);
 
 	EnterCriticalSection(&clientSect);
 
@@ -903,17 +903,17 @@ TCPServ::ClientData* TCPServ::FindClient(const std::tstring& user) const
 	return nullptr;
 }
 
-void TCPServ::DisconnectClient(ClientData* client)
+void TCPServ::DisconnectClient(ClientData* client, bool unexpected)
 {
-	RunDisFunc(client);
+	RunDisFunc(client, unexpected);
 	client->pc.Disconnect();
 }
 
 void TCPServ::Shutdown()
 {
-	if (pingHandler)
+	if (keepAliveHandler)
 	{
-		destruct(pingHandler);
+		destruct(keepAliveHandler);
 
 		ipv4Host.listen.Disconnect();
 		ipv6Host.listen.Disconnect();
@@ -922,8 +922,8 @@ void TCPServ::Shutdown()
 		//close recv threads and free memory
 		while(nClients != 0)
 		{
-			ClientData* data = clients[nClients - 1];
-			DisconnectClient(data);
+			ClientDataEx* data = clients[nClients - 1];
+			RemoveClient(data, false);
 		}
 
 		dealloc(clients);
@@ -932,13 +932,14 @@ void TCPServ::Shutdown()
 	}
 }
 
-void TCPServ::Ping(Socket client)
+void TCPServ::KeepAlive(Socket client)
 {
-	SendMsg(client, true, TYPE_PING, MSG_PING);
+	client.SendData(nullptr, 0);
 }
-void TCPServ::Ping()
+void TCPServ::KeepAlive()
 {
-	SendMsg(Socket(), false, TYPE_PING, MSG_PING);
+	for (ClientDataEx **ptr = clients, **end = clients + nClients; ptr != end; ptr++)
+		(*ptr)->pc.SendData(nullptr, 0);
 }
 
 bool TCPServ::MaxClients() const
@@ -963,23 +964,23 @@ Socket TCPServ::GetHostIPv6() const
 	return ipv6Host.listen;
 }
 
-void TCPServ::SetPingInterval(float interval)
+void TCPServ::SetKeepAliveInterval(float interval)
 {
-	pingInterval = interval;
-	pingHandler->SetPingTimer(pingInterval);
+	keepAliveInterval = interval;
+	keepAliveHandler->SetKeepAliveTimer(keepAliveInterval);
 }
-float TCPServ::GetPingInterval() const
+float TCPServ::GetKeepAliveInterval() const
 {
-	return pingInterval;
+	return keepAliveInterval;
 }
 
 void TCPServ::RunConFunc(ClientData* client)
 {
 	conFunc(client);
 }
-void TCPServ::RunDisFunc(ClientData* client)
+void TCPServ::RunDisFunc(ClientData* client, bool unexpected)
 {
-	disFunc(client);
+	disFunc(client, unexpected);
 }
 
 void* TCPServ::GetObj() const

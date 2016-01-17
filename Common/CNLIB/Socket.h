@@ -68,13 +68,14 @@ public:
 	long SendData(const void* data, DWORD nBytes);
 
 	bool AcceptOl(SOCKET acceptSocket, void* infoBuffer, DWORD localAddrLen, DWORD remoteAddrLen, OVERLAPPED* ol);
-	long ReadDataOl(WSABUF* buffer, OVERLAPPED* ol, UINT bufferCount = 1, LPWSAOVERLAPPED_COMPLETION_ROUTINE cr = NULL);
-	long SendDataOl(WSABUF* buffer, OVERLAPPED* ol, UINT bufferCount = 1, LPWSAOVERLAPPED_COMPLETION_ROUTINE cr = NULL);
+	long ReadDataOl(WSABUF* buffer, OVERLAPPED* ol, DWORD flags = 0, UINT bufferCount = 1, LPWSAOVERLAPPED_COMPLETION_ROUTINE cr = NULL);
+	long SendDataOl(WSABUF* buffer, OVERLAPPED* ol, DWORD flags = 0, UINT bufferCount = 1, LPWSAOVERLAPPED_COMPLETION_ROUTINE cr = NULL);
 
 	bool IsConnected() const;
 
-	void SetTCPStack(int size = 0);
-	void SetNoDelay(bool b = true);
+	bool SetTCPRecvStack(int size = 0);
+	bool SetTCPSendStack(int size = 0);
+	bool SetNoDelay(bool b = true);
 
 	bool SetBlocking();
 	bool SetNonBlocking();

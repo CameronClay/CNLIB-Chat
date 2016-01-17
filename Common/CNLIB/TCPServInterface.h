@@ -5,12 +5,12 @@
 #include <vector>
 #include "Socket.h"
 #include "SocketListen.h"
-#include "Ping.h"
+#include "KeepAlive.h"
 #include "CompressionTypes.h"
 #include "IPv.h"
 
 
-class CAMSNETLIB TCPServInterface : public PingHI
+class CAMSNETLIB TCPServInterface : public KeepAliveHI
 {
 public:
 	struct ClientData;
@@ -50,13 +50,13 @@ public:
 	virtual void SendClientData(const char* data, DWORD nBytes, Socket* pcs, USHORT nPcs, CompressionType compType = BESTFIT) = 0;
 	virtual void SendClientData(const char* data, DWORD nBytes, std::vector<Socket>& pcs, CompressionType compType = BESTFIT) = 0;
 
-	virtual void SendMsg(Socket pc, bool single, char type, char message) = 0;
-	virtual void SendMsg(Socket* pcs, USHORT nPcs, char type, char message) = 0;
-	virtual void SendMsg(std::vector<Socket>& pcs, char type, char message) = 0;
-	virtual void SendMsg(const std::tstring& user, char type, char message) = 0;
+	virtual void SendMsg(Socket pc, bool single, short type, short message) = 0;
+	virtual void SendMsg(Socket* pcs, USHORT nPcs, short type, short message) = 0;
+	virtual void SendMsg(std::vector<Socket>& pcs, short type, short message) = 0;
+	virtual void SendMsg(const std::tstring& user, short type, short message) = 0;
 
 	virtual ClientData* FindClient(const std::tstring& user) const = 0;
-	virtual void DisconnectClient(ClientData* client) = 0;
+	virtual void DisconnectClient(ClientData* client, bool unexpected = true) = 0;
 
 	virtual void Shutdown() = 0;
 
@@ -66,7 +66,7 @@ public:
 	virtual Socket GetHostIPv4() const = 0;
 	virtual Socket GetHostIPv6() const = 0;
 
-	virtual void Ping(Socket client) = 0;
+	virtual void KeepAlive(Socket client) = 0;
 
 	virtual bool MaxClients() const = 0;
 	virtual bool IsConnected() const = 0;
@@ -81,11 +81,12 @@ public:
 
 typedef TCPServInterface::ClientAccess ClientAccess;
 typedef TCPServInterface::ClientData ClientData;
-typedef void(*const customFunc)(ClientData* data);
+typedef void(*const ConFunc)(ClientData* data);
+typedef void(*const DisconFunc)(ClientData* data, bool unexpected);
 
 typedef TCPServInterface::sfunc sfunc;
 typedef TCPServInterface::sfuncP sfuncP;
 
 
-CAMSNETLIB TCPServInterface* CreateServer(sfunc msgHandler, customFunc conFunc, customFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxDataSize = 8192, USHORT maxCon = 20, int compression = 9, int compressionCO = 512, float pingInterval = 30.0f, void* obj = nullptr);
+CAMSNETLIB TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxDataSize = 8192, USHORT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, void* obj = nullptr);
 CAMSNETLIB void DestroyServer(TCPServInterface*& server);

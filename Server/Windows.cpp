@@ -163,8 +163,11 @@ void DispIPMsg(Socket& pc, const LIB_TCHAR* str)
 		textBuffer.WriteLine(pc.GetInfo().GetIp() + str);
 }
 
-void DisconnectHandler(ClientData* data)
+void DisconnectHandler(ClientData* data, bool unexpected)
 {
+	if (unexpected)
+		serv->SendMsg(Socket(), false, TYPE_CHANGE, MSG_CHANGE_DISCONNECT);
+
 	LIB_TCHAR buffer[128] = {};
 	_stprintf(buffer, _T("(%s) has disconnected!"), (!data->user.empty()) ? data->user.c_str() : _T("unknown"));
 	DispIPMsg(data->pc, buffer);

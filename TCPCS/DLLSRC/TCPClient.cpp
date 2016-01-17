@@ -4,9 +4,9 @@
 #include "File.h"
 #include "MsgStream.h"
 
-TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, int compression, float pingInterval, void* obj)
+TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, int compression, float keepAliveInterval, void* obj)
 {
-	return construct<TCPClient>(msgHandler, disconFunc, compression, pingInterval, obj);
+	return construct<TCPClient>(msgHandler, disconFunc, compression, keepAliveInterval, obj);
 }
 
 void DestroyClient(TCPClientInterface*& client)
@@ -31,7 +31,7 @@ struct SendInfo
 	CompressionType compType;
 };
 
-TCPClient::TCPClient(cfunc func, dcfunc disconFunc, int compression, float pingInterval, void* obj)
+TCPClient::TCPClient(cfunc func, dcfunc disconFunc, int compression, float keepAliveInterval, void* obj)
 	:
 	host(),
 	function(func),
@@ -40,8 +40,8 @@ TCPClient::TCPClient(cfunc func, dcfunc disconFunc, int compression, float pingI
 	recv(NULL),
 	compression(compression),
 	unexpectedShutdown(true),
-	pingInterval(pingInterval),
-	pingHandler(nullptr)
+	keepAliveInterval(keepAliveInterval),
+	keepAliveHandler(nullptr)
 {}
 
 TCPClient::TCPClient(TCPClient&& client)
@@ -54,8 +54,8 @@ TCPClient::TCPClient(TCPClient&& client)
 	sendSect(client.sendSect),
 	compression(client.compression),
 	unexpectedShutdown(client.unexpectedShutdown),
-	pingInterval(client.pingInterval),
-	pingHandler(client.pingHandler)
+	keepAliveInterval(client.keepAliveInterval),
+	keepAliveHandler(client.keepAliveHandler)
 {
 	ZeroMemory(&client, sizeof(TCPClient));
 }
@@ -74,8 +74,8 @@ TCPClient& TCPClient::operator=(TCPClient&& client)
 		sendSect = client.sendSect;
 		const_cast<int&>(compression) = client.compression;
 		unexpectedShutdown = client.unexpectedShutdown;
-		pingInterval = client.pingInterval;
-		pingHandler = client.pingHandler;
+		keepAliveInterval = client.keepAliveInterval;
+		keepAliveHandler = client.keepAliveHandler;
 
 		ZeroMemory(&client, sizeof(TCPClient));
 	}
@@ -89,7 +89,7 @@ TCPClient::~TCPClient()
 
 void TCPClient::Cleanup()
 {
-	destruct(pingHandler);
+	destruct(keepAliveHandler);
 	host.Disconnect();
 	DeleteCriticalSection(&sendSect);
 	if (recv)
@@ -235,14 +235,14 @@ HANDLE TCPClient::SendServDataThread(const char* data, DWORD nBytes, Compression
 }
 
 
-void TCPClient::SendMsg(char type, char message)
+void TCPClient::SendMsg(short type, short message)
 {
 	char msg[] = { type, message };
 
 	SendServData(msg, MSG_OFFSET, NOCOMPRESSION);
 }
 
-void TCPClient::SendMsg(const std::tstring& name, char type, char message)
+void TCPClient::SendMsg(const std::tstring& name, short type, short message)
 {
 	MsgStreamWriter streamWriter(type, message, StreamWriter::SizeType(name));
 	streamWriter.Write(name);
@@ -260,21 +260,21 @@ bool TCPClient::RecvServData()
 	if (!recv)
 		return false;
 
-	pingHandler = construct<PingHandler>(this);
+	keepAliveHandler = construct<KeepAliveHandler>(this);
 
-	if (!pingHandler)
+	if (!keepAliveHandler)
 		return false;
 
-	pingHandler->SetPingTimer(pingInterval);
+	keepAliveHandler->SetKeepAliveTimer(keepAliveInterval);
 
 	InitializeCriticalSection(&sendSect);
 
 	return true;
 }
 
-void TCPClient::Ping()
+void TCPClient::KeepAlive()
 {
-	SendMsg(TYPE_PING, MSG_PING);
+	host.SendData(nullptr, 0);
 }
 
 void TCPClient::SetFunction(cfunc function)
@@ -327,13 +327,13 @@ bool TCPClient::IsConnected() const
 	return host.IsConnected();
 }
 
-void TCPClient::SetPingInterval(float interval)
+void TCPClient::SetKeepAliveInterval(float interval)
 {
-	pingInterval = interval;
-	pingHandler->SetPingTimer(pingInterval);
+	keepAliveInterval = interval;
+	keepAliveHandler->SetKeepAliveTimer(keepAliveInterval);
 }
 
-float TCPClient::GetPingInterval() const
+float TCPClient::GetKeepAliveInterval() const
 {
-	return pingInterval;
+	return keepAliveInterval;
 }

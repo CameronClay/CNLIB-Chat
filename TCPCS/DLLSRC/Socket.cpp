@@ -263,14 +263,14 @@ bool Socket::AcceptOl(SOCKET acceptSocket, void* infoBuffer, DWORD localAddrLen,
 	return AcceptEx(pc, acceptSocket, infoBuffer, 0, localAddrLen, remoteAddrLen, NULL, ol);
 }
 
-long Socket::ReadDataOl(WSABUF* buffer, OVERLAPPED* ol, UINT bufferCount, LPWSAOVERLAPPED_COMPLETION_ROUTINE cr)
+long Socket::ReadDataOl(WSABUF* buffer, OVERLAPPED* ol, DWORD flags, UINT bufferCount, LPWSAOVERLAPPED_COMPLETION_ROUTINE cr)
 {
-	return WSARecv(pc, buffer, bufferCount, NULL, NULL, ol, cr);
+	return WSARecv(pc, buffer, bufferCount, NULL, &flags, ol, cr);
 }
 
-long Socket::SendDataOl(WSABUF* buffer, OVERLAPPED* ol, UINT bufferCount, LPWSAOVERLAPPED_COMPLETION_ROUTINE cr)
+long Socket::SendDataOl(WSABUF* buffer, OVERLAPPED* ol, DWORD flags, UINT bufferCount, LPWSAOVERLAPPED_COMPLETION_ROUTINE cr)
 {
-	return WSASend(pc, buffer, bufferCount, NULL, NULL, ol, cr);
+	return WSASend(pc, buffer, bufferCount, NULL, flags, ol, cr);
 }
 
 bool Socket::IsConnected() const
@@ -278,16 +278,19 @@ bool Socket::IsConnected() const
 	return refCount;
 }
 
-void Socket::SetTCPStack(int size)
+bool Socket::SetTCPRecvStack(int size)
 {
-	setsockopt(pc, SOL_SOCKET, SO_RCVBUF, (const char*)&size, sizeof(int));
-	setsockopt(pc, SOL_SOCKET, SO_SNDBUF, (const char*)&size, sizeof(int));
+	return (setsockopt(pc, SOL_SOCKET, SO_RCVBUF, (const char*)&size, sizeof(int)) == 0);
+}
+bool Socket::SetTCPSendStack(int size)
+{
+	return (setsockopt(pc, SOL_SOCKET, SO_SNDBUF, (const char*)&size, sizeof(int)) == 0);
 }
 
-void Socket::SetNoDelay(bool b)
+bool Socket::SetNoDelay(bool b)
 {
 	BOOL temp = b;
-	setsockopt(pc, IPPROTO_TCP, TCP_NODELAY, (const char*)&temp, sizeof(BOOL));
+	return (setsockopt(pc, IPPROTO_TCP, TCP_NODELAY, (const char*)&temp, sizeof(BOOL)) == 0);
 }
 
 bool Socket::SetBlocking()

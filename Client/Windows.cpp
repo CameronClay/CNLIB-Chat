@@ -284,16 +284,16 @@ void MsgHandler(TCPClientInterface&, const BYTE* data, DWORD nBytes, void*)
 	switch (type)
 	{
 		//Unnecessary now
-		//case TYPE_PING:
+		//case TYPE_KeepAlive:
 		//{
 		//	switch(msg)
 		//	{
-		//	case MSG_PING:
-		//		clint.Ping();
+		//	case MSG_KeepAlive:
+		//		clint.KeepAlive();
 		//		break;
 		//	}
 		//	break;
-		//}//TYPE_PING
+		//}//TYPE_KeepAlive
 		case TYPE_CHANGE:
 		{
 			switch(msg)
