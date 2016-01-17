@@ -79,7 +79,7 @@ public:
 	bool SetBlocking();
 	bool SetNonBlocking();
 
-	void SetAddrInfo(sockaddr* addr, size_t len);
+	void SetAddrInfo(sockaddr* addr, bool cleanup);
 	const SocketInfo& GetInfo();
 
 	UINT GetRefCount() const;

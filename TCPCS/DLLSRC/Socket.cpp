@@ -141,7 +141,7 @@ bool Socket::Bind(const LIB_TCHAR* port, bool ipv6)
 
 				sockaddr* temp = (sockaddr*)alloc<char>(addr.ai_addrlen);
 				memcpy(temp, addr.ai_addr, addr.ai_addrlen);
-				this->info.SetAddr(temp, addr.ai_addrlen);
+				this->info.SetAddr(temp, true);
 				result = true;
 			}
 		}
@@ -162,7 +162,7 @@ Socket Socket::AcceptConnection()
 		temp = accept(pc, addr, &addrLen);
 		if (temp.IsConnected())
 		{
-			temp.info.SetAddr(addr, addrLen);
+			temp.info.SetAddr(addr, true);
 		}
 		dealloc(addr);
 	}
@@ -209,7 +209,7 @@ bool Socket::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, fl
 
 			sockaddr* temp = (sockaddr*)alloc<char>(addr->ai_addrlen);
 			memcpy(temp, addr->ai_addr, addr->ai_addrlen);
-			this->info.SetAddr(temp, addr->ai_addrlen);
+			this->info.SetAddr(temp, true);
 		}
 
 		FreeAddrInfo(addr);
@@ -233,7 +233,7 @@ void Socket::Disconnect()
 long Socket::ReadData(void* dest, DWORD nBytes)
 {
 #if NTDDI_VERSION >= NTDDI_VISTA
-	return recv(*pc, (char*)dest, nBytes, MSG_WAITALL);
+	return recv(pc, (char*)dest, nBytes, MSG_WAITALL);
 #else
 	long received = 0, temp = SOCKET_ERROR;
 	do
@@ -307,9 +307,9 @@ const SocketInfo& Socket::GetInfo()
 	return info;
 }
 
-void Socket::SetAddrInfo(sockaddr* addr, size_t len)
+void Socket::SetAddrInfo(sockaddr* addr, bool cleanup)
 {
-	info.SetAddr(addr, len);
+	info.SetAddr(addr, cleanup);
 }
 
 UINT Socket::GetRefCount() const

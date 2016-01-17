@@ -1,5 +1,6 @@
 #pragma once
 #include <Windows.h>
+#include "WSABufExt.h"
 
 struct OverlappedExt : OVERLAPPED //dont wanna use virtual func because of mem pool and reuse of struct
 {
@@ -38,12 +39,11 @@ struct OverlappedSend : OverlappedExt
 {
 	OverlappedSend(USHORT refCount)
 		:
-		sendBuff({0, nullptr}),
 		refCount(refCount),
 		head(nullptr)
 	{}
 
-	void InitInstance(OpType opType, const WSABUF& buf, OverlappedExt* hd)
+	void InitInstance(OpType opType, const WSABufExt& buf, OverlappedExt* hd)
 	{
 		Reset();
 		this->opType = opType;
@@ -57,7 +57,7 @@ struct OverlappedSend : OverlappedExt
 		return --refCount == 0;
 	}
 
-	WSABUF sendBuff;
+	WSABufExt sendBuff;
 	OverlappedExt* head;
 	USHORT refCount;
 };

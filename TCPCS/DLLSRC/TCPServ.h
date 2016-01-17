@@ -108,8 +108,8 @@ public:
 
 	MemPool& GetRecvBuffPool();
 
-	WSABUF CreateSendBuffer(DWORD nBytesDecomp, char* buffer, OpType opType, CompressionType compType = BESTFIT);
-	void FreeSendBuffer(WSABUF buff, OpType opType);
+	WSABufExt CreateSendBuffer(DWORD nBytesDecomp, char* buffer, OpType opType, CompressionType compType = BESTFIT);
+	void FreeSendBuffer(WSABufExt buff, OpType opType);
 	void FreeSendOverlapped(OverlappedSend* ol);
 private:
 	void SendClientData(const char* data, DWORD nBytes, Socket exAddr, bool single, OpType opType, CompressionType compType);

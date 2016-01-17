@@ -19,7 +19,8 @@ SocketInfo::SocketInfo(SocketInfo&& socketInfo)
 
 void SocketInfo::Cleanup()
 {
-	dealloc(addr.addr);
+	if (cleanup)
+		dealloc(addr.addr);
 }
 
 SocketInfo& SocketInfo::operator=(const SocketInfo& rhs)
@@ -27,6 +28,7 @@ SocketInfo& SocketInfo::operator=(const SocketInfo& rhs)
 	if (this != &rhs)
 	{
 		addr = rhs.addr;
+		cleanup = rhs.cleanup;
 	}
 	return *this;
 }
@@ -35,12 +37,13 @@ SocketInfo& SocketInfo::operator=(SocketInfo&& rhs)
 	if (this != &rhs)
 	{
 		addr = rhs.addr;
+		cleanup = rhs.cleanup;
 		memset(&rhs, 0, sizeof(SocketInfo));
 	}
 	return *this;
 }
 
-void SocketInfo::SetAddr(sockaddr* addr, size_t len)
+void SocketInfo::SetAddr(sockaddr* addr, bool dealloc)
 {
 	if (!this->addr.addr)
 		this->addr.addr = addr;

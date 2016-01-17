@@ -12,11 +12,12 @@ struct WSABufExt : WSABUF
 		buf = nullptr;
 	}
 
-	void Initalize(DWORD len, char* buf)
+	void Initalize(DWORD len, char* buf, char* head)
 	{
 		curBytes = 0;
 		this->len = len;
-		this->buf = head = buf;
+		this->buf = buf;
+		this->head = head;
 	}
 	
 	DWORD curBytes;
