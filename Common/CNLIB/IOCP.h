@@ -8,14 +8,18 @@ public:
 	IOCP(IOCP&& iocp);
 	IOCP& operator=(IOCP&& iocp);
 	IOCP(const IOCP&) = delete;
-	~IOCP();
+
+	void WaitAndCleanup();
 
 	void LinkHandle(HANDLE hnd, void* completionKey);
+
+	void Post(DWORD bytesTrans, void* completionKey, OVERLAPPED* ol = nullptr);
 
 	HANDLE GetHandle() const;
 	DWORD ThreadCount() const;
 	DWORD ConcThreadCount() const;
 private:
 	const DWORD nThreads, nConcThreads;
+	HANDLE* threads;
 	HANDLE iocp;
 };

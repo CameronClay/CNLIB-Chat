@@ -46,8 +46,6 @@ public:
 			end->prev = (Element*)(end - (elementSizeMax + Element::OFFSET));
 			end->next = nullptr;
 		}
-
-		InitializeCriticalSection(&sect);
 	}
 	MemPool(const MemPool&) = delete;
 	MemPool(MemPool&& memPool)
@@ -58,8 +56,7 @@ public:
 		begin(memPool.begin),
 		end(memPool.end),
 		used(memPool.used),
-		avail(memPool.avail),
-		sect(memPool.sect)
+		avail(memPool.avail)
 	{
 		memset(&memPool, 0, sizeof(memPool));
 	}
@@ -75,7 +72,6 @@ public:
 			end = memPool.end;
 			used = memPool.used;
 			avail = memPool.avail;
-			sect = memPool.sect;
 
 			memset(&memPool, 0, sizeof(memPool));
 		}
@@ -87,12 +83,11 @@ public:
 		if (data)
 		{
 			::dealloc(data);
-			DeleteCriticalSection(&sect);
 		}
 	}
 
 	template<typename T>
-	T* alloc(bool sync = true)
+	T* alloc()
 	{
 		if (sync)
 			EnterCriticalSection(&sect);
@@ -128,10 +123,8 @@ public:
 	}
 
 	template<typename T>
-	void dealloc(T*& t, bool sync = true)
+	void dealloc(T*& t)
 	{
-		if (sync)
-			EnterCriticalSection(&sect);
 		if (t)
 		{
 			Element* e = (Element*)((char*)t - Element::OFFSET);
@@ -168,18 +161,16 @@ public:
 
 			t = nullptr;
 		}
-		if (sync)
-			LeaveCriticalSection(&sect);
 	}
 
 	template<typename T, typename... Args>
-	inline T* construct(bool sync, Args&&... vals)
+	inline T* construct(Args&&... vals)
 	{
 		return pmconstruct<T>(alloc<T>(sync), std::forward<Args>(vals)...);
 	}
 
 	template<typename T>
-	inline void destruct(T*& p, bool sync = true)
+	inline void destruct(T*& p)
 	{
 		if (p)
 		{
@@ -216,5 +207,121 @@ private:
 	char* data;
 	Element *begin, *end;
 	Element *used, *avail;
+};
+
+class MemPoolSync
+{
+public:
+	struct Element
+	{
+		Element()
+			:
+			prev(nullptr),
+			next(nullptr)
+		{}
+
+		Element *prev, *next;
+
+		static const size_t OFFSET = 2 * sizeof(Element*);
+	};
+
+	MemPoolSync(size_t elementSizeMax, size_t count)
+		:
+		memPool(elementSizeMax, count)
+	{
+		InitializeCriticalSection(&sect);
+	}
+	MemPoolSync(const MemPool&) = delete;
+	MemPoolSync(MemPoolSync&& memPool)
+		:
+		memPool(std::move(memPool.memPool)),
+		sect(memPool.sect)
+	{
+		memset(&memPool, 0, sizeof(memPool));
+	}
+
+	MemPoolSync& operator=(MemPoolSync&& memPool)
+	{
+		if (this != &memPool)
+		{
+			this->memPool = std::move(memPool.memPool);
+			sect = memPool.sect;
+
+			memset(&memPool, 0, sizeof(memPool));
+		}
+		return *this;
+	}
+
+	~MemPoolSync()
+	{
+		DeleteCriticalSection(&sect);
+	}
+
+	template<typename T>
+	T* alloc(bool sync = true)
+	{
+		if (sync)
+			EnterCriticalSection(&sect);
+
+		T* rtn = memPool.alloc<T>();
+
+		if (sync)
+			LeaveCriticalSection(&sect);
+
+		return rtn;
+	}
+
+	template<typename T>
+	void dealloc(T*& t, bool sync = true)
+	{
+		if (sync)
+			EnterCriticalSection(&sect);
+		
+		memPool.dealloc(t);
+			
+		if (sync)
+			LeaveCriticalSection(&sect);
+	}
+
+	template<typename T, typename... Args>
+	inline T* construct(bool sync, Args&&... vals)
+	{
+		return pmconstruct<T>(alloc<T>(sync), std::forward<Args>(vals)...);
+	}
+
+	template<typename T>
+	inline void destruct(T*& p, bool sync = true)
+	{
+		if (p)
+		{
+			pmdestruct(p);
+			dealloc(p, sync);
+		}
+	}
+
+	inline size_t ElementSizeMax() const
+	{
+		return memPool.ElementSizeMax();
+	}
+	inline size_t Count() const
+	{
+		return memPool.Count();
+	}
+
+	template<typename T>
+	inline bool InPool(T* p)
+	{
+		return memPool.InPool();
+	}
+	inline bool IsFull() const
+	{
+		return memPool.IsFull();
+	}
+	inline bool IsEmpty() const
+	{
+		return memPool.IsEmpty();
+	}
+private:
+	MemPool memPool;
 	CRITICAL_SECTION sect;
 };

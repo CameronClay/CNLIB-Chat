@@ -218,11 +218,17 @@ bool Socket::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, fl
 	return IsConnected();
 }
 
+
+void Socket::Shutdown()
+{
+	shutdown(pc, SD_BOTH);
+}
+
 void Socket::Disconnect()
 {
 	if (IsConnected())
 	{
-		shutdown(pc, SD_BOTH);
+		Shutdown();
 		closesocket(pc);
 		info.Cleanup();
 	}
