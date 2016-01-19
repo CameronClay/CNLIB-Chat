@@ -14,6 +14,7 @@ struct OverlappedExt : OVERLAPPED //dont wanna use virtual func because of mem p
 		opType(ol.opType)
 	{}
 
+	//int for allignment
 	enum class OpType : int
 	{
 		recv,
@@ -37,9 +38,9 @@ struct OverlappedExt : OVERLAPPED //dont wanna use virtual func because of mem p
 
 struct OverlappedSend : OverlappedExt
 {
-	OverlappedSend(USHORT refCount)
+	OverlappedSend(int refCount)
 		:
-		refCount(refCount),
+		refCount((refCount == 1) ? -1 : refCount),
 		head(nullptr)
 	{}
 
@@ -54,12 +55,12 @@ struct OverlappedSend : OverlappedExt
 	//Returns true if need to dealloc sendBuff
 	bool DecrementRefCount()
 	{
-		return --refCount == 0;
+		return (refCount == -1) ? true : (InterlockedDecrement((LONG*)&refCount) == 0);
 	}
 
 	WSABufExt sendBuff;
 	OverlappedExt* head;
-	USHORT refCount;
+	int refCount;
 };
 
 typedef OverlappedExt::OpType OpType;

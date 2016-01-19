@@ -34,10 +34,16 @@ IOCP& IOCP::operator=(IOCP&& iocp)
 	return *this;
 }
 
-IOCP::~IOCP()
+void IOCP::WaitAndCleanup()
 {
 	if (iocp)
 	{
+		WaitForMultipleObjects(nThreads, threads, TRUE, INFINITE);
+		for (int i = 0; i < nThreads; i++)
+		{
+			CloseHandle(threads[i]);
+			threads[i] = NULL;
+		}
 		CloseHandle(iocp);
 		iocp = NULL;
 	}
@@ -46,6 +52,14 @@ IOCP::~IOCP()
 void IOCP::LinkHandle(HANDLE hnd, void* completionKey)
 {
 	CreateIoCompletionPort(hnd, iocp, (ULONG_PTR)completionKey, NULL);
+}
+
+void IOCP::Post(DWORD bytesTrans, void* compeletionKey, OVERLAPPED* ol)
+{
+	for (DWORD i = 0; i < nThreads; i++)
+	{
+		PostQueuedCompletionStatus(iocp, bytesTrans, (ULONG_PTR)compeletionKey, ol);
+	}
 }
 
 HANDLE IOCP::GetHandle() const

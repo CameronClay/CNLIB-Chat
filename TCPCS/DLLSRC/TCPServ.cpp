@@ -3,10 +3,11 @@
 #include "File.h"
 #include "Messages.h"
 #include "MsgStream.h"
+#include <Windows.h>
 
-TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads, DWORD nConcThreads, UINT maxDataSize, USHORT maxCon, int compression, int compressionCO, float keepAliveInterval, void* obj)
+TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads, DWORD nConcThreads, UINT maxDataSize, UINT maxCon, int compression, int compressionCO, float keepAliveInterval, bool noDelay, void* obj)
 {
-	return construct<TCPServ>(msgHandler, conFunc, disFunc, nThreads, nConcThreads, maxDataSize, maxCon, compression, compressionCO, keepAliveInterval, obj);
+	return construct<TCPServ>(msgHandler, conFunc, disFunc, nThreads, nConcThreads, maxDataSize, maxCon, compression, compressionCO, keepAliveInterval, noDelay, obj);
 }
 void DestroyServer(TCPServInterface*& server)
 {
@@ -30,59 +31,6 @@ ClientData* ClientAccess::operator[](USHORT index)
 {
 	return *(ClientData**)((ClientDataEx**)clients + index);
 }
-
-
-struct Data
-{
-	Data(TCPServ& serv, USHORT pos)
-		:
-		serv(serv),
-		pos(pos)
-	{}
-
-	TCPServ& serv;
-	USHORT pos;
-};
-
-struct SAData
-{
-	SAData(TCPServ& serv, const char* data, DWORD nBytesDecomp, Socket exAddr, const bool single, CompressionType compType)
-		:
-		serv(serv),
-		data(data),
-		nBytesDecomp(nBytesDecomp),
-		exAddr(exAddr),
-		single(single),
-		compType(compType)
-	{}
-
-	TCPServ& serv;
-	DWORD nBytesDecomp;
-	const char* data;
-	Socket exAddr;
-	bool single;
-	CompressionType compType;
-};
-
-struct SADataEx
-{
-	SADataEx(TCPServ& serv, const char* data, DWORD nBytesDecomp, Socket* pcs, USHORT nPcs, CompressionType compType)
-		:
-		serv(serv),
-		data(data),
-		nBytesDecomp(nBytesDecomp),
-		pcs(pcs),
-		nPcs(nPcs),
-		compType(compType)
-	{}
-
-	TCPServ& serv;
-	DWORD nBytesDecomp;
-	const char* data;
-	Socket* pcs;
-	USHORT nPcs;
-	CompressionType compType;
-};
 
 ClientData::ClientData(TCPServInterface& serv, Socket pc, sfunc func)
 	:
@@ -114,16 +62,17 @@ ClientData& ClientData::operator=(ClientData&& data)
 }
 
 
-ClientDataEx::ClientDataEx(TCPServ& serv, Socket pc, sfunc func, USHORT arrayIndex)
+ClientDataEx::ClientDataEx(TCPServ& serv, Socket pc, sfunc func, UINT arrayIndex)
 	:
 	ClientData(serv, pc, func),
 	serv((TCPServ&)serv),
 	ol(OpType::recv),
-	arrayIndex(arrayIndex)
+	arrayIndex(arrayIndex),
+	state(running)
 {
 	MemPool& pool = serv.GetRecvBuffPool();
 	const UINT maxDataSize = serv.MaxDataSize();
-	char* temp = pool.alloc<char>(false);
+	char* temp = pool.alloc<char>();
 	buff.Initalize(maxDataSize, temp, temp);
 }
 ClientDataEx::ClientDataEx(ClientDataEx&& clint)
@@ -132,7 +81,8 @@ ClientDataEx::ClientDataEx(ClientDataEx&& clint)
 	serv(clint.serv),
 	buff(clint.buff),
 	ol(clint.ol),
-	arrayIndex(clint.arrayIndex)
+	arrayIndex(clint.arrayIndex),
+	state(clint.state)
 {
 	ZeroMemory(&clint, sizeof(ClientDataEx));
 }
@@ -140,10 +90,11 @@ ClientDataEx& TCPServ::ClientDataEx::operator=(ClientDataEx&& data)
 {
 	if (this != &data)
 	{
-		this->__super::operator=(std::forward<ClientData>(data));
+		__super::operator=(std::forward<ClientData>(data));
 		buff = data.buff;
 		arrayIndex = data.arrayIndex;
 		ol = data.ol;
+		state = data.state;
 
 		memset(&data, 0, sizeof(ClientDataEx));
 	}
@@ -152,7 +103,7 @@ ClientDataEx& TCPServ::ClientDataEx::operator=(ClientDataEx&& data)
 }
 ClientDataEx::~ClientDataEx()
 {
-	serv.GetRecvBuffPool().dealloc(buff.head, false);
+	serv.GetRecvBuffPool().dealloc(buff.head);
 }
 
 
@@ -203,305 +154,73 @@ void HostSocket::CloseAcceptSocket()
 DWORD CALLBACK IOCPThread(LPVOID info)
 {
 	IOCP& iocp = *(IOCP*)info;
-	DWORD bytesTrans;
-	OverlappedExt* ol;
-	void* key;
-	bool res = GetQueuedCompletionStatus(iocp.GetHandle(), &bytesTrans, (ULONG*)key, (OVERLAPPED**)&ol, INFINITE);
-	if (!res && ol)
-	{
-		if (ol->opType == OpType::recv || ol->opType == OpType::send || ol->opType == OpType::sendmsg)
-		{
-			OverlappedSend* ols = (OverlappedSend*)ol;
-			ClientDataEx* cd = (ClientDataEx*)key;
-			//Decrement refCount
-			if (ols->DecrementRefCount())
-			{
-				//Free buffers
-				cd->serv.FreeSendBuffer(ols->sendBuff, ols->opType);
-				cd->serv.FreeSendOverlapped(ols);
-			}
-			cd->serv.RemoveClient(cd);
-		}
-		else
-		{
-			//Cleanup host and accept sockets
-			HostSocket& hostSocket = *(HostSocket*)key;
-			hostSocket.listen.Disconnect();
-			hostSocket.CloseAcceptSocket();
-		}
-	}
-	else
-	{
-		//error occured
-	}
+	DWORD bytesTrans = 0;
+	OverlappedExt* ol = nullptr;
+	ULONG* key = nullptr;
+	InterlockedCounter ic;
+	size_t sz = ++ic;
 
-	switch (ol->opType)
+	while (true)
 	{
-		case OpType::recv:
+		bool res = GetQueuedCompletionStatus(iocp.GetHandle(), &bytesTrans, (ULONG*)&key, (OVERLAPPED**)&ol, INFINITE);
+		if (!res)
 		{
-			ClientDataEx& cd = *(ClientDataEx*)key;
-			char* ptr = cd.buff.head;
-			while (true)
+			if (ol && key)
 			{
-				BufSize bufSize(*(DWORD64*)cd.buff.head);
-				const DWORD bytesToRecv = (bufSize.up.nBytesComp) ? bufSize.up.nBytesComp : bufSize.up.nBytesDecomp;
-
-				//If there is a full data block ready for proccessing
-				if (bytesToRecv >= bytesTrans)
+				if (ol->opType == OpType::send || ol->opType == OpType::sendmsg)
 				{
-					cd.buff.curBytes += min(bytesTrans, bytesToRecv);
-					//If data was comprsesed
-					if (bufSize.up.nBytesComp)
-					{
-						const DWORD maxCompSize = cd.serv.MaxCompSize();
-						BYTE* dest = (BYTE*)(cd.buff.buf + sizeof(DWORD64) + maxCompSize);
-						FileMisc::Decompress(dest, maxCompSize, (const BYTE*)(cd.buff.buf), bytesToRecv);	// Decompress data
-						(cd.func)(cd.serv, &cd, dest, bufSize.up.nBytesDecomp);
-					}
-					//If data was not compressed
-					else
-					{
-						(cd.func)(cd.serv, &cd, (const BYTE*)cd.buff.buf, bufSize.up.nBytesDecomp);
-					}
-					//If no partial blocks to copy to start of buffer
-					if (cd.buff.curBytes == bytesTrans)
-					{
-						cd.buff.buf = cd.buff.head;
-						cd.buff.curBytes = 0;
-						break;
-					}
+					ClientDataEx& cd = *(ClientDataEx*)key;
+					cd.serv.SendDataCR(cd, (OverlappedSend*)ol);
+				}
+				else if (ol->opType == OpType::recv)
+				{
+					ClientDataEx* cd = (ClientDataEx*)key;
+					cd->serv.RemoveClient(cd, cd->state != ClientDataEx::closing); //closing flag only set when you initiated close
 				}
 				else
 				{
-					//Concatenate remaining data to buffer
-					DWORD temp = cd.buff.curBytes - bytesTrans;
-					if (cd.buff.buf != ptr)
-						memcpy(cd.buff.buf, ptr, temp);
-					cd.buff.curBytes = temp;
-					cd.buff.buf = cd.buff.head + temp;
-					break;
+					HostSocket& hostSocket = *(HostSocket*)key;
+					hostSocket.serv.CleanupAcceptEx(hostSocket);
 				}
-				ptr += bytesToRecv;
 			}
-
-			cd.ol.Reset();
-			cd.pc.ReadDataOl(&cd.buff, &cd.ol);
-
-			//if (cd.finished)//If ready to decompress/call msgHandler
+			//else
 			//{
-			//	DWORD byComp = cd.bufSize.up.nBytesDecomp, 
-			//		byDecomp = cd.bufSize.up.nBytesDecomp;		// Create temporary size vars because buffer cant be accessed while reading
-			//	cd.bufSize.size = 0;							// Zero out size of buffer so it doesnt trigger uncompression when it shouldnt
-			//	cd.finished = false;							// Set finished state to false
-			//	ol->Reset();									// Reset overlapped structure
-			//	cd.pc.ReadDataOl(&cd.sizeBuff, &cd.ol); 		// Queue another read
-
-			//	if (byComp)
-			//	{
-			//		FileMisc::Decompress((BYTE*)cd.decompBuff, byDecomp, (const BYTE*)cd.recvBuff.buf, byComp);	// Decompress data
-			//		(cd.func)(cd.serv, &cd, (const BYTE*)cd.decompBuff, byDecomp);								// Call msgHandler
-			//	}
-			//	else
-			//	{
-			//		(cd.func)(cd.serv, &cd, (const BYTE*)cd.recvBuff.buf, byDecomp);							// Call msgHandler
-			//	}
+			//	//Error
 			//}
-			//else //If received number of bytes to receive
-			//{
-			//	//Setup buffer for next read
-			//	if (cd.bufSize.up.nBytesComp)
-			//		cd.recvBuff.len = cd.bufSize.up.nBytesComp;
-			//	else
-			//		cd.recvBuff.len = cd.bufSize.up.nBytesDecomp;
+		}
 
-			//	//No need to reset overlapped because it is reset on construction
-			//	//Read in nBytes data
-			//	cd.pc.ReadDataOl(&cd.recvBuff, &cd.ol);
-			//}
+		if (bytesTrans == 0)
+		{
+			return 0;
+		}
+
+		switch (ol->opType)
+		{
+		case OpType::recv:
+		{
+			ClientDataEx& cd = *(ClientDataEx*)key;
+			cd.serv.RecvDataCR(bytesTrans, cd, ol);
 		}
 		break;
 		case OpType::send:
 		case OpType::sendmsg:
 		{
-			OverlappedSend* ols = (OverlappedSend*)ol;
 			ClientDataEx& cd = *(ClientDataEx*)key;
-			//Decrement refcount
-			if (ols->DecrementRefCount())
-			{
-				//Free buffers
-				cd.serv.FreeSendBuffer(ols->sendBuff, ols->opType);
-				cd.serv.FreeSendOverlapped(ols);			
-			}
+			cd.serv.SendDataCR(cd, (OverlappedSend*)ol);
 		}
 		break;
 		case OpType::accept:
 		{
 			HostSocket& hostSocket = *(HostSocket*)key;
-			sockaddr *localAddr, *remoteAddr;
-			int localLen, remoteLen;
-
-			//Separate addresses and create new socket
-			Socket::GetAcceptExAddrs(hostSocket.buffer, hostSocket.localAddrLen, hostSocket.remoteAddrLen, &localAddr, &localLen, &remoteAddr, &remoteLen);
-			Socket socket = hostSocket.accept;
-			socket.SetAddrInfo(remoteAddr, false);
-
-			//Get ready for another call
-			hostSocket.SetAcceptSocket();
-			ol->Reset();
-
-			//Queue another acceptol
-			hostSocket.listen.AcceptOl(hostSocket.accept, hostSocket.buffer, hostSocket.localAddrLen, hostSocket.remoteAddrLen, ol);
-
-			//Add client to server list
-			hostSocket.serv.AddClient(socket);
+			hostSocket.serv.AcceptConCR(hostSocket, ol);
 		}
 		break;
+		}
 	}
 
 	return 0;
 }
 
-
-//static void SendDataComp(Socket pc, const char* data, DWORD nBytesDecomp, DWORD nBytesComp)
-//{
-//	const DWORD64 nBytes = ((DWORD64)nBytesDecomp) << 32 | nBytesComp;
-//
-//	//No need to remove client, that is handled in recv thread
-//	if (pc.SendData(&nBytes, sizeof(DWORD64)) > 0)
-//		pc.SendData(data, (nBytesComp != 0) ? nBytesComp : nBytesDecomp);
-//}
-//
-//static DWORD CALLBACK SendAllData(LPVOID info)
-//{
-//	SAData* data = (SAData*)info;
-//	TCPServ& serv = data->serv;
-//	auto clients = serv.GetClients();
-//	//CRITICAL_SECTION* sect = serv.GetSendSect();
-//	Socket exAddr = data->exAddr;
-//	const BYTE* dataDecomp = (const BYTE*)data->data;
-//	BYTE* dataComp = nullptr;
-//	const DWORD nBytesDecomp = data->nBytesDecomp;
-//	DWORD nBytesComp = 0;
-//
-//	if (data->compType == SETCOMPRESSION)
-//	{
-//		nBytesComp = FileMisc::GetCompressedBufferSize(nBytesDecomp);
-//		dataComp = alloc<BYTE>(nBytesComp);
-//		nBytesComp = FileMisc::Compress(dataComp, nBytesComp, dataDecomp, nBytesDecomp, serv.GetCompression());
-//	}
-//
-//	const char* dat = (const char*)(dataComp ? dataComp : dataDecomp);
-//
-//	//EnterCriticalSection(sect);
-//
-//	if (data->single)
-//	{
-//		if (exAddr.IsConnected())
-//			SendDataComp(exAddr, dat, nBytesDecomp, nBytesComp);
-//	}
-//
-//	else
-//	{
-//		const USHORT nClients = serv.ClientCount();
-//		if (exAddr.IsConnected())
-//		{
-//			for (USHORT i = 0; i < nClients; i++)
-//				if (clients[i]->pc != exAddr)
-//					SendDataComp(clients[i]->pc, dat, nBytesDecomp, nBytesComp);
-//		}
-//		else
-//		{
-//			for (USHORT i = 0; i < nClients; i++)
-//				SendDataComp(clients[i]->pc, dat, nBytesDecomp, nBytesComp);
-//		}
-//	}
-//
-//	//LeaveCriticalSection(sect);
-//
-//	dealloc(dataComp);
-//	destruct(data);
-//
-//	return 0;
-//}
-//
-//static DWORD CALLBACK SendAllDataEx(LPVOID info)
-//{
-//	SADataEx* data = (SADataEx*)info;
-//	TCPServ& serv = data->serv;
-//	Socket* pcs = data->pcs;
-//	const USHORT pcCount = data->nPcs;
-//	//CRITICAL_SECTION* sect = serv.GetSendSect();
-//	const BYTE* dataDecomp = (const BYTE*)data->data;
-//	BYTE* dataComp = nullptr;
-//	const DWORD nBytesDecomp = data->nBytesDecomp;
-//	DWORD nBytesComp = 0;
-//
-//	if (data->compType == SETCOMPRESSION)
-//	{
-//		nBytesComp = FileMisc::GetCompressedBufferSize(nBytesDecomp);
-//		dataComp = alloc<BYTE>(nBytesComp);
-//		nBytesComp = FileMisc::Compress(dataComp, nBytesComp, dataDecomp, nBytesDecomp, serv.GetCompression());
-//	}
-//
-//	const char* dat = (const char*)(dataComp ? dataComp : dataDecomp);
-//
-//	//EnterCriticalSection(sect);
-//
-//	for (USHORT i = 0; i < pcCount; i++)
-//	{
-//		if (pcs[i].IsConnected())
-//			SendDataComp(pcs[i], dat, nBytesDecomp, nBytesComp);
-//	}
-//
-//	//LeaveCriticalSection(sect);
-//
-//	dealloc(dataComp);
-//	destruct(data);
-//
-//	return 0;
-//}
-//
-//static DWORD CALLBACK RecvData(LPVOID info)
-//{
-//	Data* data = (Data*)info;
-//	TCPServ& serv = data->serv;
-//	TCPServ::ClientData** clients = serv.GetClients();
-//	USHORT& pos = clients[data->pos]->recvIndex;
-//	TCPServ::ClientData* clint = clients[pos];
-//	Socket& pc = clint->pc;
-//	void* obj = serv.GetObj();
-//	DWORD64 nBytes = 0;
-//
-//	while(pc.IsConnected())
-//	{
-//		if(pc.ReadData(&nBytes, sizeof(DWORD64)) > 0)
-//		{
-//			const DWORD nBytesDecomp = nBytes >> 32;
-//			const DWORD nBytesComp = nBytes & 0xffffffff;
-//			BYTE* buffer = alloc<BYTE>(nBytesDecomp + nBytesComp);
-//
-//			if (pc.ReadData(buffer, (nBytesComp != 0) ? nBytesComp : nBytesDecomp) > 0)
-//			{
-//				BYTE* dest = buffer + nBytesComp;
-//				if (nBytesComp != 0)
-//					FileMisc::Decompress(dest, nBytesDecomp, buffer, nBytesComp);
-//
-//				(clint->func)(serv, clint, dest, nBytesDecomp, obj);
-//				dealloc(buffer);
-//			}
-//			else
-//			{
-//				dealloc(buffer);
-//				break;
-//			}
-//		}
-//		else break;
-//	}
-//
-//	serv.RemoveClient(pos);
-//	destruct(data);
-//	return 0;
-//}
 
 char* TCPServ::GetSendBuffer()
 {
@@ -517,7 +236,7 @@ WSABufExt TCPServ::CreateSendBuffer(DWORD nBytesDecomp, char* buffer, OpType opT
 	{
 		char* temp = buffer;
 		buffer = sendMsgPool.alloc<char>();
-		*(short*)buffer = *(short*)temp;
+		*(int*)buffer = *(int*)temp;
 	}
 	else
 	{
@@ -573,7 +292,7 @@ void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket exAddr, bool
 {
 	SendClientData(data, nBytes, exAddr, single, OpType::send, compType);
 }
-void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket* pcs, USHORT nPcs, CompressionType compType)
+void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket* pcs, UINT nPcs, CompressionType compType)
 {
 	SendClientData(data, nBytes, pcs, nPcs, OpType::send, compType);
 }
@@ -584,58 +303,80 @@ void TCPServ::SendClientData(const char* data, DWORD nBytes, std::vector<Socket>
 
 void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket exAddr, bool single, OpType opType, CompressionType compType)
 {
-	WSABufExt sendBuff = CreateSendBuffer(nBytes, (char*)data, opType, compType);
-	if (!sendBuff.head)
-		return;
+	long res = 0;
 
-	if (single)
+	if (exAddr.IsConnected())
 	{
-		if (exAddr.IsConnected())
+		if (single)
 		{
-			OverlappedSend* ol = sendOlPoolSingle.construct<OverlappedSend>(true);
+			WSABufExt sendBuff = CreateSendBuffer(nBytes, (char*)data, opType, compType);
+			if (!sendBuff.head)
+				return;
+
+			OverlappedSend* ol = sendOlPoolSingle.construct<OverlappedSend>(true, 1);
 			ol->InitInstance(opType, sendBuff, ol);
-			exAddr.SendDataOl(&ol->sendBuff, ol);
-		}
-		else
-		{
-			FreeSendBuffer(sendBuff, opType);
-		}
-	}
-	else
-	{
-		if (exAddr.IsConnected())
-		{
-			OverlappedSend* ol = sendOlPoolAll.construct<OverlappedSend>(true, nClients - 1);
-			for (USHORT i = 0; i < nClients; i++)
+			++opCounter;
+
+			res = exAddr.SendDataOl(&ol->sendBuff, ol);
+			if ((res == SOCKET_ERROR) && (WSAGetLastError() != WSA_IO_PENDING))
 			{
-				ClientDataEx& cd = *clients[i];
-				if (cd.pc != exAddr)
-				{
-					if (cd.pc.IsConnected())
-					{
-						ol[i].InitInstance(opType, sendBuff, ol);
-						cd.pc.SendDataOl(&ol[i].sendBuff, ol);
-					}
-					else if (ol->DecrementRefCount())
-					{
-						sendOlPoolAll.dealloc(ol, true);
-						FreeSendBuffer(sendBuff, opType);
-					}
-				}
+				--opCounter;
+				FreeSendBuffer(sendBuff, opType);
+				sendOlPoolSingle.destruct(ol);
 			}
 		}
 		else
 		{
-			OverlappedSend* ol = sendOlPoolAll.construct<OverlappedSend>(true, nClients);
-			for (USHORT i = 0; i < nClients; i++)
+			WSABufExt sendBuff = CreateSendBuffer(nBytes, (char*)data, opType, compType);
+			if (!sendBuff.head)
+				return;
+
+			OverlappedSend* ol = sendOlPoolAll.construct<OverlappedSend>(true, nClients - 1);
+			opCounter += nClients - 1;
+			for (UINT i = 0; i < nClients; i++)
 			{
-				ClientDataEx& cd = *clients[i];
-				if (cd.pc.IsConnected())
+				Socket& pc = clients[i]->pc;
+				if (pc != exAddr)
 				{
-					ol[i].InitInstance(opType, sendBuff, ol);
-					cd.pc.SendDataOl(&ol[i].sendBuff, ol);
+					bool isCon = pc.IsConnected();
+					if (isCon)
+					{
+						ol[i].InitInstance(opType, sendBuff, ol);
+						res = pc.SendDataOl(&ol[i].sendBuff, ol);
+					}
+					if (!isCon || ((res == SOCKET_ERROR) && (WSAGetLastError() != WSA_IO_PENDING)))
+					{
+						--opCounter;
+						if (ol->DecrementRefCount())
+						{
+							sendOlPoolAll.dealloc(ol, true);
+							FreeSendBuffer(sendBuff, opType);
+						}
+					}
 				}
-				else if (ol->DecrementRefCount())
+			}
+		}
+	}
+	else
+	{
+		WSABufExt sendBuff = CreateSendBuffer(nBytes, (char*)data, opType, compType);
+		if (!sendBuff.head)
+			return;
+
+		OverlappedSend* ol = sendOlPoolAll.construct<OverlappedSend>(true, nClients - 1);
+		for (UINT i = 0; i < nClients; i++)
+		{
+			Socket& pc = clients[i]->pc;
+			bool isCon = pc.IsConnected();
+			if (isCon)
+			{
+				ol[i].InitInstance(opType, sendBuff, ol);
+				res = pc.SendDataOl(&ol[i].sendBuff, ol);
+			}
+			if (!isCon || ((res == SOCKET_ERROR) && (WSAGetLastError() != WSA_IO_PENDING)))
+			{
+				--opCounter;
+				if (ol->DecrementRefCount())
 				{
 					sendOlPoolAll.dealloc(ol, true);
 					FreeSendBuffer(sendBuff, opType);
@@ -644,55 +385,77 @@ void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket exAddr, bool
 		}
 	}
 }
-void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket* pcs, USHORT nPcs, OpType opType, CompressionType compType)
+void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket* pcs, UINT nPcs, OpType opType, CompressionType compType)
 {
-	WSABufExt sendBuff = CreateSendBuffer(nBytes, (char*)data, opType, compType);
-	if (!sendBuff.head)
-		return;
+	long res = 0;
 
-	if (nPcs == 1)
+	if (nClients == 1)
 	{
-		if (pcs->IsConnected())
+		Socket& pc = *pcs;
+		if (pc.IsConnected())
 		{
+			WSABufExt sendBuff = CreateSendBuffer(nBytes, (char*)data, opType, compType);
+			if (!sendBuff.head)
+				return;
+
 			OverlappedSend* ol = sendOlPoolSingle.construct<OverlappedSend>(true, 1);
 			ol->InitInstance(opType, sendBuff, ol);
-			pcs->SendDataOl(&ol->sendBuff, ol);
-		}
-		else
-		{
-			FreeSendBuffer(sendBuff, opType);
+			++opCounter;
+
+			res = pc.SendDataOl(&ol->sendBuff, ol);
+			if ((res == SOCKET_ERROR) && (WSAGetLastError() != WSA_IO_PENDING))
+			{
+				--opCounter;
+				if (ol->DecrementRefCount())
+				{
+					FreeSendBuffer(sendBuff, opType);
+					sendOlPoolSingle.destruct(ol);
+				}
+			}
 		}
 	}
 	else
 	{
-		OverlappedSend* ol = sendOlPoolAll.construct<OverlappedSend>(true, nPcs);
-		for (USHORT i = 0; i < nPcs; i++)
+		WSABufExt sendBuff = CreateSendBuffer(nBytes, (char*)data, opType, compType);
+		if (!sendBuff.head)
+			return;
+
+		OverlappedSend* ol = sendOlPoolAll.construct<OverlappedSend>(true, nClients);
+		opCounter += nClients;
+
+		for (UINT i = 0; i < nClients; i++)
 		{
-			if (pcs[i].IsConnected())
+			Socket& pc = pcs[i];
+			bool isCon = pc.IsConnected();
+			if (isCon)
 			{
 				ol[i].InitInstance(opType, sendBuff, ol);
-				pcs[i].SendDataOl(&ol[i].sendBuff, ol);
+				res = pc.SendDataOl(&ol[i].sendBuff, ol);
 			}
-			else if (ol->DecrementRefCount())
+			if (!isCon || ((res == SOCKET_ERROR) && (WSAGetLastError() != WSA_IO_PENDING)))
 			{
-				sendOlPoolAll.dealloc(ol, true);
-				FreeSendBuffer(sendBuff, opType);
+				--opCounter;
+				if (ol->DecrementRefCount())
+				{
+					sendOlPoolAll.dealloc(ol, true);
+					FreeSendBuffer(sendBuff, opType);
+				}
 			}
 		}
 	}
 }
 
-void TCPServ::SendMsg(Socket pc, bool single, short type, short message)
+void TCPServ::SendMsg(Socket exAddr, bool single, short type, short message)
 {
-	char msg[] = { type, message };
+	short msg[] = { type, message };
 
-	SendClientData(msg, MSG_OFFSET, pc, single, OpType::sendmsg, NOCOMPRESSION);
+	SendClientData((const char*)msg, MSG_OFFSET, exAddr, single, OpType::sendmsg, NOCOMPRESSION);
 }
-void TCPServ::SendMsg(Socket* pcs, USHORT nPcs, short type, short message)
+void TCPServ::SendMsg(Socket* pcs, UINT nPcs, short type, short message)
 {
-	char msg[] = { type, message };
+	short msg[] = { type, message };
 
-	SendClientData(msg, MSG_OFFSET, pcs, nPcs, OpType::sendmsg, NOCOMPRESSION);
+	SendClientData((const char*)msg, MSG_OFFSET, pcs, nPcs, OpType::sendmsg, NOCOMPRESSION);
 }
 void TCPServ::SendMsg(std::vector<Socket>& pcs, short type, short message)
 {
@@ -703,8 +466,102 @@ void TCPServ::SendMsg(const std::tstring& user, short type, short message)
 	SendMsg(FindClient(user)->pc, true, type, message);
 }
 
+void TCPServ::RecvDataCR(DWORD bytesTrans, ClientDataEx& cd, OverlappedExt* ol)
+{
+	char* ptr = cd.buff.head;
+	while (true)
+	{
+		BufSize bufSize(*(DWORD64*)cd.buff.head);
+		const DWORD bytesToRecv = (bufSize.up.nBytesComp) ? bufSize.up.nBytesComp : bufSize.up.nBytesDecomp;
 
-TCPServ::TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads, DWORD nConcThreads, UINT maxDataSize, USHORT maxCon, int compression, int compressionCO, float keepAliveInterval, void* obj)
+		//If there is a full data block ready for proccessing
+		if (bytesToRecv >= bytesTrans)
+		{
+			cd.buff.curBytes += min(bytesTrans, bytesToRecv);
+			//If data was comprsesed
+			if (bufSize.up.nBytesComp)
+			{
+				const DWORD maxCompSize = cd.serv.MaxCompSize();
+				BYTE* dest = (BYTE*)(cd.buff.head + sizeof(DWORD64) + maxCompSize);
+				FileMisc::Decompress(dest, maxCompSize, (const BYTE*)ptr, bytesToRecv);	// Decompress data
+				(cd.func)(cd.serv, &cd, dest, bufSize.up.nBytesDecomp);
+			}
+			//If data was not compressed
+			else
+			{
+				(cd.func)(cd.serv, &cd, (const BYTE*)ptr, bufSize.up.nBytesDecomp);
+			}
+			//If no partial blocks to copy to start of buffer
+			if (cd.buff.curBytes == bytesTrans)
+			{
+				cd.buff.buf = cd.buff.head;
+				cd.buff.curBytes = 0;
+				break;
+			}
+		}
+		//If the next block of data has not been fully received
+		else
+		{
+			//Concatenate remaining data to buffer
+			DWORD temp = cd.buff.curBytes - bytesTrans;
+			if (cd.buff.buf != ptr)
+				memcpy(cd.buff.buf, ptr, temp);
+			cd.buff.curBytes = temp;
+			cd.buff.buf = cd.buff.head + temp;
+			break;
+		}
+		ptr += bytesToRecv;
+	}
+
+	cd.pc.ReadDataOl(&cd.buff, &cd.ol);
+}
+void TCPServ::AcceptConCR(HostSocket& host, OverlappedExt* ol)
+{
+	sockaddr *localAddr, *remoteAddr;
+	int localLen, remoteLen;
+
+	//Separate addresses and create new socket
+	Socket::GetAcceptExAddrs(host.buffer, host.localAddrLen, host.remoteAddrLen, &localAddr, &localLen, &remoteAddr, &remoteLen);
+	Socket socket = host.accept;
+	socket.SetAddrInfo(remoteAddr, false);
+
+	//Get ready for another call
+	host.SetAcceptSocket();
+
+	//Queue another acceptol
+	host.listen.AcceptOl(host.accept, host.buffer, host.localAddrLen, host.remoteAddrLen, ol);
+
+	//If server is not full and has passed the connection condition test
+	if (!MaxClients() && connectionCondition(*this, socket))
+		host.serv.AddClient(socket); //Add client to server list
+	else
+		socket.Disconnect();
+}
+void TCPServ::SendDataCR(ClientDataEx& cd, OverlappedSend* ol)
+{
+	//Decrement refcount
+	if (ol->DecrementRefCount())
+	{
+		//Free buffers
+		cd.serv.FreeSendBuffer(ol->sendBuff, ol->opType);
+		cd.serv.FreeSendOverlapped(ol);
+	}
+
+	if ((--opCounter).GetOpCount() == 0)
+		SetEvent(shutdownEv);
+}
+void TCPServ::CleanupAcceptEx(HostSocket& host)
+{
+	//Cleanup host and accept sockets
+	host.listen.Disconnect();
+	host.CloseAcceptSocket();
+
+	if ((--opCounter).GetOpCount() == 0)
+		SetEvent(shutdownEv);
+}
+
+
+TCPServ::TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads, DWORD nConcThreads, UINT maxDataSize, UINT maxCon, int compression, int compressionCO, float keepAliveInterval, bool noDelay, void* obj)
 	:
 	ipv4Host(*this),
 	ipv6Host(*this),
@@ -714,6 +571,7 @@ TCPServ::TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads
 	function(func),
 	obj(obj),
 	conFunc(conFunc),
+	connectionCondition(nullptr),
 	disFunc(disFunc),
 	maxDataSize(maxDataSize),
 	maxCompSize(FileMisc::GetCompressedBufferSize(maxDataSize)),
@@ -728,10 +586,11 @@ TCPServ::TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads
 	sendOlPoolSingle(sizeof(OverlappedSend), nClients),
 	sendOlPoolAll(sizeof(OverlappedSend), 5),
 	sendDataPool(maxBufferSize, nClients * 2),
-	sendMsgPool(sizeof(DWORD64), nClients * 2)
-{
-	
-}
+	sendMsgPool(sizeof(DWORD64), nClients * 2),
+	opCounter(),
+	shutdownEv(NULL),
+	noDelay(noDelay)
+{}
 TCPServ::TCPServ(TCPServ&& serv)
 	:
 	ipv4Host(std::move(serv.ipv4Host)),
@@ -742,6 +601,7 @@ TCPServ::TCPServ(TCPServ&& serv)
 	function(serv.function),
 	obj(serv.obj),
 	conFunc(serv.conFunc),
+	connectionCondition(serv.connectionCondition),
 	disFunc(serv.disFunc),
 	clientSect(serv.clientSect),
 	maxDataSize(serv.maxDataSize),
@@ -756,7 +616,10 @@ TCPServ::TCPServ(TCPServ&& serv)
 	sendOlPoolSingle(std::move(serv.sendOlPoolSingle)),
 	sendOlPoolAll(std::move(serv.sendOlPoolAll)),
 	sendDataPool(std::move(serv.sendDataPool)),
-	sendMsgPool(std::move(serv.sendMsgPool))
+	sendMsgPool(std::move(serv.sendMsgPool)),
+	opCounter(serv.opCounter),
+	shutdownEv(serv.shutdownEv),
+	noDelay(serv.noDelay)
 {
 	ZeroMemory(&serv, sizeof(TCPServ));
 }
@@ -774,6 +637,7 @@ TCPServ& TCPServ::operator=(TCPServ&& serv)
 		function = serv.function;
 		obj = serv.obj;
 		const_cast<std::remove_const_t<ConFunc>&>(conFunc) = serv.conFunc;
+		connectionCondition = serv.connectionCondition;
 		const_cast<std::remove_const_t<DisconFunc>&>(disFunc) = serv.disFunc;
 		clientSect = serv.clientSect;
 		const_cast<UINT&>(maxDataSize) = serv.maxDataSize;
@@ -789,6 +653,9 @@ TCPServ& TCPServ::operator=(TCPServ&& serv)
 		sendOlPoolAll = std::move(serv.sendOlPoolAll);
 		sendDataPool = std::move(serv.sendDataPool);
 		sendMsgPool = std::move(serv.sendMsgPool);
+		opCounter = serv.opCounter;
+		shutdownEv = serv.shutdownEv;
+		noDelay = serv.noDelay;
 
 		ZeroMemory(&serv, sizeof(TCPServ));
 	}
@@ -800,7 +667,7 @@ TCPServ::~TCPServ()
 	Shutdown();
 }
 
-IPv TCPServ::AllowConnections(const LIB_TCHAR* port, IPv ipv)
+IPv TCPServ::AllowConnections(const LIB_TCHAR* port, ConCondition connectionCondition, IPv ipv)
 {
 	if(ipv4Host.listen.IsConnected() || ipv6Host.listen.IsConnected())
 		return ipvnone;
@@ -808,10 +675,13 @@ IPv TCPServ::AllowConnections(const LIB_TCHAR* port, IPv ipv)
 	if(!clients)
 		clients = alloc<ClientDataEx*>(maxCon);
 
+	this->connectionCondition = connectionCondition;
+
 	if (ipv & ipv4)
 	{
 		if (ipv4Host.listen.Bind(port, false))
 		{
+			++opCounter; //For AcceptEx
 			ipv4Host.SetAcceptSocket();
 			ipv4Host.buffer = alloc<char>(ipv4Host.localAddrLen + ipv4Host.remoteAddrLen);
 			iocp.LinkHandle((HANDLE)ipv4Host.listen.GetSocket(), &ipv4Host);
@@ -825,6 +695,7 @@ IPv TCPServ::AllowConnections(const LIB_TCHAR* port, IPv ipv)
 	{
 		if (ipv6Host.listen.Bind(port, false))
 		{
+			++opCounter; //For AcceptEx
 			ipv6Host.SetAcceptSocket();
 			ipv6Host.buffer = alloc<char>(ipv4Host.localAddrLen + ipv4Host.remoteAddrLen); 
 			iocp.LinkHandle((HANDLE)ipv6Host.listen.GetSocket(), &ipv4Host);
@@ -844,28 +715,31 @@ IPv TCPServ::AllowConnections(const LIB_TCHAR* port, IPv ipv)
 
 	InitializeCriticalSection(&clientSect);
 
+	shutdownEv = CreateEvent(NULL, TRUE, FALSE, NULL);
+
 	return ipv;
 }
 
 void TCPServ::AddClient(Socket pc)
 {
+	++opCounter; //For recv
+
 	EnterCriticalSection(&clientSect);
 
-	ClientDataEx* cd = clients[nClients] = clientPool.construct<ClientDataEx>(false, *this, pc, function, nClients);
-	++nClients;
+	ClientDataEx* cd = clients[nClients] = clientPool.construct<ClientDataEx>(*this, pc, function, nClients);
+	nClients += 1;
 
 	LeaveCriticalSection(&clientSect);
 
 	iocp.LinkHandle((HANDLE)pc.GetSocket(), cd);
+	pc.SetNoDelay(noDelay);
 	pc.ReadDataOl(&cd->buff, &cd->ol);
 
 	RunConFunc(cd);
 }
 void TCPServ::RemoveClient(ClientDataEx* client, bool unexpected)
 {
-	//If client wasn't removed intentionaly
-	if (client->pc.IsConnected())
-		RunDisFunc(client, unexpected);
+	RunDisFunc(client, unexpected);
 
 	EnterCriticalSection(&clientSect);
 
@@ -881,9 +755,12 @@ void TCPServ::RemoveClient(ClientDataEx* client, bool unexpected)
 		data->arrayIndex = index;
 	}
 
-	--nClients;
+	nClients -= 1;
 
 	LeaveCriticalSection(&clientSect);
+
+	if ((--opCounter).GetOpCount() == 0)
+		SetEvent(shutdownEv);
 
 	//if(!user.empty() && !(ipv4Host.listen.IsConnected() || ipv6Host.listen.IsConnected()))//if user wasnt declined authentication, and server was not shut down
 	//{
@@ -895,7 +772,7 @@ void TCPServ::RemoveClient(ClientDataEx* client, bool unexpected)
 
 TCPServ::ClientData* TCPServ::FindClient(const std::tstring& user) const
 {
-	for (USHORT i = 0; i < nClients; i++)
+	for (UINT i = 0; i < nClients; i++)
 	{
 		if (clients[i]->user.compare(user) == 0)
 			return clients[i];
@@ -903,39 +780,47 @@ TCPServ::ClientData* TCPServ::FindClient(const std::tstring& user) const
 	return nullptr;
 }
 
-void TCPServ::DisconnectClient(ClientData* client, bool unexpected)
+void TCPServ::DisconnectClient(ClientData* client)
 {
-	RunDisFunc(client, unexpected);
-	client->pc.Disconnect();
+	ClientDataEx* clint = (ClientDataEx*)client;
+	clint->state = ClientDataEx::closing;
+	clint->pc.Disconnect();
 }
 
 void TCPServ::Shutdown()
 {
-	if (keepAliveHandler)
+	if (shutdownEv)
 	{
+		//Stop sending keepalive packets
 		destruct(keepAliveHandler);
 
+		//Stop accepting new connections
 		ipv4Host.listen.Disconnect();
 		ipv6Host.listen.Disconnect();
 
-		//nClients != 0 because nClients changes after thread ends
-		//close recv threads and free memory
-		while(nClients != 0)
-		{
-			ClientDataEx* data = clients[nClients - 1];
-			RemoveClient(data, false);
-		}
+		//Cancel all operations
+		for (ClientDataEx **ptr = clients, **end = clients + nClients; ptr != end; ptr++)
+			(*ptr)->pc.Disconnect();
 
+		//Wait for all operations to cease
+		WaitForSingleObject(shutdownEv, INFINITE);
+
+		//Post a close message to all iocp threads
+		iocp.Post(0, nullptr);
+
+		//Wait for iocp threads to close, then cleanup iocp
+		iocp.WaitAndCleanup();
+
+		//Free up client array
 		dealloc(clients);
 
 		DeleteCriticalSection(&clientSect);
+
+		CloseHandle(shutdownEv);
+		shutdownEv = NULL;
 	}
 }
 
-void TCPServ::KeepAlive(Socket client)
-{
-	client.SendData(nullptr, 0);
-}
 void TCPServ::KeepAlive()
 {
 	for (ClientDataEx **ptr = clients, **end = clients + nClients; ptr != end; ptr++)
@@ -950,7 +835,7 @@ ClientAccess TCPServ::GetClients() const
 {
 	return (ClientData**)clients;
 }
-USHORT TCPServ::ClientCount() const
+UINT TCPServ::ClientCount() const
 {
 	return nClients;
 }
@@ -1010,9 +895,18 @@ UINT TCPServ::MaxCompSize() const
 {
 	return maxCompSize;
 }
+UINT TCPServ::GetOpCount() const
+{
+	return opCounter.GetOpCount();
+}
 UINT TCPServ::MaxBufferSize() const
 {
 	return sizeof(DWORD64) + maxDataSize + maxCompSize;
+}
+
+InterlockedCounter& TCPServ::GetOpCounter()
+{
+	return opCounter;
 }
 
 IOCP& TCPServ::GetIOCP()

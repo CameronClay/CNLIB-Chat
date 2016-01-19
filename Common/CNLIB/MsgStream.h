@@ -11,7 +11,7 @@
 #include <map>
 #include <unordered_map>
 
-#define MSG_OFFSET 2
+#define MSG_OFFSET 4
 
 class MsgStream
 {

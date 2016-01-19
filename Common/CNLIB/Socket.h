@@ -62,6 +62,8 @@ public:
 	Socket AcceptConnection();
 
 	bool Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, float timeout);
+
+	void Shutdown();
 	void Disconnect();
 
 	long ReadData(void* dest, DWORD nBytes);
