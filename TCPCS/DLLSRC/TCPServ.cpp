@@ -233,8 +233,8 @@ WSABufExt TCPServ::CreateSendBuffer(DWORD nBytesDecomp, char* buffer, OpType opT
 	if (opType == OpType::sendmsg)
 	{
 		char* temp = buffer;
-		buffer = sendMsgPool.alloc<char>();
-		*(int*)buffer = *(int*)temp;
+		dest = buffer = sendMsgPool.alloc<char>();
+		*(int*)(buffer + sizeof(DWORD64)) = *(int*)temp;
 	}
 	else
 	{
@@ -583,7 +583,7 @@ TCPServ::TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads
 	recvBuffPool(maxBufferSize, maxCon),
 	sendOlPoolSingle(sizeof(OverlappedSend), nClients),
 	sendOlPoolAll(sizeof(OverlappedSend), 5),
-	sendDataPool(maxBufferSize, nClients * 2),
+	sendDataPool(maxBufferSize + sizeof(DWORD64), nClients * 2), //extra DWORD64 incase it sends compressed data, because data written to inital buffer is offseted by sizeof(DWORD64)
 	sendMsgPool(sizeof(DWORD64), nClients * 2),
 	opCounter(),
 	shutdownEv(NULL),
