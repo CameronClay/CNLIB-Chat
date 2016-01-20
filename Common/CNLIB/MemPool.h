@@ -89,8 +89,6 @@ public:
 	template<typename T>
 	T* alloc()
 	{
-		if (sync)
-			EnterCriticalSection(&sect);
 		T* rtn = nullptr;
 		if (avail && (sizeof(T) <= elementSizeMax))
 		{
@@ -117,8 +115,7 @@ public:
 		{
 			rtn = ::alloc<T>();
 		}
-		if (sync)
-			LeaveCriticalSection(&sect);
+
 		return rtn;
 	}
 

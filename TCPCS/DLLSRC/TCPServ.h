@@ -92,6 +92,7 @@ public:
 
 	ClientAccess GetClients() const override;
 	UINT ClientCount() const override;
+	UINT MaxClientCount() const override;
 
 	Socket GetHostIPv4() const override;
 	Socket GetHostIPv6() const override;
@@ -100,10 +101,12 @@ public:
 	float GetKeepAliveInterval() const override;
 
 	bool MaxClients() const override;
+	bool IsConnected() const override;
+	bool NoDelay() const override;
+
 	void* GetObj() const override;
 	int GetCompression() const;
 	int GetCompressionCO() const override;
-	bool IsConnected() const override;
 
 	UINT MaxDataSize() const override;
 	UINT MaxCompSize() const override;

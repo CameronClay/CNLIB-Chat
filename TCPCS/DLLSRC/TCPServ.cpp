@@ -19,15 +19,15 @@ ClientAccess::ClientAccess(ClientData** clients)
 	:
 	clients((const ClientData**)clients)
 {}
-ClientData* ClientAccess::operator+(USHORT amount)
+ClientData* ClientAccess::operator+(UINT amount)
 {
 	return *(ClientData**)((ClientDataEx**)clients + amount);
 }
-ClientData* ClientAccess::operator-(USHORT amount)
+ClientData* ClientAccess::operator-(UINT amount)
 {
 	return *(ClientData**)((ClientDataEx**)clients - amount);
 }
-ClientData* ClientAccess::operator[](USHORT index)
+ClientData* ClientAccess::operator[](UINT index)
 {
 	return *(ClientData**)((ClientDataEx**)clients + index);
 }
@@ -233,8 +233,8 @@ WSABufExt TCPServ::CreateSendBuffer(DWORD nBytesDecomp, char* buffer, OpType opT
 	if (opType == OpType::sendmsg)
 	{
 		char* temp = buffer;
-		buffer = sendMsgPool.alloc<char>();
-		*(int*)buffer = *(int*)temp;
+		dest = buffer = sendMsgPool.alloc<char>();
+		*(int*)(buffer + sizeof(DWORD64)) = *(int*)temp;
 	}
 	else
 	{
@@ -387,7 +387,7 @@ void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket* pcs, UINT n
 {
 	long res = 0;
 
-	if (nClients == 1)
+	if (nPcs == 1)
 	{
 		Socket& pc = *pcs;
 		if (pc.IsConnected())
@@ -418,10 +418,10 @@ void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket* pcs, UINT n
 		if (!sendBuff.head)
 			return;
 
-		OverlappedSend* ol = sendOlPoolAll.construct<OverlappedSend>(true, nClients);
-		opCounter += nClients;
+		OverlappedSend* ol = sendOlPoolAll.construct<OverlappedSend>(true, nPcs);
+		opCounter += nPcs;
 
-		for (UINT i = 0; i < nClients; i++)
+		for (UINT i = 0; i < nPcs; i++)
 		{
 			Socket& pc = pcs[i];
 			bool isCon = pc.IsConnected();
@@ -469,7 +469,7 @@ void TCPServ::RecvDataCR(DWORD bytesTrans, ClientDataEx& cd, OverlappedExt* ol)
 	char* ptr = cd.buff.head;
 	while (true)
 	{
-		BufSize bufSize(*(DWORD64*)cd.buff.head);
+		BufSize bufSize(*(DWORD64*)ptr);
 		const DWORD bytesToRecv = (bufSize.up.nBytesComp) ? bufSize.up.nBytesComp : bufSize.up.nBytesDecomp;
 
 		//If there is a full data block ready for processing
@@ -583,7 +583,7 @@ TCPServ::TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads
 	recvBuffPool(maxBufferSize, maxCon),
 	sendOlPoolSingle(sizeof(OverlappedSend), nClients),
 	sendOlPoolAll(sizeof(OverlappedSend), 5),
-	sendDataPool(maxBufferSize, nClients * 2),
+	sendDataPool(maxBufferSize + sizeof(DWORD64), nClients * 2), //extra DWORD64 incase it sends compressed data, because data written to inital buffer is offseted by sizeof(DWORD64)
 	sendMsgPool(sizeof(DWORD64), nClients * 2),
 	opCounter(),
 	shutdownEv(NULL),
@@ -825,10 +825,6 @@ void TCPServ::KeepAlive()
 		(*ptr)->pc.SendData(nullptr, 0);
 }
 
-bool TCPServ::MaxClients() const
-{
-	return nClients == maxCon;
-}
 ClientAccess TCPServ::GetClients() const
 {
 	return (ClientData**)clients;
@@ -836,6 +832,10 @@ ClientAccess TCPServ::GetClients() const
 UINT TCPServ::ClientCount() const
 {
 	return nClients;
+}
+UINT TCPServ::MaxClientCount() const
+{
+	return maxCon;
 }
 
 Socket TCPServ::GetHostIPv4() const
@@ -880,9 +880,17 @@ int TCPServ::GetCompressionCO() const
 	return compressionCO;
 }
 
+bool TCPServ::MaxClients() const
+{
+	return nClients == maxCon;
+}
 bool TCPServ::IsConnected() const
 {
 	return ipv4Host.listen.IsConnected() || ipv6Host.listen.IsConnected();
+}
+bool TCPServ::NoDelay() const
+{
+	return noDelay;
 }
 
 UINT TCPServ::MaxDataSize() const

@@ -35,9 +35,9 @@ public:
 	{
 	public:
 		ClientAccess(ClientData** clients);
-		ClientData* operator+(USHORT amount);
-		ClientData* operator-(USHORT amount);
-		ClientData* operator[](USHORT index);
+		ClientData* operator+(UINT amount);
+		ClientData* operator-(UINT amount);
+		ClientData* operator[](UINT index);
 	private:
 		const ClientData** clients;
 	};
@@ -62,12 +62,14 @@ public:
 
 	virtual ClientAccess GetClients() const = 0;
 	virtual UINT ClientCount() const = 0;
+	virtual UINT MaxClientCount() const = 0;
 
 	virtual Socket GetHostIPv4() const = 0;
 	virtual Socket GetHostIPv6() const = 0;
 
 	virtual bool MaxClients() const = 0;
 	virtual bool IsConnected() const = 0;
+	virtual bool NoDelay() const = 0;
 
 	virtual UINT MaxDataSize() const = 0;
 	virtual UINT MaxCompSize() const = 0;
@@ -90,5 +92,5 @@ typedef void(*const ConFunc)(ClientData* data);
 typedef void(*const DisconFunc)(ClientData* data, bool unexpected);
 
 
-CAMSNETLIB TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, ConCondition connectionCondition, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxDataSize = 8192, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, bool noDelay = false, void* obj = nullptr);
+CAMSNETLIB TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxDataSize = 8192, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, bool noDelay = false, void* obj = nullptr);
 CAMSNETLIB void DestroyServer(TCPServInterface*& server);
