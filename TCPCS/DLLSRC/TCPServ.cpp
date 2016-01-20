@@ -157,8 +157,6 @@ DWORD CALLBACK IOCPThread(LPVOID info)
 	DWORD bytesTrans = 0;
 	OverlappedExt* ol = nullptr;
 	ULONG* key = nullptr;
-	InterlockedCounter ic;
-	size_t sz = ++ic;
 
 	while (true)
 	{
@@ -389,7 +387,7 @@ void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket* pcs, UINT n
 {
 	long res = 0;
 
-	if (nClients == 1)
+	if (nPcs == 1)
 	{
 		Socket& pc = *pcs;
 		if (pc.IsConnected())
@@ -420,10 +418,10 @@ void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket* pcs, UINT n
 		if (!sendBuff.head)
 			return;
 
-		OverlappedSend* ol = sendOlPoolAll.construct<OverlappedSend>(true, nClients);
-		opCounter += nClients;
+		OverlappedSend* ol = sendOlPoolAll.construct<OverlappedSend>(true, nPcs);
+		opCounter += nPcs;
 
-		for (UINT i = 0; i < nClients; i++)
+		for (UINT i = 0; i < nPcs; i++)
 		{
 			Socket& pc = pcs[i];
 			bool isCon = pc.IsConnected();
@@ -471,7 +469,7 @@ void TCPServ::RecvDataCR(DWORD bytesTrans, ClientDataEx& cd, OverlappedExt* ol)
 	char* ptr = cd.buff.head;
 	while (true)
 	{
-		BufSize bufSize(*(DWORD64*)cd.buff.head);
+		BufSize bufSize(*(DWORD64*)ptr);
 		const DWORD bytesToRecv = (bufSize.up.nBytesComp) ? bufSize.up.nBytesComp : bufSize.up.nBytesDecomp;
 
 		//If there is a full data block ready for proccessing
