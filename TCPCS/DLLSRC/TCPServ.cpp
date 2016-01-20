@@ -19,15 +19,15 @@ ClientAccess::ClientAccess(ClientData** clients)
 	:
 	clients((const ClientData**)clients)
 {}
-ClientData* ClientAccess::operator+(USHORT amount)
+ClientData* ClientAccess::operator+(UINT amount)
 {
 	return *(ClientData**)((ClientDataEx**)clients + amount);
 }
-ClientData* ClientAccess::operator-(USHORT amount)
+ClientData* ClientAccess::operator-(UINT amount)
 {
 	return *(ClientData**)((ClientDataEx**)clients - amount);
 }
-ClientData* ClientAccess::operator[](USHORT index)
+ClientData* ClientAccess::operator[](UINT index)
 {
 	return *(ClientData**)((ClientDataEx**)clients + index);
 }
@@ -825,10 +825,6 @@ void TCPServ::KeepAlive()
 		(*ptr)->pc.SendData(nullptr, 0);
 }
 
-bool TCPServ::MaxClients() const
-{
-	return nClients == maxCon;
-}
 ClientAccess TCPServ::GetClients() const
 {
 	return (ClientData**)clients;
@@ -836,6 +832,10 @@ ClientAccess TCPServ::GetClients() const
 UINT TCPServ::ClientCount() const
 {
 	return nClients;
+}
+UINT TCPServ::MaxClientCount() const
+{
+	return maxCon;
 }
 
 Socket TCPServ::GetHostIPv4() const
@@ -880,9 +880,17 @@ int TCPServ::GetCompressionCO() const
 	return compressionCO;
 }
 
+bool TCPServ::MaxClients() const
+{
+	return nClients == maxCon;
+}
 bool TCPServ::IsConnected() const
 {
 	return ipv4Host.listen.IsConnected() || ipv6Host.listen.IsConnected();
+}
+bool TCPServ::NoDelay() const
+{
+	return noDelay;
 }
 
 UINT TCPServ::MaxDataSize() const

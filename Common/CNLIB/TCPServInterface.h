@@ -35,9 +35,9 @@ public:
 	{
 	public:
 		ClientAccess(ClientData** clients);
-		ClientData* operator+(USHORT amount);
-		ClientData* operator-(USHORT amount);
-		ClientData* operator[](USHORT index);
+		ClientData* operator+(UINT amount);
+		ClientData* operator-(UINT amount);
+		ClientData* operator[](UINT index);
 	private:
 		const ClientData** clients;
 	};
@@ -62,12 +62,14 @@ public:
 
 	virtual ClientAccess GetClients() const = 0;
 	virtual UINT ClientCount() const = 0;
+	virtual UINT MaxClientCount() const = 0;
 
 	virtual Socket GetHostIPv4() const = 0;
 	virtual Socket GetHostIPv6() const = 0;
 
 	virtual bool MaxClients() const = 0;
 	virtual bool IsConnected() const = 0;
+	virtual bool NoDelay() const = 0;
 
 	virtual UINT MaxDataSize() const = 0;
 	virtual UINT MaxCompSize() const = 0;
