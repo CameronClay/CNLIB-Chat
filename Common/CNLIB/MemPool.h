@@ -206,19 +206,19 @@ private:
 	Element *used, *avail;
 };
 
-class MemPoolSync
+class MemPoolSync : MemPool
 {
 public:
 	MemPoolSync(size_t elementSizeMax, size_t count)
 		:
-		memPool(elementSizeMax, count)
+		MemPool(elementSizeMax, count)
 	{
 		InitializeCriticalSection(&sect);
 	}
 	MemPoolSync(const MemPool&) = delete;
 	MemPoolSync(MemPoolSync&& memPool)
 		:
-		memPool(std::move(memPool.memPool)),
+		MemPool(std::forward<MemPool>(*this)),
 		sect(memPool.sect)
 	{
 		memset(&memPool, 0, sizeof(memPool));
@@ -228,7 +228,7 @@ public:
 	{
 		if (this != &memPool)
 		{
-			this->memPool = std::move(memPool.memPool);
+			__super::operator=(std::forward<MemPool>(*this));
 			sect = memPool.sect;
 
 			memset(&memPool, 0, sizeof(memPool));
@@ -247,7 +247,7 @@ public:
 		if (sync)
 			EnterCriticalSection(&sect);
 
-		T* rtn = memPool.alloc<T>();
+		T* rtn = __super::alloc<T>();
 
 		if (sync)
 			LeaveCriticalSection(&sect);
@@ -261,7 +261,7 @@ public:
 		if (sync)
 			EnterCriticalSection(&sect);
 		
-		memPool.dealloc(t);
+		__super::dealloc(t);
 			
 		if (sync)
 			LeaveCriticalSection(&sect);
@@ -283,29 +283,6 @@ public:
 		}
 	}
 
-	inline size_t ElementSizeMax() const
-	{
-		return memPool.ElementSizeMax();
-	}
-	inline size_t Count() const
-	{
-		return memPool.Count();
-	}
-
-	template<typename T>
-	inline bool InPool(T* p) const
-	{
-		return memPool.InPool();
-	}
-	inline bool IsFull() const
-	{
-		return memPool.IsFull();
-	}
-	inline bool IsEmpty() const
-	{
-		return memPool.IsEmpty();
-	}
 private:
-	MemPool memPool;
 	CRITICAL_SECTION sect;
 };

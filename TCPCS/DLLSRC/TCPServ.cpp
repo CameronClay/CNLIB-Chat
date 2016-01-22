@@ -581,10 +581,10 @@ TCPServ::TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads
 	keepAliveHandler(nullptr),
 	clientPool(sizeof(ClientDataEx), maxCon),
 	recvBuffPool(maxBufferSize, maxCon),
-	sendOlPoolSingle(sizeof(OverlappedSend), nClients),
+	sendOlPoolSingle(sizeof(OverlappedSend), maxCon),
 	sendOlPoolAll(sizeof(OverlappedSend), 5),
-	sendDataPool(maxBufferSize + sizeof(DWORD64), nClients * 2), //extra DWORD64 incase it sends compressed data, because data written to inital buffer is offseted by sizeof(DWORD64)
-	sendMsgPool(sizeof(DWORD64), nClients * 2),
+	sendDataPool(maxBufferSize + sizeof(DWORD64), maxCon * 2), //extra DWORD64 incase it sends compressed data, because data written to inital buffer is offseted by sizeof(DWORD64)
+	sendMsgPool(sizeof(DWORD64), maxCon * 2),
 	opCounter(),
 	shutdownEv(NULL),
 	noDelay(noDelay)
