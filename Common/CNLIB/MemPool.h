@@ -247,7 +247,7 @@ public:
 		if (sync)
 			EnterCriticalSection(&sect);
 
-		T* rtn = __super::alloc<T>();
+		T* rtn = MemPool::alloc<T>();
 
 		if (sync)
 			LeaveCriticalSection(&sect);
@@ -260,9 +260,9 @@ public:
 	{
 		if (sync)
 			EnterCriticalSection(&sect);
-		
-		__super::dealloc(t);
-			
+
+		MemPool::dealloc(t);
+
 		if (sync)
 			LeaveCriticalSection(&sect);
 	}
