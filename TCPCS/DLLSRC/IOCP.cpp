@@ -49,9 +49,9 @@ void IOCP::WaitAndCleanup()
 	}
 }
 
-void IOCP::LinkHandle(HANDLE hnd, void* completionKey)
+bool IOCP::LinkHandle(HANDLE hnd, void* completionKey)
 {
-	CreateIoCompletionPort(hnd, iocp, (ULONG_PTR)completionKey, NULL);
+	return CreateIoCompletionPort(hnd, iocp, (ULONG_PTR)completionKey, NULL) != NULL;
 }
 
 void IOCP::Post(DWORD bytesTrans, void* compeletionKey, OVERLAPPED* ol)

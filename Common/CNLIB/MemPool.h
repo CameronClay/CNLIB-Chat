@@ -163,7 +163,7 @@ public:
 	template<typename T, typename... Args>
 	inline T* construct(Args&&... vals)
 	{
-		return pmconstruct<T>(alloc<T>(sync), std::forward<Args>(vals)...);
+		return pmconstruct<T>(alloc<T>(), std::forward<Args>(vals)...);
 	}
 
 	template<typename T>
@@ -172,7 +172,7 @@ public:
 		if (p)
 		{
 			pmdestruct(p);
-			dealloc(p, sync);
+			dealloc(p);
 		}
 	}
 
@@ -186,7 +186,7 @@ public:
 	}
 
 	template<typename T>
-	inline bool InPool(T* p)
+	inline bool InPool(T* p) const
 	{
 		Element* e = (Element*)((char*)p - Element::OFFSET);
 		return e >= begin && e <= end;
@@ -209,19 +209,6 @@ private:
 class MemPoolSync
 {
 public:
-	struct Element
-	{
-		Element()
-			:
-			prev(nullptr),
-			next(nullptr)
-		{}
-
-		Element *prev, *next;
-
-		static const size_t OFFSET = 2 * sizeof(Element*);
-	};
-
 	MemPoolSync(size_t elementSizeMax, size_t count)
 		:
 		memPool(elementSizeMax, count)
@@ -306,7 +293,7 @@ public:
 	}
 
 	template<typename T>
-	inline bool InPool(T* p)
+	inline bool InPool(T* p) const
 	{
 		return memPool.InPool();
 	}

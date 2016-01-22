@@ -502,8 +502,8 @@ void TCPServ::RecvDataCR(DWORD bytesTrans, ClientDataEx& cd, OverlappedExt* ol)
 		{
 			//Concatenate remaining data to buffer
 			DWORD temp = cd.buff.curBytes - bytesTrans;
-			if (cd.buff.buf != ptr)
-				memcpy(cd.buff.buf, ptr, temp);
+			if (cd.buff.head != ptr)
+				memcpy(cd.buff.head, ptr, temp);
 			cd.buff.curBytes = temp;
 			cd.buff.buf = cd.buff.head + temp;
 			break;

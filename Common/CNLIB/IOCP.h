@@ -11,7 +11,7 @@ public:
 
 	void WaitAndCleanup();
 
-	void LinkHandle(HANDLE hnd, void* completionKey);
+	bool LinkHandle(HANDLE hnd, void* completionKey);
 
 	void Post(DWORD bytesTrans, void* compeletionKey, OVERLAPPED* ol = nullptr);
 
