@@ -13,8 +13,8 @@ public:
 	void Load(const LIB_TCHAR* windowName);
 	void Save(const LIB_TCHAR* windowName);
 
-	void SetGeneral(bool timeStamps, bool startUp, bool flashTaskbar, bool saveLogs, UINT flashCount);
-	void SetDownloadPath(std::tstring& path);
+	void SetGeneral(bool timeStamps, bool startUp, bool flashTaskbar, bool saveLogs, UCHAR flashCount);
+	void SetDownloadPath(const std::tstring& path);
 
 	void Reset(std::tstring& filePath, float currentVers);
 

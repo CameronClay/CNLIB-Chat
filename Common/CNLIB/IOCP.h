@@ -13,7 +13,7 @@ public:
 
 	bool LinkHandle(HANDLE hnd, void* completionKey);
 
-	void Post(DWORD bytesTrans, void* compeletionKey, OVERLAPPED* ol = nullptr);
+	void Post(DWORD bytesTrans, void* completionKey, OVERLAPPED* ol = nullptr);
 
 	HANDLE GetHandle() const;
 	DWORD ThreadCount() const;

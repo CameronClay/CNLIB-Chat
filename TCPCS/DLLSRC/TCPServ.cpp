@@ -73,7 +73,7 @@ ClientDataEx::ClientDataEx(TCPServ& serv, Socket pc, sfunc func, UINT arrayIndex
 	MemPool& pool = serv.GetRecvBuffPool();
 	const UINT maxDataSize = serv.MaxDataSize();
 	char* temp = pool.alloc<char>();
-	buff.Initalize(maxDataSize, temp, temp);
+	buff.Initialize(maxDataSize, temp, temp);
 }
 ClientDataEx::ClientDataEx(ClientDataEx&& clint)
 	:
@@ -268,7 +268,7 @@ WSABufExt TCPServ::CreateSendBuffer(DWORD nBytesDecomp, char* buffer, OpType opT
 
 	
 	WSABufExt buf;
-	buf.Initalize(nBytesSend, dest, buffer);
+	buf.Initialize(nBytesSend, dest, buffer);
 	return buf;
 }
 void TCPServ::FreeSendBuffer(WSABufExt buff, OpType opType)
@@ -296,7 +296,7 @@ void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket* pcs, UINT n
 }
 void TCPServ::SendClientData(const char* data, DWORD nBytes, std::vector<Socket>& pcs, CompressionType compType)
 {
-	SendClientData(data, nBytes, pcs.data(), pcs.size(), compType);
+	SendClientData(data, nBytes, pcs.data(), (USHORT)pcs.size(), compType);
 }
 
 void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket exAddr, bool single, OpType opType, CompressionType compType)
@@ -457,7 +457,7 @@ void TCPServ::SendMsg(Socket* pcs, UINT nPcs, short type, short message)
 }
 void TCPServ::SendMsg(std::vector<Socket>& pcs, short type, short message)
 {
-	SendMsg(pcs.data(), pcs.size(), type, message);
+	SendMsg(pcs.data(), (USHORT)pcs.size(), type, message);
 }
 void TCPServ::SendMsg(const std::tstring& user, short type, short message)
 {
@@ -472,11 +472,11 @@ void TCPServ::RecvDataCR(DWORD bytesTrans, ClientDataEx& cd, OverlappedExt* ol)
 		BufSize bufSize(*(DWORD64*)ptr);
 		const DWORD bytesToRecv = (bufSize.up.nBytesComp) ? bufSize.up.nBytesComp : bufSize.up.nBytesDecomp;
 
-		//If there is a full data block ready for proccessing
+		//If there is a full data block ready for processing
 		if (bytesToRecv >= bytesTrans)
 		{
 			cd.buff.curBytes += min(bytesTrans, bytesToRecv);
-			//If data was comprsesed
+			//If data was compressed
 			if (bufSize.up.nBytesComp)
 			{
 				const DWORD maxCompSize = cd.serv.MaxCompSize();

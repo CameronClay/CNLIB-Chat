@@ -102,7 +102,7 @@ void SendSingleUserData(TCPServInterface& serv, const char* dat, DWORD nBytes, c
 {
 	const UINT userLen = *(UINT*)dat;
 	//																	   - 1 for \0
-	std::tstring user = std::tstring((LIB_TCHAR*)(dat + sizeof(UINT)), userLen - 1);
+	std::tstring user = std::tstring((LIB_TCHAR*)(dat + sizeof(UINT)), userLen);
 	ClientData* client = serv.FindClient(user);
 	if(client == nullptr)
 		return;
@@ -652,21 +652,18 @@ void WinMainInit()
 	serv->AllowConnections(_itot(port, portA, 10));
 }
 
-void RecalcSizeVars(UINT width, UINT height)
+void RecalcSizeVars(USHORT width, USHORT height)
 {
 	screenWidth = width;
 	screenHeight = height;
 }
 
 
-int WINAPI WinMain(HINSTANCE hInstance,
-	HINSTANCE hPrevInstance,
-	LPSTR lpCmdLine,
-	int nCmdShow)
+int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE, LPTSTR, int nCmdShow)
 {
 	WinMainInit();
 
-	WNDCLASSEX wcex;
+	WNDCLASSEX wcex{};
 
 	wcex.cbSize = sizeof(WNDCLASSEX);
 	wcex.style = CS_HREDRAW | CS_VREDRAW;
@@ -710,7 +707,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		return 1;
 	}
 
-	ShowWindow(hMainWind, SW_SHOWDEFAULT);
+	ShowWindow(hMainWind, nCmdShow);
 	UpdateWindow(hMainWind);
 
 	MSG msg = {};
@@ -794,7 +791,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-INT_PTR CALLBACK ManageAdminsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK ManageAdminsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM)
 {
 	static HWND list, userInput, add, remove;
 	switch (message)
@@ -885,7 +882,7 @@ INT_PTR CALLBACK ManageAdminsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 	return 0;
 }
 
-INT_PTR CALLBACK OptionsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK OptionsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM)
 {
 	static HWND portCtrl, OK;
 	switch (message)
@@ -911,7 +908,7 @@ INT_PTR CALLBACK OptionsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 			const UINT len = SendMessage(portCtrl, WM_GETTEXTLENGTH, 0, 0) + 1;
 			LIB_TCHAR* temp = alloc<LIB_TCHAR>(len);
 			SendMessage(portCtrl, WM_GETTEXT, len, (LPARAM)temp);
-			port = _tstoi(temp);
+			port = (USHORT)_tstoi(temp);
 
 			File file(optionsFileName, FILE_GENERIC_WRITE, FILE_ATTRIBUTE_HIDDEN, CREATE_ALWAYS);
 			file.Write(&CONFIGVERSION, sizeof(float));

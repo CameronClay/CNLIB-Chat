@@ -54,11 +54,11 @@ bool IOCP::LinkHandle(HANDLE hnd, void* completionKey)
 	return CreateIoCompletionPort(hnd, iocp, (ULONG_PTR)completionKey, NULL) != NULL;
 }
 
-void IOCP::Post(DWORD bytesTrans, void* compeletionKey, OVERLAPPED* ol)
+void IOCP::Post(DWORD bytesTrans, void* completionKey, OVERLAPPED* ol)
 {
 	for (DWORD i = 0; i < nThreads; i++)
 	{
-		PostQueuedCompletionStatus(iocp, bytesTrans, (ULONG_PTR)compeletionKey, ol);
+		PostQueuedCompletionStatus(iocp, bytesTrans, (ULONG_PTR)completionKey, ol);
 	}
 }
 

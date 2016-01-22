@@ -31,7 +31,7 @@ public:
 		OverlappedExt ol;
 		UINT arrayIndex;
 
-		//int for allignment
+		//int for alignment
 		enum State : int
 		{
 			running, closing
@@ -151,7 +151,7 @@ private:
 	MemPoolSync sendDataPool, sendMsgPool; //Used to help speed up allocation of send buffers
 	InterlockedCounter opCounter; //Used to keep track of number of asynchronous operations
 	HANDLE shutdownEv; //Set when opCounter reaches 0, to notify shutdown it is okay to close iocp
-	bool noDelay; //Used to enable/disable the nagle algorithim, stored at end to keep allignment
+	bool noDelay; //Used to enable/disable the nagle algorithm, stored at end to keep alignment
 };
 
 typedef TCPServ::ClientDataEx ClientDataEx;

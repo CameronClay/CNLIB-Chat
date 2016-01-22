@@ -2,8 +2,6 @@
 #include "Options.h"
 
 Options::Options(std::tstring& filePath, float currentVers)
-	:
-	Logs()
 {
 	Reset(filePath, currentVers);
 }
@@ -31,7 +29,7 @@ void Options::Load(const LIB_TCHAR* windowName)
 
 	const float prevVers = version;
 
-	bool b = file.Read(&version, sizeof(float));
+	bool b = file.Read(&version, sizeof(float)) == sizeof(float);
 	if(version == prevVers)
 	{
 		b &= (
@@ -53,8 +51,7 @@ void Options::Load(const LIB_TCHAR* windowName)
 
 	const size_t pathSize = filePath.size();
 	LIB_TCHAR* buffer = alloc<LIB_TCHAR>(pathSize + 64);
-	for(int i = 0; i < pathSize; i++)
-		buffer[i] = filePath[i];
+	_tcscpy(buffer, filePath.c_str());
 
 	PathRemoveFileSpec(buffer);
 
@@ -63,7 +60,7 @@ void Options::Load(const LIB_TCHAR* windowName)
 	if(!FileMisc::Exists(buffer))
 		FileMisc::CreateFolder(buffer);
 
-	LoadLogList(std::tstring(buffer));
+	LoadLogList(buffer);
 
 	if (SaveLogs())
 		CreateLog();
@@ -114,7 +111,7 @@ void Options::Save(const LIB_TCHAR* windowName)
 	}
 }
 
-void Options::SetGeneral(bool timeStamps, bool startUp, bool flashTaskbar, bool saveLogs, UINT flashCount)
+void Options::SetGeneral(bool timeStamps, bool startUp, bool flashTaskbar, bool saveLogs, UCHAR flashCount)
 {
 	this->timeStamps = timeStamps;
 	this->startUp = startUp;
@@ -123,7 +120,7 @@ void Options::SetGeneral(bool timeStamps, bool startUp, bool flashTaskbar, bool 
 	this->flashCount = flashCount;
 }
 
-void Options::SetDownloadPath(std::tstring& path)
+void Options::SetDownloadPath(const std::tstring& path)
 {
 	downloadPath = path;
 }
@@ -140,7 +137,7 @@ void Options::Reset(std::tstring& filePath, float currentVers)
 
 	LIB_TCHAR buffer[MAX_PATH] = {};
 	FileMisc::GetFolderPath(CSIDL_MYDOCUMENTS , buffer);
-	downloadPath = std::tstring(buffer);
+	downloadPath = buffer;
 
 	// FLASHWINFO
 	info.cbSize = sizeof(FLASHWINFO);

@@ -43,13 +43,12 @@ DWORD CALLBACK WaitForConnections(LPVOID data)
 
 SocketListen::SocketListen()
 	:
-	host(),
 	openCon(NULL)
 {}
 
 SocketListen::SocketListen(SocketListen&& socket)
 	:
-	host(socket.host),
+	host(std::move(socket.host)),
 	openCon(socket.openCon)
 {
 	ZeroMemory(&socket, sizeof(SocketListen));

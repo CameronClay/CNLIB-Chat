@@ -117,7 +117,7 @@ KeepAliveHandler::~KeepAliveHandler()
 		keepAliveTimer = NULL;
 	}
 
-	if(KeepAliveThread)
+	if(keepAliveThread)
 	{
 		PostThreadMessage(keepAliveID, WM_QUIT, 0, 0);
 		WaitForSingleObject(keepAliveThread, INFINITE);

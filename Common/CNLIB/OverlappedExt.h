@@ -14,7 +14,7 @@ struct OverlappedExt : OVERLAPPED //dont wanna use virtual func because of mem p
 		opType(ol.opType)
 	{}
 
-	//int for allignment
+	//int for alignment
 	enum class OpType : int
 	{
 		recv,
