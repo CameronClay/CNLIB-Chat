@@ -274,16 +274,16 @@ WSABufExt TCPServ::CreateSendBuffer(DWORD nBytesDecomp, char* buffer, OpType opT
 void TCPServ::FreeSendBuffer(WSABufExt buff, OpType opType)
 {
 	if (opType == OpType::send)
-		sendDataPool.dealloc(buff.head, true);
+		sendDataPool.dealloc(buff.head);
 	else
-		sendMsgPool.dealloc(buff.head, true);
+		sendMsgPool.dealloc(buff.head);
 }
 void TCPServ::FreeSendOverlapped(OverlappedSend* ol)
 {
 	if (sendOlPoolAll.InPool(ol->head))
-		sendOlPoolAll.dealloc(ol->head, true);
+		sendOlPoolAll.dealloc(ol->head);
 	else
-		sendOlPoolSingle.dealloc(ol->head, true);
+		sendOlPoolSingle.dealloc(ol->head);
 }
 
 void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket exAddr, bool single, CompressionType compType)
@@ -311,7 +311,7 @@ void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket exAddr, bool
 			if (!sendBuff.head)
 				return;
 
-			OverlappedSend* ol = sendOlPoolSingle.construct<OverlappedSend>(true, 1);
+			OverlappedSend* ol = sendOlPoolSingle.construct<OverlappedSend>(1);
 			ol->InitInstance(opType, sendBuff, ol);
 			++opCounter;
 
@@ -329,7 +329,7 @@ void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket exAddr, bool
 			if (!sendBuff.head)
 				return;
 
-			OverlappedSend* ol = sendOlPoolAll.construct<OverlappedSend>(true, nClients - 1);
+			OverlappedSend* ol = sendOlPoolAll.construct<OverlappedSend>(nClients - 1);
 			opCounter += nClients - 1;
 			for (UINT i = 0; i < nClients; i++)
 			{
@@ -347,7 +347,7 @@ void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket exAddr, bool
 						--opCounter;
 						if (ol->DecrementRefCount())
 						{
-							sendOlPoolAll.dealloc(ol, true);
+							sendOlPoolAll.dealloc(ol);
 							FreeSendBuffer(sendBuff, opType);
 						}
 					}
@@ -376,7 +376,7 @@ void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket exAddr, bool
 				--opCounter;
 				if (ol->DecrementRefCount())
 				{
-					sendOlPoolAll.dealloc(ol, true);
+					sendOlPoolAll.dealloc(ol);
 					FreeSendBuffer(sendBuff, opType);
 				}
 			}
@@ -435,7 +435,7 @@ void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket* pcs, UINT n
 				--opCounter;
 				if (ol->DecrementRefCount())
 				{
-					sendOlPoolAll.dealloc(ol, true);
+					sendOlPoolAll.dealloc(ol);
 					FreeSendBuffer(sendBuff, opType);
 				}
 			}
