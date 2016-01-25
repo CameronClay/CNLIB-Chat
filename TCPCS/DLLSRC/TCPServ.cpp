@@ -470,12 +470,13 @@ void TCPServ::RecvDataCR(DWORD bytesTrans, ClientDataEx& cd, OverlappedExt* ol)
 	while (true)
 	{
 		BufSize bufSize(*(DWORD64*)ptr);
-		const DWORD bytesToRecv = (bufSize.up.nBytesComp) ? bufSize.up.nBytesComp : bufSize.up.nBytesDecomp;
+		const DWORD bytesToRecv = ((bufSize.up.nBytesComp) ? bufSize.up.nBytesComp : bufSize.up.nBytesDecomp);
 
 		//If there is a full data block ready for processing
 		if (bytesToRecv >= bytesTrans)
 		{
-			cd.buff.curBytes += min(bytesTrans, bytesToRecv);
+			ptr += sizeof(DWORD64);
+			cd.buff.curBytes += min(bytesTrans, bytesToRecv + sizeof(DWORD64));
 			//If data was compressed
 			if (bufSize.up.nBytesComp)
 			{
@@ -501,7 +502,7 @@ void TCPServ::RecvDataCR(DWORD bytesTrans, ClientDataEx& cd, OverlappedExt* ol)
 		else
 		{
 			//Concatenate remaining data to buffer
-			DWORD temp = cd.buff.curBytes - bytesTrans;
+			const DWORD temp = bytesTrans - cd.buff.curBytes;
 			if (cd.buff.head != ptr)
 				memcpy(cd.buff.head, ptr, temp);
 			cd.buff.curBytes = temp;
