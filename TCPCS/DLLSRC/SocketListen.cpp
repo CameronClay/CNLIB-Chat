@@ -1,6 +1,7 @@
-#include "SocketListen.h"
+#include "StdAfx.h"
+#include "CNLIB/SocketListen.h"
+#include "CNLIB/Messages.h"
 #include "TCPServ.h"
-#include "Messages.h"
 
 struct ConnData
 {

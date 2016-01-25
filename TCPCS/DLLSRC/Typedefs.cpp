@@ -1,6 +1,7 @@
-#include "Typedefs.h"
+#include "StdAfx.h"
+#include "CNLIB/Typedefs.h"
 
-void WaitAndCloseHandle(HANDLE& hnd)
+void CAMSNETLIB WaitAndCloseHandle(HANDLE& hnd)
 {
 	if(hnd)
 	{

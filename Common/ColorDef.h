@@ -1,5 +1,4 @@
 #pragma once
-#include <d3d9.h>
 
 #define Black			D3DCOLOR_XRGB(0x00, 0x00, 0x00)
 #define DarkGray		D3DCOLOR_XRGB(0x54, 0x54, 0x54)

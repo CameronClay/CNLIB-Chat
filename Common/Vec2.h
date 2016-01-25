@@ -1,6 +1,4 @@
 #pragma once
-#include <math.h>
-#include <vector>
 
 #define PI (float)M_PI
 

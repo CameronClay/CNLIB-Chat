@@ -1,5 +1,6 @@
-#include "CNLIB\File.h"
+#include "StdAfx.h"
 #include "Options.h"
+//#include "CNLIB\File.h"
 
 Options::Options(std::tstring& filePath, float currentVers)
 {

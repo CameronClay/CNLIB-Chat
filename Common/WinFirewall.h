@@ -1,8 +1,5 @@
 #pragma once
-#include "CNLIB\Typedefs.h"
-#include <netfw.h>
-#include <Windows.h>
-
+#include "CNLIB/Typedefs.h"
 
 class WinFirewall
 {

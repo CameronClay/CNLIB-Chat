@@ -1,7 +1,5 @@
 #pragma once
 #include "Typedefs.h"
-#include "HeapAlloc.h"
-#include <ws2tcpip.h>
 
 class CAMSNETLIB SocketInfo
 {

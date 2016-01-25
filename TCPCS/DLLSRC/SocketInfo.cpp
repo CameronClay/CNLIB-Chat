@@ -1,7 +1,6 @@
-#include "SocketInfo.h"
-#include "HeapAlloc.h"
-#include <Mstcpip.h>
-#include <tchar.h>
+#include "StdAfx.h"
+#include "CNLIB/SocketInfo.h"
+#include "CNLIB/HeapAlloc.h"
 
 SocketInfo::SocketInfo()
 	:

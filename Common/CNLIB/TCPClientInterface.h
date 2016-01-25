@@ -1,10 +1,10 @@
 //Copyright (c) <2015> <Cameron Clay>
 
 #pragma once
-#include "Socket.h"
+#include "Typedefs.h"
 #include "KeepAlive.h"
-#include <tchar.h>
 #include "CompressionTypes.h"
+#include "Socket.h"
 
 class TCPClientInterface;
 typedef void(*const dcfunc)(bool unexpected);

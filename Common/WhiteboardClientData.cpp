@@ -1,3 +1,4 @@
+#include "StdAfx.h"
 #include "WhiteboardClientData.h"
 
 const BYTE WBClientData::UNCHANGEDCOLOR = UCHAR_MAX;

@@ -1,10 +1,6 @@
-#include "File.h"
-
-#include <assert.h>
-#include <Shlwapi.h>
-#include <Shlobj.h>
-#include <sstream>
-#include "HeapAlloc.h"
+#include "StdAfx.h"
+#include "CNLIB/File.h"
+#include "CNLIB/HeapAlloc.h"
 
 #include "zlib/include/zlib.h"
 
@@ -599,4 +595,3 @@ bool ProgDlg::Canceled()
 
 	return false;
 }
-

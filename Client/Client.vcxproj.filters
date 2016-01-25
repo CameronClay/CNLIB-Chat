@@ -39,6 +39,9 @@
     <ClCompile Include="..\Common\WhiteboardClientData.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="StdAfx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -95,9 +98,6 @@
     <ClInclude Include="..\Common\CNLIB\MsgStream.h">
       <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\Ping.h">
-      <Filter>Header Files\CNLIB</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\CNLIB\Socket.h">
       <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
@@ -124,6 +124,9 @@
     </ClInclude>
     <ClInclude Include="..\Common\CNLIB\SocketInfo.h">
       <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
+    <ClInclude Include="StdAfx.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

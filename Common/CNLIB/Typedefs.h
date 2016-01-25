@@ -1,9 +1,6 @@
 //Copyright (c) <2015> <Cameron Clay>
 
 #pragma once
-#include <Windows.h>
-#include <string>
-#include <sstream>
 
 #ifdef TCPCS_EXPORTS
 #define CAMSNETLIB __declspec(dllexport)

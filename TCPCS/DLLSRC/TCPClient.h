@@ -1,10 +1,8 @@
 //Copyright (c) <2015> <Cameron Clay>
 
 #pragma once
-#include "TCPClientInterface.h"
-#include "HeapAlloc.h"
+#include "CNLIB/TCPClientInterface.h"
 
-class VerifyKeepAlive;
 class TCPClient : public TCPClientInterface
 {
 public:

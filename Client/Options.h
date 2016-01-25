@@ -1,6 +1,4 @@
 #pragma once
-#include <Windows.h>
-#include "Format.h"
 #include "Logs.h"
 
 class Options : public Logs

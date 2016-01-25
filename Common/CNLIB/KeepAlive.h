@@ -1,7 +1,7 @@
 //Copyright (c) <2015> <Cameron Clay>
 
 #pragma once
-#include "Socket.h"
+#include "Typedefs.h"
 
 class TCPServ;
 
@@ -26,12 +26,12 @@ public:
 		KeepAliveHandler* keepAliveHandler;
 	};
 
-	KeepAliveHandler& operator=(KeepAliveHandler&& data);
-	KeepAliveHandler& operator=(const KeepAliveHandler& data);
-
 	KeepAliveHandler(KeepAliveHI* keepAliveHI);
 	KeepAliveHandler(KeepAliveHandler&& keepAlive);
 	~KeepAliveHandler();
+
+	KeepAliveHandler& operator=(KeepAliveHandler&& data);
+	KeepAliveHandler& operator=(const KeepAliveHandler& data);
 
 	void SetKeepAliveTimer(float interval);
 

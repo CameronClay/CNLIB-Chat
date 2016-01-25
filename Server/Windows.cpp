@@ -1,19 +1,14 @@
+#include "StdAfx.h"
 #include "resource.h"
-#include "CNLIB\Typedefs.h"
-#include "CNLIB\TCPServInterface.h"
-#include "CNLIB\MsgStream.h"
-#include "CNLIB\File.h"
-#include "CNLIB\UPNP.h"
-#include "Format.h"
+#include "CNLIB/Typedefs.h"
+#include "CNLIB/TCPServInterface.h"
+#include "CNLIB/MsgStream.h"
+#include "CNLIB/File.h"
+#include "CNLIB/UPNP.h"
 #include "MessagesExt.h"
-#include "CNLIB\HeapAlloc.h"
-#include "CNLIB\Messages.h"
+#include "Format.h"
 #include "TextDisplay.h"
 #include "Whiteboard.h"
-#include <assert.h>
-#include <windows.h>
-#include <windowsx.h>
-#include <commctrl.h>
 
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "TCPCS.lib")
@@ -187,7 +182,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 	char* dat = (char*)(data + MSG_OFFSET);
 	nBytes -= MSG_OFFSET;
 	MsgStreamReader streamReader((char*)data, nBytes);
-	const char type = streamReader.GetType(), msg = streamReader.GetMsg();
+	const short type = streamReader.GetType(), msg = streamReader.GetMsg();
 
 	switch (type)
 	{

@@ -16,6 +16,9 @@
     <ClCompile Include="..\Common\WhiteboardClientData.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="StdAfx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\Format.h">
@@ -63,9 +66,6 @@
     <ClInclude Include="..\Common\CNLIB\MsgStream.h">
       <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\Ping.h">
-      <Filter>Header Files\CNLIB</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\CNLIB\Socket.h">
       <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
@@ -96,6 +96,9 @@
     <ClInclude Include="..\Common\CNLIB\SocketInfo.h">
       <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
+    <ClInclude Include="StdAfx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc">
@@ -105,6 +108,7 @@
   <ItemGroup>
     <Filter Include="Header Files">
       <UniqueIdentifier>{84243db8-0530-4bdf-b511-a909f17af4e3}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
     <Filter Include="Source Files">
       <UniqueIdentifier>{01ef7dcc-1dbc-4f82-85ca-bbb9eee61aba}</UniqueIdentifier>

@@ -5,4 +5,3 @@
 
 #define TYPE_CHANGE -128
 #define MSG_CHANGE_SERVERFULL -128
-

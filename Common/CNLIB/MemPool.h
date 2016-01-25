@@ -1,6 +1,4 @@
 #pragma once
-#include <stdlib.h>
-#include <vector>
 #include "HeapAlloc.h"
 
 class MemPool

@@ -1,10 +1,7 @@
 #pragma once
 #include "CNLIB\TCPServInterface.h"
-#include <unordered_map>
-#include "ColorDef.h"
 #include "WhiteboardClientData.h"
 #include "Palette.h"
-#include "Vec2.h"
 
 class Whiteboard
 {

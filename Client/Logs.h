@@ -1,8 +1,7 @@
 #pragma once
-#include "Format.h"
-#include "CNLIB\File.h"
-#include <stdlib.h>
-#include <vector>
+#include "CNLIB/Typedefs.h"
+#include "CNLIB/File.h"
+#include "CNLIB/HeapAlloc.h"
 
 class Logs
 {

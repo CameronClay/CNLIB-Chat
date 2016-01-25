@@ -1,4 +1,5 @@
-#include "IOCP.h"
+#include "StdAfx.h"
+#include "CNLIB/IOCP.h"
 
 IOCP::IOCP(DWORD nThreads, DWORD nConcThreads, LPTHREAD_START_ROUTINE startAddress)
 	:

@@ -1,16 +1,9 @@
-#include <WinSock2.h>
-#include "Socket.h"
-
-#include <ws2tcpip.h>
-#include <Mstcpip.h>
-#include <functional>
-#include <Mswsock.h> //for AcceptEx
-
-#include "HeapAlloc.h"
-#include "File.h"
+#include "StdAfx.h"
+#include "CNLIB/Socket.h"
+#include "CNLIB/HeapAlloc.h"
 
 #pragma comment(lib, "ws2_32.lib")
-#pragma comment(lib, "Mswsock.lib") //for AcceptEx
+#pragma comment(lib, "mswsock.lib") //for AcceptEx
 
 int InitializeNetworking()
 {

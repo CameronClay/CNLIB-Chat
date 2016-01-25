@@ -1,13 +1,12 @@
 #pragma once
-#include <Windows.h>
 
 class IOCP
 {
 public:
 	IOCP(DWORD nThreads, DWORD nConcThreads, LPTHREAD_START_ROUTINE startAddress);
 	IOCP(IOCP&& iocp);
-	IOCP& operator=(IOCP&& iocp);
 	IOCP(const IOCP&) = delete;
+	IOCP& operator=(IOCP&& iocp);
 
 	void WaitAndCleanup();
 

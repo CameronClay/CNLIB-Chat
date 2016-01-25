@@ -1,7 +1,6 @@
-#include "Socket.h"
-#include "UPNP.h"
-#include <assert.h>
-#include <comdef.h>
+#include "StdAfx.h"
+#include "CNLIB/UPNP.h"
+#include "CNLIB/Socket.h"
 
 UPNP::UPNP()
 	:
@@ -70,7 +69,7 @@ long UPNP::GetPortMapCount()
 	return n;
 }
 
-bool MapPort(USHORT port, const LIB_TCHAR* protocal, const LIB_TCHAR* name)
+bool CAMSNETLIB MapPort(USHORT port, const LIB_TCHAR* protocal, const LIB_TCHAR* name)
 {
 	UPNP upnp;
 	bool result = false;

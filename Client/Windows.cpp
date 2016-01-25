@@ -1,28 +1,19 @@
 // Client version of Windows.cpp
+#include "StdAfx.h"
 #include "resource.h"
-#include <ws2tcpip.h>
-#include "CNLIB\Typedefs.h"
-#include "CNLIB\MsgStream.h"
-#include "CNLIB\File.h"
-#include "FileTransfer.h"
-#include "Format.h"
-#include "CNLIB\HeapAlloc.h"
-#include "CNLIB\Messages.h"
+//#include "CNLIB/Typedefs.h"
+#include "CNLIB/TCPClientInterface.h"
+#include "CNLIB/MsgStream.h"
+//#include "CNLIB/File.h"
+#include "CNLIB/HeapAlloc.h"
 #include "MessagesExt.h"
-#include "Options.h"
-#include "Whiteboard.h"
-#include "Mouse.h"
-#include "DebugHelper.h"
-#include "WhiteboardClientData.h"
+#include "Format.h"
 #include "TextDisplay.h"
-#include <windows.h>
-#include <windowsx.h>
-#include <commctrl.h>
-#include <stdlib.h>
-#include <string.h>
-#include <list>
-#include <assert.h>
-#include <math.h>
+#include "Options.h"
+#include "FileTransfer.h"
+#include "Palette.h"
+#include "Whiteboard.h"
+#include "DebugHelper.h"
 
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "shlwapi.lib")
@@ -279,7 +270,7 @@ void MsgHandler(TCPClientInterface&, const BYTE* data, DWORD nBytes, void*)
 	char* dat = (char*)(data + MSG_OFFSET);
 	nBytes -= MSG_OFFSET;
 	MsgStreamReader streamReader((char*)data, nBytes);
-	const char type = streamReader.GetType(), msg = streamReader.GetMsg();
+	const short type = streamReader.GetType(), msg = streamReader.GetMsg();
 
 	switch (type)
 	{

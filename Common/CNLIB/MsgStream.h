@@ -2,16 +2,7 @@
 
 #pragma once
 #include "HeapAlloc.h"
-#include <assert.h>
-#include <array>
-#include <string>
-#include <vector>
-#include <list>
-#include <forward_list>
-#include <map>
-#include <unordered_map>
-
-#define MSG_OFFSET 4
+#include "Messages.h"
 
 class MsgStream
 {
@@ -37,7 +28,7 @@ public:
 	}
 	short GetMsg() const
 	{
-		return *(short*)(begin + 2);
+		return *((short*)begin + 1);
 	}
 
 	UINT GetSize() const
@@ -74,8 +65,8 @@ public:
 		:
 		MsgStream(alloc<char>(capacity + MSG_OFFSET), capacity)
 	{
-		data[-2] = type;
-		data[-1] = msg;
+		((short*)data)[-2] = type;
+		((short*)data)[-1] = msg;
 	}
 	MsgStreamWriter(MsgStreamWriter&& stream)
 		:

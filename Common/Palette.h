@@ -1,5 +1,4 @@
 #pragma once
-#include <d3d9.h>
 
 typedef DWORD GDICOLOR;
 class Palette

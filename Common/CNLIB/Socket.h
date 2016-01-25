@@ -3,14 +3,7 @@
 #pragma once
 
 #include "Typedefs.h"
-#include <tchar.h>
-#include "IPv.h"
 #include "SocketInfo.h"
-
-#if NTDDI_VERSION >= NTDDI_VISTA
-#include <Natupnp.h>
-#pragma comment(lib,"Ntdll.lib")
-#endif
 
 CAMSNETLIB int InitializeNetworking();
 CAMSNETLIB int CleanupNetworking();

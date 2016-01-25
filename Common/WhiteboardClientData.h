@@ -1,10 +1,5 @@
 #pragma once
-
-#include <vector>
-#include <deque>
-#include <Windows.h>
 #include "Vec2.h"
-
 #include "Mouse.h"
 
 enum class Tool

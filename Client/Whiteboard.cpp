@@ -1,9 +1,10 @@
+#include "StdAfx.h"
 #include "Whiteboard.h"
-#include "CNLIB\Messages.h"
-#include "MessagesExt.h"
-#include <assert.h>
-#include "CNLIB\HeapAlloc.h"
+//#include "CNLIB\HeapAlloc.h"
 #include "CNLIB\MsgStream.h"
+#include "MessagesExt.h"
+
+#pragma comment(lib, "d3d9.lib")
 
 typedef Whiteboard::D3D D3D;
 

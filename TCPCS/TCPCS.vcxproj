@@ -66,20 +66,20 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>..\Common\CNLIB;DLLSRC;$(IncludePath)</IncludePath>
-    <LibraryPath>..\Common\CNLIB;DLLSRC;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\Common;DLLSRC;$(IncludePath)</IncludePath>
+    <LibraryPath>..\Common;DLLSRC;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugXP|Win32'">
-    <IncludePath>..\Common\CNLIB;DLLSRC;$(IncludePath)</IncludePath>
-    <LibraryPath>..\Common\CNLIB;DLLSRC;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\Common;DLLSRC;$(IncludePath)</IncludePath>
+    <LibraryPath>..\Common;DLLSRC;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>..\Common\CNLIB;DLLSRC;$(IncludePath)</IncludePath>
-    <LibraryPath>..\Common\CNLIB;DLLSRC;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\Common;DLLSRC;$(IncludePath)</IncludePath>
+    <LibraryPath>..\Common;DLLSRC;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseXP|Win32'">
-    <IncludePath>..\Common\CNLIB;DLLSRC;$(IncludePath)</IncludePath>
-    <LibraryPath>..\Common\CNLIB;DLLSRC;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\Common;DLLSRC;$(IncludePath)</IncludePath>
+    <LibraryPath>..\Common;DLLSRC;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -87,6 +87,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_USRDLL;TCPCS_EXPORTS;_CRT_SECURE_NO_WARNINGS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -100,6 +101,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_USRDLL;TCPCS_EXPORTS;_CRT_SECURE_NO_WARNINGS;_DEBUG;_WIN32_WINNT=0x0502;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -115,6 +117,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_USRDLL;TCPCS_EXPORTS;_CRT_SECURE_NO_WARNINGS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -131,6 +134,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_USRDLL;TCPCS_EXPORTS;_CRT_SECURE_NO_WARNINGS;NDEBUG;_WIN32_WINNT=0x0502;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -162,6 +166,7 @@
     <ClInclude Include="DLLSRC\InterlockedCounter.h" />
     <ClInclude Include="DLLSRC\TCPClient.h" />
     <ClInclude Include="DLLSRC\TCPServ.h" />
+    <ClInclude Include="StdAfx.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Common\WinFirewall.cpp" />
@@ -175,6 +180,12 @@
     <ClCompile Include="DLLSRC\TCPServ.cpp" />
     <ClCompile Include="DLLSRC\Typedefs.cpp" />
     <ClCompile Include="DLLSRC\UPNP.cpp" />
+    <ClCompile Include="StdAfx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugXP|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseXP|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

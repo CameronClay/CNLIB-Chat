@@ -1,14 +1,12 @@
 //Copyright (c) <2015> <Cameron Clay>
 
 #pragma once
-#include "TCPServInterface.h"
-#include "HeapAlloc.h"
-#include "SocketListen.h"
-#include "IOCP.h"
-#include "OverlappedExt.h"
-#include "MemPool.h"
-#include "BufSize.h"
-#include "WSABufExt.h"
+#include "CNLIB/TCPServInterface.h"
+#include "CNLIB/IOCP.h"
+#include "CNLIB/MemPool.h"
+#include "CNLIB/KeepAlive.h"
+#include "CNLIB/WSABufExt.h"
+#include "CNLIB/OverlappedExt.h"
 #include "InterlockedCounter.h"
 
 class TCPServ : public TCPServInterface, public KeepAliveHI
@@ -123,8 +121,8 @@ public:
 	void FreeSendBuffer(WSABufExt buff, OpType opType);
 	void FreeSendOverlapped(OverlappedSend* ol);
 
-	void RecvDataCR(DWORD bytesTrans, ClientDataEx& cd, OverlappedExt* ol);
 	void AcceptConCR(HostSocket& host, OverlappedExt* ol);
+	void RecvDataCR(DWORD bytesTrans, ClientDataEx& cd, OverlappedExt* ol);
 	void SendDataCR(ClientDataEx& cd, OverlappedSend* ol);
 	void CleanupAcceptEx(HostSocket& host);
 private:
@@ -143,7 +141,7 @@ private:
 	CRITICAL_SECTION clientSect; //used for synchonization
 	const UINT maxDataSize, maxCompSize, maxBufferSize; //maximum packet size to send or recv, maximum compressed data size
 	const int compression, compressionCO; //compression server sends packets at
-	const USHORT maxCon; //max clients
+	const UINT maxCon; //max clients
 	float keepAliveInterval; //interval at which server KeepAlives(technically is a keep alive message that sends data) clients
 	KeepAliveHandler* keepAliveHandler; //handles all KeepAlives to client, to prevent timeout
 	MemPool clientPool, recvBuffPool; //Used to help speed up allocation of client resources

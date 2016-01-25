@@ -1,11 +1,7 @@
 //Copyright (c) <2015> <Cameron Clay>
 
 #pragma once
-
 #include "Typedefs.h"
-#include <stdlib.h>
-//#include <Windows.h>
-#include <memory>
 
 //---------------------------------------------DOCUMENTATION---------------------------------------------
 //alloc and dealloc are together, for blank memory : new type var or new type[count] : alloc<type>() or alloc<type>(count) : uqp/m_sp
@@ -67,7 +63,7 @@ public:
 	inline T* constructa(Args&&... vals) const
 	{
 		T *p = alloc<T>(sizeof...(vals));
-		if (!std::is_scalar<T>())
+		if (!std::is_trivially_destructible<T>())
 		{
 			size_t size = HeapSize(heap, 0, p);
 			p = (T*)HeapReAlloc(heap, 0, p, sizeof(size_t) + size);
@@ -141,7 +137,7 @@ template<typename T, typename... Args> inline T* pmconstructa(T* ptr, Args&&... 
 }
 template<typename T> inline void pmdestructa(T*& p)
 {
-	if (p && !std::is_scalar<T>())
+	if (p && !std::is_trivially_destructible<T>())
 	{
 		const size_t count = *((size_t*)p - 1);
 		const size_t size = sizeof(T) * count + sizeof(size_t);

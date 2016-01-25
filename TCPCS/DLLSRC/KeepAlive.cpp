@@ -1,7 +1,6 @@
-#include "KeepAlive.h"
-#include "TCPServ.h"
-#include "HeapAlloc.h"
-#include "Messages.h"
+#include "StdAfx.h"
+#include "CNLIB/KeepAlive.h"
+#include "CNLIB/HeapAlloc.h"
 
 DWORD CALLBACK KeepAliveThread(LPVOID info)
 {

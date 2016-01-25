@@ -1,8 +1,5 @@
 #pragma once
-#include "CNLIB\Typedefs.h"
-#include <Windows.h>
-#include <stdlib.h>
-#include <tchar.h>
+//#include "CNLIB/Typedefs.h"
 
 class TextDisplay
 {

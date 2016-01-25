@@ -1,11 +1,7 @@
 #pragma once
 #include "CNLIB\TCPClientInterface.h"
-#include "ColorDef.h"
 #include "Palette.h"
 #include "WhiteboardClientData.h"
-#include <d3d9.h>
-
-#pragma comment(lib, "d3d9.lib")
 
 class Whiteboard
 {

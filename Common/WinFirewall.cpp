@@ -1,5 +1,5 @@
+#include "StdAfx.h"
 #include "WinFirewall.h"
-#include <comdef.h>
 
 WinFirewall::WinFirewall()
 :

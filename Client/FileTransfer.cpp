@@ -1,9 +1,7 @@
+#include "StdAfx.h"
 #include "FileTransfer.h"
-#include <assert.h>
-#include "CNLIB\HeapAlloc.h"
-#include "MessagesExt.h"
-#include "CNLIB\Messages.h"
 #include "CNLIB\MsgStream.h"
+#include "MessagesExt.h"
 
 FileTransfer::FileTransfer(TCPClientInterface& client, HWND wnd, AlertFunc finished, AlertFunc canceled, std::vector<FileMisc::FileData>&& list)
 	:

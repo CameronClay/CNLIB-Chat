@@ -1,13 +1,10 @@
 //Copyright (c) <2015> <Cameron Clay>
 
 #pragma once
-#include <stdlib.h>
-#include <vector>
+#include "Typedefs.h"
 #include "Socket.h"
-#include "SocketListen.h"
-#include "KeepAlive.h"
+#include "IPV.h"
 #include "CompressionTypes.h"
-#include "IPv.h"
 
 class CAMSNETLIB TCPServInterface
 {
@@ -19,7 +16,7 @@ public:
 
 	struct CAMSNETLIB ClientData
 	{
-		ClientData(TCPServInterface& serv, Socket pc, sfunc func);
+		ClientData(Socket pc, sfunc func);
 		ClientData(ClientData&& clint);
 		ClientData& operator=(ClientData&& data);
 

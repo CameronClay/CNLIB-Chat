@@ -1,10 +1,7 @@
+#include "StdAfx.h"
 #include "Whiteboard.h"
-#include "CNLIB\HeapAlloc.h"
-#include "MessagesExt.h"
 #include "CNLIB\Messages.h"
-#include <stdlib.h>
-#include <time.h>
-#include <assert.h>
+#include "MessagesExt.h"
 
 DWORD CALLBACK WBThread(LPVOID param)
 {
@@ -268,7 +265,7 @@ void Whiteboard::Draw()
 {
 	EnterCriticalSection(&mapSect);
 
-	for(auto& it = clients.begin(), end = clients.end(); it != end; it++)
+	for(auto it = clients.begin(), end = clients.end(); it != end; it++)
 	{
 		MouseClient mouse(it->second.mServ);
 		const Tool myTool = it->second.tool;

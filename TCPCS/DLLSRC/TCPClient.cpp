@@ -1,8 +1,8 @@
+#include "StdAfx.h"
 #include "TCPClient.h"
-#include "HeapAlloc.h"
-#include "Messages.h"
-#include "File.h"
-#include "MsgStream.h"
+#include "CNLIB/HeapAlloc.h"
+#include "CNLIB/File.h"
+#include "CNLIB/MsgStream.h"
 
 TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, int compression, float keepAliveInterval, void* obj)
 {
@@ -236,9 +236,9 @@ HANDLE TCPClient::SendServDataThread(const char* data, DWORD nBytes, Compression
 
 void TCPClient::SendMsg(short type, short message)
 {
-	char msg[] = { type, message };
+	short msg[] = { type, message };
 
-	SendServData(msg, MSG_OFFSET, NOCOMPRESSION);
+	SendServData((char*)msg, MSG_OFFSET, NOCOMPRESSION);
 }
 
 void TCPClient::SendMsg(const std::tstring& name, short type, short message)

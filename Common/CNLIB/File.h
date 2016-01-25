@@ -2,11 +2,6 @@
 
 #pragma once
 #include "Typedefs.h"
-#include <Shlwapi.h>
-#include <Shlobj.h>
-#include <stdlib.h>
-#include <vector>
-#include <tchar.h>
 
 class CAMSNETLIB File
 {
