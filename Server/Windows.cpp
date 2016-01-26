@@ -68,6 +68,12 @@ std::vector<std::tstring> adminList;
 
 TextDisplay textBuffer;
 
+
+bool CanConnect(TCPServInterface& serv, const Socket& socket)
+{
+	return true;
+}
+
 bool IsAdmin(std::tstring& user)
 {
 	for (auto& i : adminList)
@@ -644,7 +650,7 @@ void WinMainInit()
 	serv = CreateServer(&MsgHandler, &ConnectHandler, &DisconnectHandler);
 
 	LIB_TCHAR portA[6] = {};
-	serv->AllowConnections(_itot(port, portA, 10));
+	serv->AllowConnections(_itot(port, portA, 10), CanConnect);
 }
 
 void RecalcSizeVars(USHORT width, USHORT height)
@@ -910,7 +916,7 @@ INT_PTR CALLBACK OptionsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM)
 			file.Write(&port, sizeof(USHORT));
 
 			serv->Shutdown();
-			serv->AllowConnections(temp);
+			serv->AllowConnections(temp, CanConnect);
 
 			dealloc(temp);
 

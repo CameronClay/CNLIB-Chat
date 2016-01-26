@@ -70,7 +70,7 @@ ClientDataEx::ClientDataEx(TCPServ& serv, Socket pc, sfunc func, UINT arrayIndex
 	arrayIndex(arrayIndex),
 	state(running)
 {
-	MemPool& pool = serv.GetRecvBuffPool();
+	MemPool<HeapAllocator<char>>& pool = serv.GetRecvBuffPool();
 	const UINT maxDataSize = serv.MaxDataSize();
 	char* temp = pool.alloc<char>();
 	buff.Initialize(maxDataSize, temp, temp);
@@ -923,7 +923,7 @@ IOCP& TCPServ::GetIOCP()
 	return iocp;
 }
 
-MemPool& TCPServ::GetRecvBuffPool()
+MemPool<HeapAllocator<char>>& TCPServ::GetRecvBuffPool()
 {
 	return recvBuffPool;
 }

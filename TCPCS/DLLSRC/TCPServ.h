@@ -115,7 +115,7 @@ public:
 
 	IOCP& GetIOCP();
 
-	MemPool& GetRecvBuffPool();
+	MemPool<HeapAllocator<char>>& GetRecvBuffPool();
 
 	WSABufExt CreateSendBuffer(DWORD nBytesDecomp, char* buffer, OpType opType, CompressionType compType = BESTFIT);
 	void FreeSendBuffer(WSABufExt buff, OpType opType);
@@ -144,9 +144,9 @@ private:
 	const UINT maxCon; //max clients
 	float keepAliveInterval; //interval at which server KeepAlives(technically is a keep alive message that sends data) clients
 	KeepAliveHandler* keepAliveHandler; //handles all KeepAlives to client, to prevent timeout
-	MemPool clientPool, recvBuffPool; //Used to help speed up allocation of client resources
-	MemPoolSync sendOlPoolSingle, sendOlPoolAll; //Used to help speed up allocation of structures needed to send Ol data
-	MemPoolSync sendDataPool, sendMsgPool; //Used to help speed up allocation of send buffers
+	MemPool<HeapAllocator<char>> clientPool, recvBuffPool; //Used to help speed up allocation of client resources
+	MemPoolSync<HeapAllocator<char>> sendOlPoolSingle, sendOlPoolAll; //Used to help speed up allocation of structures needed to send Ol data
+	MemPoolSync<HeapAllocator<char>> sendDataPool, sendMsgPool; //Used to help speed up allocation of send buffers
 	InterlockedCounter opCounter; //Used to keep track of number of asynchronous operations
 	HANDLE shutdownEv; //Set when opCounter reaches 0, to notify shutdown it is okay to close iocp
 	bool noDelay; //Used to enable/disable the nagle algorithm, stored at end to keep alignment
