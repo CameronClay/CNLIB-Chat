@@ -1,15 +1,8 @@
 #pragma once
-#include <stdlib.h>
-#include <vector>
-#include "HeapAlloc.h"
+#include <Windows.h>
+#include <memory>
 
-#pragma once
-#include <stdlib.h>
-#include <vector>
-#include "HeapAlloc.h"
-
-//If using custom allocator, you must use type of char for its template type
-template<typename Allocator = std::allocator<char>>
+template<template<typename> class Allocator = std::allocator>
 //Fixed-Sized Memory Pool
 class MemPool
 {
@@ -28,7 +21,7 @@ public:
 	};
 
 	//capacity must be >= 1
-	explicit MemPool(size_t elementSizeMax, size_t capacity, const Allocator& alloc = Allocator())
+	explicit MemPool(size_t elementSizeMax, size_t capacity, const Allocator<char>& alloc = Allocator<char>())
 		:
 		allocator(alloc),
 		elementSizeMax(elementSizeMax),
@@ -68,119 +61,119 @@ public:
 		end(memPool.end),
 		used(memPool.used),
 		avail(memPool.avail)
+	{
+		memset(&memPool, 0, sizeof(memPool));
+	}
+
+	MemPool& operator=(MemPool&& memPool)
+	{
+		if (this != &memPool)
 		{
+			allocator = std::move(memPool.allocator);
+			const_cast<size_t&>(elementSizeMax) = memPool.elementSizeMax;
+			const_cast<size_t&>(capacity) = memPool.capacity;
+			data = memPool.data;
+			begin = memPool.begin;
+			end = memPool.end;
+			used = memPool.used;
+			avail = memPool.avail;
+
 			memset(&memPool, 0, sizeof(memPool));
 		}
+		return *this;
+	}
 
-		MemPool& operator=(MemPool&& memPool)
+	~MemPool()
+	{
+		if (data)
+			allocator.deallocate(data, NULL);
+	}
+
+	void* alloc(size_t elementSize)
+	{
+		if (IsNotFull() && FitsInPool(elementSize))
+			return PoolAlloc();
+		else
+			return (void*)allocator.allocate(max(elementSize, elementSizeMax));
+	}
+
+	template<typename T>
+	inline T* alloc()
+	{
+		return (T*)alloc(sizeof(T));
+	}
+
+	template<typename T>
+	void dealloc(T*& t)
+	{
+		if (t)
 		{
-			if (this != &memPool)
-			{
-				allocator = std::move(memPool.allocator);
-				const_cast<size_t&>(elementSizeMax) = memPool.elementSizeMax;
-				const_cast<size_t&>(capacity) = memPool.capacity;
-				data = memPool.data;
-				begin = memPool.begin;
-				end = memPool.end;
-				used = memPool.used;
-				avail = memPool.avail;
+			Element* element = (Element*)((char*)t - Element::OFFSET);
 
-				memset(&memPool, 0, sizeof(memPool));
-			}
-			return *this;
-		}
-
-		~MemPool()
-		{
-			if (data)
-				allocator.deallocate(data, NULL);
-		}
-
-		void* alloc(size_t elementSize)
-		{
-			if (IsNotFull() && FitsInPool(elementSize))
-				return PoolAlloc();
+			if (ElementInPool(element))
+				PoolDealloc(element);
 			else
-				return (void*)allocator.allocate(max(elementSize, elementSizeMax));
-		}
+				allocator.deallocate((char*)t, NULL);
 
-		template<typename T>
-		inline T* alloc()
-		{
-			return (T*)alloc(sizeof(T));
+			t = nullptr;
 		}
+	}
 
-		template<typename T>
-		void dealloc(T*& t)
-		{
-			if (t)
-			{
-				Element* element = (Element*)((char*)t - Element::OFFSET);
+	template<typename T, typename... Args>
+	inline T* construct(Args&&... vals)
+	{
+		return new(alloc<T>()) T(std::forward<Args>(vals)...);
+	}
 
-				if (ElementInPool(element))
-					PoolDealloc(element);
-				else
-					allocator.deallocate((char*)t, NULL);
+	template<typename T>
+	inline void destruct(T*& p)
+	{
+		if (p)
+		{
+			p->~T();
+			dealloc(p);
+		}
+	}
 
-				t = nullptr;
-			}
-		}
+	inline size_t ElementSizeMax() const
+	{
+		return elementSizeMax;
+	}
+	inline size_t Capacity() const
+	{
+		return capacity;
+	}
 
-		template<typename T, typename... Args>
-		inline T* construct(Args&&... vals)
-		{
-			return new(alloc<T>()) T(std::forward<Args>(vals)...);
-		}
+	template<typename T>
+	inline bool InPool(T* p) const
+	{
+		Element* e = (Element*)((char*)p - Element::OFFSET);
+		return (e >= begin) && (e <= end);
+	}
+	inline bool FitsInPool(size_t elementSize) const
+	{
+		return elementSize <= elementSizeMax;
+	}
 
-		template<typename T>
-		inline void destruct(T*& p)
-		{
-			if (p)
-			{
-				p->~T();
-				dealloc(p);
-			}
-		}
+	inline bool IsFull() const
+	{
+		return !avail;
+	}
+	inline bool IsNotFull() const
+	{
+		return avail;
+	}
 
-		inline size_t ElementSizeMax() const
-		{
-			return elementSizeMax;
-		}
-		inline size_t Capacity() const
-		{
-			return capacity;
-		}
+	inline bool IsEmpty() const
+	{
+		return !used;
+	}
+	inline bool IsNotEmpty() const
+	{
+		return used;
+	}
 
-		template<typename T>
-		inline bool InPool(T* p) const
-		{
-			Element* e = (Element*)((char*)p - Element::OFFSET);
-			return (e >= begin) && (e <= end);
-		}
-		inline bool FitsInPool(size_t elementSize) const
-		{
-			return elementSize <= elementSizeMax;
-		}
-
-		inline bool IsFull() const
-		{
-			return !avail;
-		}
-		inline bool IsNotFull() const
-		{
-			return avail;
-		}
-
-		inline bool IsEmpty() const
-		{
-			return !used;
-		}
-		inline bool IsNotEmpty() const
-		{
-			return used;
-		}
-
-		typedef Allocator allocator_type;
+	typedef Allocator<char> allocator_type;
 protected:
 	inline void* PoolAlloc()
 	{
@@ -194,12 +187,12 @@ protected:
 		PushAvail(element);
 	}
 
-	bool ElementInPool(Element* element) const
+	inline bool ElementInPool(Element* element) const
 	{
 		return element >= begin && element <= end;
 	}
 
-	Allocator allocator;
+	Allocator<char> allocator;
 
 	const size_t elementSizeMax, capacity;
 	char* data;
@@ -244,8 +237,7 @@ private:
 		}
 		else
 		{
-			element->next = nullptr;
-			element->prev = nullptr;
+			element->prev = element->next = nullptr;
 			avail = element;
 		}
 	}
@@ -260,14 +252,13 @@ private:
 	}
 };
 
-//If using custom allocator, you must use type of char for its template type
-template<typename Allocator = std::allocator<char>>
+template<template<typename> class Allocator = std::allocator>
 //Fixed-Sized Synced Memory Pool
 class MemPoolSync : public MemPool<Allocator>
 {
 public:
 	//capacity must be >= 1
-	explicit MemPoolSync(size_t elementSizeMax, size_t capacity, const Allocator& allocator = Allocator())
+	explicit MemPoolSync(size_t elementSizeMax, size_t capacity, const Allocator<char>& allocator = Allocator<char>())
 		:
 		MemPool(elementSizeMax, capacity, allocator)
 	{
