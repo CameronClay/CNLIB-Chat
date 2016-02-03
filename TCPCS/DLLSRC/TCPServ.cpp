@@ -157,11 +157,44 @@ DWORD CALLBACK IOCPThread(LPVOID info)
 	DWORD bytesTrans = 0;
 	OverlappedExt* ol = nullptr;
 	ULONG_PTR key = NULL;
-
-	while (true)
+	
+	bool res = false;
+	do
 	{
-		bool res = GetQueuedCompletionStatus(iocp.GetHandle(), &bytesTrans, &key, (OVERLAPPED**)&ol, INFINITE);
-		if (!res)
+		res = GetQueuedCompletionStatus(iocp.GetHandle(), &bytesTrans, &key, (OVERLAPPED**)&ol, INFINITE);
+		if (res)
+		{
+			if (!ol)
+				break;
+			switch (ol->opType)
+			{
+				case OpType::recv:
+				{
+					ClientDataEx& cd = *(ClientDataEx*)key;
+					if (bytesTrans == 0)
+					{
+						cd.serv.RemoveClient(&cd, cd.state != ClientDataEx::closing);
+						continue;
+					}
+					cd.serv.RecvDataCR(bytesTrans, cd, ol);
+				}
+				break;
+				case OpType::send:
+				case OpType::sendmsg:
+				{
+					ClientDataEx& cd = *(ClientDataEx*)key;
+					cd.serv.SendDataCR(cd, (OverlappedSend*)ol);
+				}
+				break;
+				case OpType::accept:
+				{
+					HostSocket& hostSocket = *(HostSocket*)key;
+					hostSocket.serv.AcceptConCR(hostSocket, ol);
+				}
+				break;
+			}
+		}
+		else
 		{
 			if (ol && key)
 			{
@@ -186,35 +219,7 @@ DWORD CALLBACK IOCPThread(LPVOID info)
 			//	//Error
 			//}
 		}
-
-		if (bytesTrans == 0)
-		{
-			return 0;
-		}
-
-		switch (ol->opType)
-		{
-		case OpType::recv:
-		{
-			ClientDataEx& cd = *(ClientDataEx*)key;
-			cd.serv.RecvDataCR(bytesTrans, cd, ol);
-		}
-		break;
-		case OpType::send:
-		case OpType::sendmsg:
-		{
-			ClientDataEx& cd = *(ClientDataEx*)key;
-			cd.serv.SendDataCR(cd, (OverlappedSend*)ol);
-		}
-		break;
-		case OpType::accept:
-		{
-			HostSocket& hostSocket = *(HostSocket*)key;
-			hostSocket.serv.AcceptConCR(hostSocket, ol);
-		}
-		break;
-		}
-	}
+	} while (res);
 
 	return 0;
 }
