@@ -308,56 +308,22 @@ void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket exAddr, bool
 {
 	long res = 0;
 
-	if (exAddr.IsConnected())
+	if (single)
 	{
-		if (single)
+		WSABufExt sendBuff = CreateSendBuffer(nBytes, (char*)data, opType, compType);
+		if (!sendBuff.head)
+			return;
+
+		OverlappedSend* ol = sendOlPoolSingle.construct<OverlappedSend>(1);
+		ol->InitInstance(opType, sendBuff, ol);
+		++opCounter;
+
+		res = exAddr.SendDataOl(&ol->sendBuff, ol);
+		if ((res == SOCKET_ERROR) && (WSAGetLastError() != WSA_IO_PENDING))
 		{
-			WSABufExt sendBuff = CreateSendBuffer(nBytes, (char*)data, opType, compType);
-			if (!sendBuff.head)
-				return;
-
-			OverlappedSend* ol = sendOlPoolSingle.construct<OverlappedSend>(1);
-			ol->InitInstance(opType, sendBuff, ol);
-			++opCounter;
-
-			res = exAddr.SendDataOl(&ol->sendBuff, ol);
-			if ((res == SOCKET_ERROR) && (WSAGetLastError() != WSA_IO_PENDING))
-			{
-				--opCounter;
-				FreeSendBuffer(sendBuff, opType);
-				sendOlPoolSingle.destruct(ol);
-			}
-		}
-		else
-		{
-			WSABufExt sendBuff = CreateSendBuffer(nBytes, (char*)data, opType, compType);
-			if (!sendBuff.head)
-				return;
-
-			OverlappedSend* ol = sendOlPoolAll.construct<OverlappedSend>(nClients - 1);
-			opCounter += nClients - 1;
-			for (UINT i = 0; i < nClients; i++)
-			{
-				Socket& pc = clients[i]->pc;
-				if (pc != exAddr)
-				{
-					bool isCon = pc.IsConnected();
-					if (isCon)
-					{
-						ol[i].InitInstance(opType, sendBuff, ol);
-						res = pc.SendDataOl(&ol[i].sendBuff, ol);
-					}
-					if (!isCon || ((res == SOCKET_ERROR) && (WSAGetLastError() != WSA_IO_PENDING)))
-					{
-						--opCounter;
-						if (ol->DecrementRefCount())
-						{
-							sendOlPoolAll.dealloc(ol);
-							FreeSendBuffer(sendBuff, opType);
-						}
-					}
-				}
-			}
+			--opCounter;
+			FreeSendBuffer(sendBuff, opType);
+			sendOlPoolSingle.destruct(ol);
 		}
 	}
 	else
@@ -366,17 +332,16 @@ void TCPServ::SendClientData(const char* data, DWORD nBytes, Socket exAddr, bool
 		if (!sendBuff.head)
 			return;
 
-		OverlappedSend* ol = sendOlPoolAll.construct<OverlappedSend>(nClients - 1);
+		OverlappedSend* ol = sendOlPoolAll.construct<OverlappedSend>(nClients);
+		opCounter += nClients;
 		for (UINT i = 0; i < nClients; i++)
 		{
 			Socket& pc = clients[i]->pc;
-			bool isCon = pc.IsConnected();
-			if (isCon)
-			{
-				ol[i].InitInstance(opType, sendBuff, ol);
+			ol[i].InitInstance(opType, sendBuff, ol);
+			if (pc != exAddr)
 				res = pc.SendDataOl(&ol[i].sendBuff, ol);
-			}
-			if (!isCon || ((res == SOCKET_ERROR) && (WSAGetLastError() != WSA_IO_PENDING)))
+
+			if (pc == exAddr || ((res == SOCKET_ERROR) && (WSAGetLastError() != WSA_IO_PENDING)))
 			{
 				--opCounter;
 				if (ol->DecrementRefCount())
