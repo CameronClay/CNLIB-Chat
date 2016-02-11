@@ -14,23 +14,23 @@ public:
 	void StartThread();
 
 	void SendBitmap(RectU& rect);
-	void SendBitmap(RectU& rect, const Socket& sock, bool single);
+	void SendBitmap(RectU& rect, ClientData* sock, bool single);
 
 	void Draw();
 
 	bool IsCreator(const std::tstring& user) const;
 
-	void AddClient(Socket pc);
-	void RemoveClient(Socket pc);
+	void AddClient(ClientData* pc);
+	void RemoveClient(ClientData* pc);
 
 	const WBParams& GetParams() const;
 	const Palette& GetPalette() const;
-	WBClientData& GetClientData(Socket pc);
+	WBClientData& GetClientData(ClientData* pc);
 	BYTE* GetBitmap();
 	HANDLE GetTimer() const;
 	CRITICAL_SECTION* GetMapSect();
-	std::unordered_map<Socket, WBClientData, Socket::Hash>& GetMap();
-	std::vector<Socket>& GetPcs();
+	std::unordered_map<ClientData*, WBClientData>& GetMap();
+	std::vector<ClientData*>& GetPcs();
 
 private:
 	inline void PutPixel(int x, int y, BYTE clr)
@@ -61,6 +61,6 @@ private:
 	HANDLE timer, thread;
 	DWORD threadID;
 
-	std::unordered_map<Socket, WBClientData, Socket::Hash> clients;
-	std::vector<Socket> sendPcs;
+	std::unordered_map<ClientData*, WBClientData> clients;
+	std::vector<ClientData*> sendPcs;
 };

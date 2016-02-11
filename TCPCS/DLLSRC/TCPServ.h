@@ -14,7 +14,7 @@ class TCPServ : public TCPServInterface, public KeepAliveHI
 {
 public:
 	//sfunc is a message handler, compression is 1-9
-	TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxDataSize = 8192, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, bool noDelay = false, void* obj = nullptr);
+	TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxPCSendOps = 3, UINT maxDataSize = 8192, UINT singleOlCount = 30, UINT allOlCount = 30, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, bool noDelay = false, void* obj = nullptr);
 	TCPServ(TCPServ&& serv);
 	~TCPServ();
 
@@ -26,9 +26,11 @@ public:
 		~ClientDataEx();
 
 		TCPServ& serv;
-		WSABufExt buff;
+		WSABufRecv buff;
 		OverlappedExt ol;
 		UINT arrayIndex;
+		InterlockedCounter opCount;
+		std::queue<OverlappedSend*> opsPending;
 
 		//int for alignment
 		enum State : int
@@ -66,14 +68,14 @@ public:
 	//Used to send data to clients
 	//addr parameter functions as both the excluded address, and as a single address, 
 	//depending on the value of single
-	void SendClientData(const char* data, DWORD nBytes, Socket exAddr, bool single, CompressionType compType = BESTFIT) override;
-	void SendClientData(const char* data, DWORD nBytes, Socket* pcs, UINT nPcs, CompressionType compType = BESTFIT) override;
-	void SendClientData(const char* data, DWORD nBytes, std::vector<Socket>& pcs, CompressionType compType = BESTFIT) override;
+	void SendClientData(const char* data, DWORD nBytes, ClientData* exClient, bool single, CompressionType compType = BESTFIT) override;
+	void SendClientData(const char* data, DWORD nBytes, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT) override;
+	void SendClientData(const char* data, DWORD nBytes, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT) override;
 
 	//Send msg funtions used for requests, replies ect. they do not send data
-	void SendMsg(Socket exAddr, bool single, short type, short message) override;
-	void SendMsg(Socket* pcs, UINT nPcs, short type, short message) override;
-	void SendMsg(std::vector<Socket>& pcs, short type, short message) override;
+	void SendMsg(ClientData* exClient, bool single, short type, short message) override;
+	void SendMsg(ClientData** clients, UINT nClients, short type, short message) override;
+	void SendMsg(std::vector<ClientData*>& pcs, short type, short message) override;
 	void SendMsg(const std::tstring& user, short type, short message) override;
 
 	ClientData* FindClient(const std::tstring& user) const override;
@@ -110,7 +112,13 @@ public:
 	UINT MaxDataSize() const override;
 	UINT MaxCompSize() const override;
 	UINT GetOpCount() const override;
-	UINT MaxBufferSize() const;
+
+	UINT SingleOlCount() const override;
+	UINT AllOlCount() const override;
+	UINT SendBuffCount() const override;
+	UINT SendMsgBuffCount() const override;
+
+	UINT GetMaxPcSendOps() const override;
 
 	InterlockedCounter& GetOpCounter();
 
@@ -118,17 +126,23 @@ public:
 
 	MemPool<HeapAllocator>& GetRecvBuffPool();
 
-	WSABufExt CreateSendBuffer(DWORD nBytesDecomp, char* buffer, OpType opType, CompressionType compType = BESTFIT);
-	void FreeSendBuffer(WSABufExt buff, OpType opType);
-	void FreeSendOverlapped(OverlappedSend* ol);
+	WSABufSend CreateSendBuffer(DWORD nBytesDecomp, char* buffer, OpType opType, CompressionType compType = BESTFIT);
+
+	void FreeSendBuffer(WSABufSend buff, OpType opType);
+	void FreeSendOlInfo(OverlappedSendInfo* ol);
 
 	void AcceptConCR(HostSocket& host, OverlappedExt* ol);
 	void RecvDataCR(DWORD bytesTrans, ClientDataEx& cd, OverlappedExt* ol);
 	void SendDataCR(ClientDataEx& cd, OverlappedSend* ol);
+	bool CleanupSendData(ClientDataEx& cd, OverlappedSend* ol);
 	void CleanupAcceptEx(HostSocket& host);
 private:
-	void SendClientData(const char* data, DWORD nBytes, Socket exAddr, bool single, OpType opType, CompressionType compType);
-	void SendClientData(const char* data, DWORD nBytes, Socket* pcs, UINT nPcs, OpType opType, CompressionType compType);
+	void SendClientData(const char* data, DWORD nBytes, ClientDataEx* exClient, bool single, OpType opType, CompressionType compType);
+	void SendClientData(const char* data, DWORD nBytes, ClientDataEx** clients, UINT nClients, OpType opType, CompressionType compType);
+
+	void SendClientData(WSABufSend sendBuff, ClientDataEx* exClient, bool single, OpType opType);
+	void SendClientData(WSABufSend sendBuff, ClientDataEx** clients, UINT nClients, OpType opType);
+	void SendClientSingle(ClientDataEx& clint, OverlappedSendInfo* olInfo, OverlappedSend* ol, bool popQueue = false);
 
 	HostSocket ipv4Host, ipv6Host; //host/listener sockets
 	ClientDataEx** clients; //array of clients
@@ -140,13 +154,15 @@ private:
 	ConCondition connectionCondition; //condition for accepting connections
 	DisconFunc disFunc; //function called when disconnect occurs
 	CRITICAL_SECTION clientSect; //used for synchonization
-	const UINT maxDataSize, maxCompSize, maxBufferSize; //maximum packet size to send or recv, maximum compressed data size
+	const UINT maxDataSize, maxCompSize; //maximum packet size to send or recv, maximum compressed data size, number of preallocated sendbuffers
+	const UINT singleOlCount, allOlCount, sendBuffCount, sendMsgBuffCount; //maximum number of preallocted...
+	const UINT maxPCSendOps; //max per client concurent send operations
 	const int compression, compressionCO; //compression server sends packets at
 	const UINT maxCon; //max clients
 	float keepAliveInterval; //interval at which server KeepAlives(technically is a keep alive message that sends data) clients
 	KeepAliveHandler* keepAliveHandler; //handles all KeepAlives to client, to prevent timeout
 	MemPool<HeapAllocator> clientPool, recvBuffPool; //Used to help speed up allocation of client resources
-	MemPoolSync<HeapAllocator> sendOlPoolSingle, sendOlPoolAll; //Used to help speed up allocation of structures needed to send Ol data
+	MemPoolSync<HeapAllocator> sendOlInfoPool, sendOlPoolSingle, sendOlPoolAll; //Used to help speed up allocation of structures needed to send Ol data
 	MemPoolSync<HeapAllocator> sendDataPool, sendMsgPool; //Used to help speed up allocation of send buffers
 	InterlockedCounter opCounter; //Used to keep track of number of asynchronous operations
 	HANDLE shutdownEv; //Set when opCounter reaches 0, to notify shutdown it is okay to close iocp

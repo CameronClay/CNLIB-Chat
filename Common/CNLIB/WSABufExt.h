@@ -1,10 +1,9 @@
 #pragma once
 
-struct WSABufExt : WSABUF
+struct WSABufSend : WSABUF
 {
-	WSABufExt()
+	WSABufSend()
 		:
-		curBytes(0),
 		head(nullptr)
 	{
 		len = 0;
@@ -13,12 +12,27 @@ struct WSABufExt : WSABUF
 
 	void Initialize(DWORD len, char* buf, char* head)
 	{
-		curBytes = 0;
 		this->len = len;
 		this->buf = buf;
 		this->head = head;
 	}
 	
-	DWORD curBytes;
 	char* head;
 };
+
+struct WSABufRecv : WSABufSend
+{
+	WSABufRecv()
+		:
+		WSABufSend()
+	{}
+
+	void Initialize(DWORD len, char* buf, char* head)
+	{
+		curBytes = 0;
+		__super::Initialize(len, buf, head);
+	}
+
+	DWORD curBytes;
+};
+

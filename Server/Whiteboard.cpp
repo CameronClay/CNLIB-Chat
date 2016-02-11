@@ -85,7 +85,7 @@ void Whiteboard::SendBitmap(RectU& rect)
 	dealloc(msg);
 }
 
-void Whiteboard::SendBitmap(RectU& rect, const Socket& sock, bool single)
+void Whiteboard::SendBitmap(RectU& rect, ClientData* clint, bool single)
 {
 	const DWORD nBytes = GetBufferLen(rect) + MSG_OFFSET;
 	char* msg = alloc<char>(nBytes);
@@ -95,7 +95,7 @@ void Whiteboard::SendBitmap(RectU& rect, const Socket& sock, bool single)
 
 	MakeRectPixels(rect, &msg[MSG_OFFSET]);
 
-	serv.SendClientData(msg, nBytes, sock, single);
+	serv.SendClientData(msg, nBytes, clint, single);
 	dealloc(msg);
 }
 
@@ -115,24 +115,24 @@ bool Whiteboard::IsCreator(const std::tstring& user) const
 }
 
 
-void Whiteboard::AddClient(Socket pc)
+void Whiteboard::AddClient(ClientData* clint)
 {
 	EnterCriticalSection(&mapSect);
 
-	clients.emplace(pc, WBClientData(params.fps, params.clrIndex));
-	sendPcs.push_back(pc);
+	clients.emplace(clint, WBClientData(params.fps, params.clrIndex));
+	sendPcs.push_back(clint);
 
 	LeaveCriticalSection(&mapSect);
 }
 
-void Whiteboard::RemoveClient(Socket pc)
+void Whiteboard::RemoveClient(ClientData* clint)
 {
 	EnterCriticalSection(&mapSect);
 
-	clients.erase(pc);
+	clients.erase(clint);
 	for (USHORT i = 0, size = sendPcs.size(); i < size; i++)
 	{
-		if (sendPcs[i] == pc)
+		if (sendPcs[i] == clint)
 		{
 			sendPcs[i] = sendPcs.back();
 			sendPcs.pop_back();
@@ -451,12 +451,12 @@ void Whiteboard::MakeRectPixels(RectU& rect, char* ptr)
 }
 
 
-std::unordered_map<Socket, WBClientData, Socket::Hash>& Whiteboard::GetMap()
+std::unordered_map<ClientData*, WBClientData>& Whiteboard::GetMap()
 {
 	return clients;
 }
 
-std::vector<Socket>& Whiteboard::GetPcs()
+std::vector<ClientData*>& Whiteboard::GetPcs()
 {
 	return sendPcs;
 }
@@ -486,7 +486,7 @@ CRITICAL_SECTION* Whiteboard::GetMapSect()
 	return &mapSect;
 }
 
-WBClientData& Whiteboard::GetClientData(Socket pc)
+WBClientData& Whiteboard::GetClientData(ClientData* pc)
 {
 	return clients[pc];
 }

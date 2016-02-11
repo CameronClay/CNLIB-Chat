@@ -116,7 +116,7 @@ void SendSingleUserData(TCPServInterface& serv, const char* dat, DWORD nBytes, c
 	msg[1] = message;
 	memcpy(msg + MSG_OFFSET, dat + offset, nBytes - offset);
 
-	serv.SendClientData(msg, nBy, client->pc, true);
+	serv.SendClientData(msg, nBy, client, true);
 	dealloc(msg);
 }
 
@@ -129,7 +129,7 @@ void TransferMessageWithName(TCPServInterface& serv, const std::tstring& user, s
 	MsgStreamWriter streamWriter(streamReader.GetType(), streamReader.GetMsg(), StreamWriter::SizeType(srcUserName));
 	streamWriter.Write(srcUserName);
 
-	serv.SendClientData(streamWriter, streamWriter.GetSize(), client->pc, true);
+	serv.SendClientData(streamWriter, streamWriter.GetSize(), client, true);
 }
 
 void TransferMessage(TCPServInterface& serv, MsgStreamReader& streamReader)
@@ -140,7 +140,7 @@ void TransferMessage(TCPServInterface& serv, MsgStreamReader& streamReader)
 		return;
 
 	MsgStreamWriter mStreamOut(streamReader.GetType(), streamReader.GetMsg(), 0);
-	serv.SendClientData(mStreamOut, mStreamOut.GetSize(), client->pc, true);
+	serv.SendClientData(mStreamOut, mStreamOut.GetSize(), client, true);
 }
 
 void RequestTransfer(TCPServInterface& serv, std::tstring& srcUserName, MsgStreamReader& streamReader)
@@ -155,7 +155,7 @@ void RequestTransfer(TCPServInterface& serv, std::tstring& srcUserName, MsgStrea
 	streamWriter.Write(srcUserName);
 	streamWriter.Write(streamReader.Read<double>());
 
-	serv.SendClientData(streamWriter, streamWriter.GetSize(), client->pc, true);
+	serv.SendClientData(streamWriter, streamWriter.GetSize(), client, true);
 }
 
 void DispIPMsg(Socket& pc, const LIB_TCHAR* str)
@@ -167,7 +167,7 @@ void DispIPMsg(Socket& pc, const LIB_TCHAR* str)
 void DisconnectHandler(ClientData* data, bool unexpected)
 {
 	if (unexpected)
-		serv->SendMsg(Socket(), false, TYPE_CHANGE, MSG_CHANGE_DISCONNECT);
+		serv->SendMsg(nullptr, false, TYPE_CHANGE, MSG_CHANGE_DISCONNECT);
 
 	LIB_TCHAR buffer[128] = {};
 	_stprintf(buffer, _T("(%s) has disconnected!"), (!data->user.empty()) ? data->user.c_str() : _T("unknown"));
@@ -241,7 +241,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 				clint->user = user;
 
 				//Confirm authentication
-				serv.SendMsg(clint->pc, true, TYPE_RESPONSE, MSG_RESPONSE_AUTH_CONFIRMED);
+				serv.SendMsg(clint, true, TYPE_RESPONSE, MSG_RESPONSE_AUTH_CONFIRMED);
 
 				//Transfer currentlist of clients to new client
 				for(USHORT i = 0; i < nClients; i++)
@@ -251,19 +251,19 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 						MsgStreamWriter streamWriter(TYPE_CHANGE, MSG_CHANGE_CONNECTINIT, StreamWriter::SizeType(clients[i]->user));
 						streamWriter.Write(clients[i]->user);
 
-						serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, true);
+						serv.SendClientData(streamWriter, streamWriter.GetSize(), clint, true);
 					}
 				}
 
 				MsgStreamWriter streamWriter(TYPE_CHANGE, MSG_CHANGE_CONNECT, StreamWriter::SizeType(user));
 				streamWriter.Write(user);
 
-				serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, false);
+				serv.SendClientData(streamWriter, streamWriter.GetSize(), clint, false);
 			}
 			else
 			{
 				//Decline authentication
-				serv.SendMsg(clint->pc, true, TYPE_RESPONSE, MSG_RESPONSE_AUTH_DECLINED);
+				serv.SendMsg(clint, true, TYPE_RESPONSE, MSG_RESPONSE_AUTH_DECLINED);
 			}
 
 			LeaveCriticalSection(&authentSect);
@@ -288,7 +288,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 				MsgStreamWriter streamWriter(streamReader.GetType(), streamReader.GetMsg(), StreamWriter::SizeType(canDraw, clint->user));
 				streamWriter.Write(canDraw);
 				streamWriter.Write(clint->user);
-				serv.SendClientData(streamWriter, streamWriter.GetSize(), fClint->pc, true);
+				serv.SendClientData(streamWriter, streamWriter.GetSize(), fClint, true);
 			}
 			else
 				serv.SendMsg(clint->user, TYPE_ADMIN, MSG_ADMIN_NOT);
@@ -310,13 +310,13 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 			MsgStreamWriter streamWriter(TYPE_DATA, MSG_DATA_TEXT, StreamWriter::SizeType(str));
 			streamWriter.Write(str);
 			
-			serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, false);
+			serv.SendClientData(streamWriter, streamWriter.GetSize(), clint, false);
 			break;
 		}
 		case MSG_DATA_MOUSE:
 		{
 			if(wb)
-				wb->GetClientData(clint->pc).mServ.Insert((BYTE*)dat, nBytes);
+				wb->GetClientData(clint).mServ.Insert((BYTE*)dat, nBytes);
 
 			break;
 		}
@@ -363,7 +363,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 			//Send activate message to new client
 			MsgStreamWriter streamWriter(TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE, sizeof(WBParams));
 			streamWriter.Write(wbParams);
-			serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, true);
+			serv.SendClientData(streamWriter, streamWriter.GetSize(), clint, true);
 			break;
 		}
 		case MSG_RESPONSE_WHITEBOARD_INITED:
@@ -376,16 +376,16 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 				serv.SendClientData(streamWriter, streamWriter.GetSize(), wb->GetPcs());
 
 				//Add client after so it doesnt send message to joiner
-				wb->AddClient(clint->pc);
+				wb->AddClient(clint);
 
 				//Send out initial bitmap
 				const WBParams& wbParams = wb->GetParams();
 				RectU rect(0, 0, wbParams.width, wbParams.height);
-				wb->SendBitmap(rect, clint->pc, true);
+				wb->SendBitmap(rect, clint, true);
 			}
 			else
 			{
-				wb->AddClient(clint->pc);
+				wb->AddClient(clint);
 			}
 			break;
 		}
@@ -449,9 +449,9 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 		case MSG_VERSION_CHECK:
 		{
 			if (streamReader.Read<float>() == APPVERSION)
-				serv.SendMsg(clint->pc, true, TYPE_VERSION, MSG_VERSION_UPTODATE);
+				serv.SendMsg(clint, true, TYPE_VERSION, MSG_VERSION_UPTODATE);
 			else
-				serv.SendMsg(clint->pc, true, TYPE_VERSION, MSG_VERSION_OUTOFDATE);
+				serv.SendMsg(clint, true, TYPE_VERSION, MSG_VERSION_OUTOFDATE);
 
 			break;
 		}
@@ -471,7 +471,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 
 				MsgStreamWriter streamWriter(TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE, sizeof(WBParams));
 				streamWriter.Write(*params);
-				serv.SendClientData(streamWriter, streamWriter.GetSize(), clint->pc, true);
+				serv.SendClientData(streamWriter, streamWriter.GetSize(), clint, true);
 
 				wb = construct<Whiteboard>(serv, std::move(*params), clint->user);
 
@@ -479,7 +479,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 			}
 			else
 			{
-				serv.SendMsg(clint->pc, true, TYPE_WHITEBOARD, MSG_WHITEBOARD_CANNOTCREATE);
+				serv.SendMsg(clint, true, TYPE_WHITEBOARD, MSG_WHITEBOARD_CANNOTCREATE);
 			}
 			break;
 		}
@@ -499,7 +499,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 			}
 			else
 			{
-				serv.SendMsg(clint->pc, true, TYPE_WHITEBOARD, MSG_WHITEBOARD_CANNOTTERMINATE);
+				serv.SendMsg(clint, true, TYPE_WHITEBOARD, MSG_WHITEBOARD_CANNOTTERMINATE);
 			}
 
 			break;
@@ -526,7 +526,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 		{
 			if (wb)
 			{
-				wb->RemoveClient(clint->pc);
+				wb->RemoveClient(clint);
 				if (wb->IsCreator(clint->user))
 				{
 					if(!wb->GetPcs().empty())
@@ -551,7 +551,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, const BYTE* dat
 		{
 		case MSG_TOOL_CHANGE:
 		{
-			WBClientData& wbClientData = wb->GetClientData(clint->pc);
+			WBClientData& wbClientData = wb->GetClientData(clint);
 			wbClientData.tool = streamReader.Read<Tool>();
 			const float sizeAmount = streamReader.Read<float>();
 

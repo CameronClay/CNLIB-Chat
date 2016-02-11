@@ -21,14 +21,16 @@ public:
 	};
 
 	//capacity must be >= 1
-	explicit MemPool(size_t elementSizeMax, size_t capacity, const Allocator<char>& alloc = Allocator<char>())
+	//note alignment only gaurentees alignment based on the address given from alloc.allocate(), in order to ensure proper allignment, 
+	//allocator should also align to alignment passed here
+	explicit MemPool(size_t elementSize, size_t capacity, size_t alignment = 4, const Allocator<char>& alloc = Allocator<char>())
 		:
 		allocator(alloc),
-		elementSizeMax(elementSizeMax),
+		elementSizeMax((((((elementSize + Element::OFFSET + alignment - 1) / alignment)) * alignment)) - Element::OFFSET), //round up to nearest multiple of alignment
 		capacity(capacity),
 		data(allocator.allocate((elementSizeMax + Element::OFFSET) * capacity)),
-		begin((Element*)data),
-		end((Element*)(data + (elementSizeMax + Element::OFFSET) * (capacity - 1))),
+		begin((Element*)(data + elementSizeMax)),
+		end((Element*)((char*)begin + (elementSizeMax + Element::OFFSET) * (capacity - 1))),
 		used(nullptr),
 		avail(begin)
 	{
@@ -37,7 +39,7 @@ public:
 		if (capacity > 1)
 		{
 			begin->prev = nullptr;
-			begin->next = (Element*)(data + (elementSizeMax + Element::OFFSET));
+			begin->next = (Element*)((char*)begin + (elementSizeMax + Element::OFFSET));
 			for (char *prev = (char*)begin, *ptr = (char*)(begin->next), *next = ptr + (elementSizeMax + Element::OFFSET);
 				ptr != (char*)end;
 				prev = ptr, ptr = next, next += (elementSizeMax + Element::OFFSET))//loop from 1 to count -1
@@ -108,7 +110,7 @@ public:
 	{
 		if (t)
 		{
-			Element* element = (Element*)((char*)t - Element::OFFSET);
+			Element* element = (Element*)((char*)t + elementSizeMax);
 
 			if (ElementInPool(element))
 				PoolDealloc(element);
@@ -147,7 +149,7 @@ public:
 	template<typename T>
 	inline bool InPool(T* p) const
 	{
-		Element* e = (Element*)((char*)p - Element::OFFSET);
+		Element* e = (Element*)((char*)p + elementSizeMax);
 		return (e >= begin) && (e <= end);
 	}
 	inline bool FitsInPool(size_t elementSize) const
@@ -179,7 +181,7 @@ protected:
 	{
 		Element* element = PopAvail();
 		PushUsed(element);
-		return (void*)((char*)element + Element::OFFSET);
+		return (void*)((char*)element - elementSizeMax);
 	}
 	inline void PoolDealloc(Element* element)
 	{
@@ -258,9 +260,11 @@ class MemPoolSync : public MemPool<Allocator>
 {
 public:
 	//capacity must be >= 1
-	explicit MemPoolSync(size_t elementSizeMax, size_t capacity, const Allocator<char>& allocator = Allocator<char>())
+	//note alignment only gaurentees alignment based on the address given from alloc.allocate(), in order to ensure proper allignment, 
+	//allocator should also align to alignment passed here
+	explicit MemPoolSync(size_t elementSize, size_t capacity, size_t alignment = 4, const Allocator<char>& allocator = Allocator<char>())
 		:
-		MemPool(elementSizeMax, capacity, allocator)
+		MemPool(elementSize, capacity, alignment, allocator)
 	{
 		InitializeCriticalSection(&sect);
 	}
@@ -316,7 +320,7 @@ public:
 	{
 		if (t)
 		{
-			Element* element = (Element*)((char*)t - Element::OFFSET);
+			Element* element = (Element*)((char*)t + elementSizeMax);
 
 			if (ElementInPool(element))
 			{

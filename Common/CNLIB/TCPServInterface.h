@@ -20,6 +20,8 @@ public:
 		ClientData(ClientData&& clint);
 		ClientData& operator=(ClientData&& data);
 
+		UINT GetOpCount() const;
+
 		Socket pc;
 		sfunc func;
 		std::tstring user;
@@ -43,13 +45,13 @@ public:
 
 	virtual char* GetSendBuffer() = 0;
 
-	virtual void SendClientData(const char* data, DWORD nBytes, Socket exAddr, bool single, CompressionType compType = BESTFIT) = 0;
-	virtual void SendClientData(const char* data, DWORD nBytes, Socket* pcs, UINT nPcs, CompressionType compType = BESTFIT) = 0;
-	virtual void SendClientData(const char* data, DWORD nBytes, std::vector<Socket>& pcs, CompressionType compType = BESTFIT) = 0;
+	virtual void SendClientData(const char* data, DWORD nBytes, ClientData* exClient, bool single, CompressionType compType = BESTFIT) = 0;
+	virtual void SendClientData(const char* data, DWORD nBytes, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT) = 0;
+	virtual void SendClientData(const char* data, DWORD nBytes, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT) = 0;
 
-	virtual void SendMsg(Socket exAddr, bool single, short type, short message) = 0;
-	virtual void SendMsg(Socket* pcs, UINT nPcs, short type, short message) = 0;
-	virtual void SendMsg(std::vector<Socket>& pcs, short type, short message) = 0;
+	virtual void SendMsg(ClientData* exClient, bool single, short type, short message) = 0;
+	virtual void SendMsg(ClientData** clients, UINT nClients, short type, short message) = 0;
+	virtual void SendMsg(std::vector<ClientData*>& pcs, short type, short message) = 0;
 	virtual void SendMsg(const std::tstring& user, short type, short message) = 0;
 
 	virtual ClientData* FindClient(const std::tstring& user) const = 0;
@@ -72,6 +74,13 @@ public:
 	virtual UINT MaxCompSize() const = 0;
 	virtual UINT GetOpCount() const = 0;
 
+	virtual UINT SingleOlCount() const = 0;
+	virtual UINT AllOlCount() const = 0;
+	virtual UINT SendBuffCount() const = 0;
+	virtual UINT SendMsgBuffCount() const = 0;
+
+	virtual UINT GetMaxPcSendOps() const = 0;
+
 	virtual int GetCompressionCO() const = 0;
 
 	virtual void* GetObj() const = 0;
@@ -89,5 +98,5 @@ typedef void(*const ConFunc)(ClientData* data);
 typedef void(*const DisconFunc)(ClientData* data, bool unexpected);
 
 
-CAMSNETLIB TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxDataSize = 8192, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, bool noDelay = false, void* obj = nullptr);
+CAMSNETLIB TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxPCSendOps = 3, UINT maxDataSize = 8192, UINT singleOlCount = 30, UINT allOlCount = 30, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, bool noDelay = false, void* obj = nullptr);
 CAMSNETLIB void DestroyServer(TCPServInterface*& server);
