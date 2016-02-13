@@ -14,7 +14,7 @@ class TCPServ : public TCPServInterface, public KeepAliveHI
 {
 public:
 	//sfunc is a message handler, compression is 1-9
-	TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxPCSendOps = 3, UINT maxDataSize = 8192, UINT singleOlCount = 30, UINT allOlCount = 30, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, bool noDelay = false, void* obj = nullptr);
+	TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxPCSendOps = 5, UINT maxDataSize = 8192, UINT singleOlCount = 30, UINT allOlCount = 30, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, bool noDelay = false, void* obj = nullptr);
 	TCPServ(TCPServ&& serv);
 	~TCPServ();
 
@@ -120,15 +120,13 @@ public:
 
 	UINT GetMaxPcSendOps() const override;
 
-	InterlockedCounter& GetOpCounter();
-
 	IOCP& GetIOCP();
 
 	MemPool<HeapAllocator>& GetRecvBuffPool();
 
 	WSABufSend CreateSendBuffer(DWORD nBytesDecomp, char* buffer, OpType opType, CompressionType compType = BESTFIT);
 
-	void FreeSendBuffer(WSABufSend buff, OpType opType);
+	void FreeSendBuffer(WSABufSend& buff, OpType opType);
 	void FreeSendOlInfo(OverlappedSendInfo* ol);
 
 	void AcceptConCR(HostSocket& host, OverlappedExt* ol);
@@ -140,8 +138,8 @@ private:
 	void SendClientData(const char* data, DWORD nBytes, ClientDataEx* exClient, bool single, OpType opType, CompressionType compType);
 	void SendClientData(const char* data, DWORD nBytes, ClientDataEx** clients, UINT nClients, OpType opType, CompressionType compType);
 
-	void SendClientData(WSABufSend sendBuff, ClientDataEx* exClient, bool single, OpType opType);
-	void SendClientData(WSABufSend sendBuff, ClientDataEx** clients, UINT nClients, OpType opType);
+	void SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient, bool single, OpType opType);
+	void SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients, UINT nClients, OpType opType);
 	void SendClientSingle(ClientDataEx& clint, OverlappedSendInfo* olInfo, OverlappedSend* ol, bool popQueue = false);
 
 	HostSocket ipv4Host, ipv6Host; //host/listener sockets
@@ -159,7 +157,7 @@ private:
 	const UINT maxPCSendOps; //max per client concurent send operations
 	const int compression, compressionCO; //compression server sends packets at
 	const UINT maxCon; //max clients
-	float keepAliveInterval; //interval at which server KeepAlives(technically is a keep alive message that sends data) clients
+	float keepAliveInterval; //interval at which server keepalives clients
 	KeepAliveHandler* keepAliveHandler; //handles all KeepAlives to client, to prevent timeout
 	MemPool<HeapAllocator> clientPool, recvBuffPool; //Used to help speed up allocation of client resources
 	MemPoolSync<HeapAllocator> sendOlInfoPool, sendOlPoolSingle, sendOlPoolAll; //Used to help speed up allocation of structures needed to send Ol data

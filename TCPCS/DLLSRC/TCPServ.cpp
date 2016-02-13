@@ -286,7 +286,7 @@ WSABufSend TCPServ::CreateSendBuffer(DWORD nBytesDecomp, char* buffer, OpType op
 	buf.Initialize(nBytesSend, dest, buffer);
 	return buf;
 }
-void TCPServ::FreeSendBuffer(WSABufSend buff, OpType opType)
+void TCPServ::FreeSendBuffer(WSABufSend& buff, OpType opType)
 {
 	if (opType == OpType::send)
 		sendDataPool.dealloc(buff.head);
@@ -332,7 +332,6 @@ void TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSendInfo* olInfo, 
 {
 	if (clint.pc.IsConnected())
 	{
-		ol->sendInfo->head = ol;
 		++opCounter;
 
 		if (popQueue || (++clint.opCount).GetOpCount() <= maxPCSendOps)
@@ -369,7 +368,7 @@ void TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSendInfo* olInfo, 
 		}
 	}
 }
-void TCPServ::SendClientData(WSABufSend sendBuff, ClientDataEx* exClient, bool single, OpType opType)
+void TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient, bool single, OpType opType)
 {
 	long res = 0, err = 0;
 
@@ -380,12 +379,16 @@ void TCPServ::SendClientData(WSABufSend sendBuff, ClientDataEx* exClient, bool s
 	{
 		OverlappedSendInfo* sendInfo = sendOlInfoPool.construct<OverlappedSendInfo>(sendBuff, true, 1);
 		OverlappedSend* ol = sendOlPoolSingle.construct<OverlappedSend>(sendInfo);
+		sendInfo->head = ol;
+		ol->sendInfo = sendInfo;
+
 		SendClientSingle(*exClient, sendInfo, ol);
 	}
 	else
 	{
 		OverlappedSendInfo* sendInfo = sendOlInfoPool.construct<OverlappedSendInfo>(sendBuff, false, nClients);
 		OverlappedSend* ol = sendOlPoolAll.construct<OverlappedSend>(sendInfo);
+		sendInfo->head = ol;
 
 		opCounter += nClients;
 		for (UINT i = 0; i < nClients; i++)
@@ -416,7 +419,7 @@ void TCPServ::SendClientData(WSABufSend sendBuff, ClientDataEx* exClient, bool s
 		}
 	}
 }
-void TCPServ::SendClientData(WSABufSend sendBuff, ClientDataEx** clients, UINT nClients, OpType opType)
+void TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients, UINT nClients, OpType opType)
 {
 	long res = 0, err = 0;
 
@@ -427,14 +430,18 @@ void TCPServ::SendClientData(WSABufSend sendBuff, ClientDataEx** clients, UINT n
 	{
 		OverlappedSendInfo* sendInfo = sendOlInfoPool.construct<OverlappedSendInfo>(sendBuff, true, 1);
 		OverlappedSend* ol = sendOlPoolSingle.construct<OverlappedSend>(sendInfo);
+		sendInfo->head = ol;
+		ol->sendInfo = sendInfo;
+
 		SendClientSingle(**clients, sendInfo, ol);
 	}
 	else
 	{
 		OverlappedSendInfo* sendInfo = sendOlInfoPool.construct<OverlappedSendInfo>(sendBuff, false, nClients);
 		OverlappedSend* ol = sendOlPoolAll.construct<OverlappedSend>(sendInfo);
-		opCounter += nClients;
+		sendInfo->head = ol;
 
+		opCounter += nClients;
 		for (UINT i = 0; i < nClients; i++)
 		{
 			ClientDataEx& clint = **(clients + i);
@@ -975,11 +982,6 @@ UINT TCPServ::SendMsgBuffCount() const
 UINT TCPServ::GetMaxPcSendOps() const
 {
 	return maxPCSendOps;
-}
-
-InterlockedCounter& TCPServ::GetOpCounter()
-{
-	return opCounter;
 }
 
 IOCP& TCPServ::GetIOCP()
