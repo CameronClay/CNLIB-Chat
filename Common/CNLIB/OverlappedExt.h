@@ -69,6 +69,12 @@ struct OverlappedSend : OverlappedExt
 		sendInfo(sendInfo)
 	{}
 
+	void Initalize(OverlappedSendInfo* sendInfo)
+	{
+		opType = OpType::send;
+		this->sendInfo = sendInfo;
+	}
+
 	OverlappedSendInfo* sendInfo;
 };
 

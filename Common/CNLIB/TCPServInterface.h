@@ -45,9 +45,9 @@ public:
 
 	virtual char* GetSendBuffer() = 0;
 
-	virtual void SendClientData(const char* data, DWORD nBytes, ClientData* exClient, bool single, CompressionType compType = BESTFIT) = 0;
-	virtual void SendClientData(const char* data, DWORD nBytes, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT) = 0;
-	virtual void SendClientData(const char* data, DWORD nBytes, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT) = 0;
+	virtual bool SendClientData(const char* data, DWORD nBytes, ClientData* exClient, bool single, CompressionType compType = BESTFIT) = 0;
+	virtual bool SendClientData(const char* data, DWORD nBytes, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT) = 0;
+	virtual bool SendClientData(const char* data, DWORD nBytes, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT) = 0;
 
 	virtual void SendMsg(ClientData* exClient, bool single, short type, short message) = 0;
 	virtual void SendMsg(ClientData** clients, UINT nClients, short type, short message) = 0;

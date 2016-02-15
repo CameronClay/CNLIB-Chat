@@ -305,30 +305,30 @@ void TCPServ::FreeSendOlInfo(OverlappedSendInfo* ol)
 	sendOlInfoPool.dealloc(ol);
 }
 
-void TCPServ::SendClientData(const char* data, DWORD nBytes, ClientData* exClient, bool single, CompressionType compType)
+bool TCPServ::SendClientData(const char* data, DWORD nBytes, ClientData* exClient, bool single, CompressionType compType)
 {
-	SendClientData(data, nBytes, (ClientDataEx**)exClient, single, OpType::send, compType);
+	return SendClientData(data, nBytes, (ClientDataEx**)exClient, single, OpType::send, compType);
 }
-void TCPServ::SendClientData(const char* data, DWORD nBytes, ClientData** clients, UINT nClients, CompressionType compType)
+bool TCPServ::SendClientData(const char* data, DWORD nBytes, ClientData** clients, UINT nClients, CompressionType compType)
 {
-	SendClientData(data, nBytes, (ClientDataEx**)clients, nClients, OpType::send, compType);
+	return SendClientData(data, nBytes, (ClientDataEx**)clients, nClients, OpType::send, compType);
 }
-void TCPServ::SendClientData(const char* data, DWORD nBytes, std::vector<ClientData*>& pcs, CompressionType compType)
+bool TCPServ::SendClientData(const char* data, DWORD nBytes, std::vector<ClientData*>& pcs, CompressionType compType)
 {
-	SendClientData(data, nBytes, pcs.data(), (USHORT)pcs.size(), compType);
-}
-
-void TCPServ::SendClientData(const char* data, DWORD nBytes, ClientDataEx* exClient, bool single, OpType opType, CompressionType compType)
-{
-	SendClientData(CreateSendBuffer(nBytes, (char*)data, opType, compType), exClient, single, opType);
-}
-void TCPServ::SendClientData(const char* data, DWORD nBytes, ClientDataEx** clients, UINT nClients, OpType opType, CompressionType compType)
-{
-	SendClientData(CreateSendBuffer(nBytes, (char*)data, opType, compType), clients, nClients, opType);
+	return SendClientData(data, nBytes, pcs.data(), (USHORT)pcs.size(), compType);
 }
 
+bool TCPServ::SendClientData(const char* data, DWORD nBytes, ClientDataEx* exClient, bool single, OpType opType, CompressionType compType)
+{
+	return SendClientData(CreateSendBuffer(nBytes, (char*)data, opType, compType), exClient, single, opType);
+}
+bool TCPServ::SendClientData(const char* data, DWORD nBytes, ClientDataEx** clients, UINT nClients, OpType opType, CompressionType compType)
+{
+	return SendClientData(CreateSendBuffer(nBytes, (char*)data, opType, compType), clients, nClients, opType);
+}
 
-void TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSendInfo* olInfo, OverlappedSend* ol, bool popQueue)
+
+bool TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSendInfo* olInfo, OverlappedSend* ol, bool popQueue)
 {
 	if (clint.pc.IsConnected())
 	{
@@ -367,25 +367,46 @@ void TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSendInfo* olInfo, 
 			clint.opsPending.pop();
 		}
 	}
+	else
+	{
+		if (olInfo->DecrementRefCount())
+			FreeSendOlInfo(olInfo);
+
+		return false;
+	}
+
+	return true;
 }
-void TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient, bool single, OpType opType)
+bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient, bool single, OpType opType)
 {
 	long res = 0, err = 0;
 
 	if (!sendBuff.head)
-		return;
+		return false;
 
 	if (single)
 	{
+		if (!(exClient && exClient->pc.IsConnected()))
+		{
+			FreeSendBuffer((WSABufSend&)sendBuff, opType);
+			return false;
+		}
+
 		OverlappedSendInfo* sendInfo = sendOlInfoPool.construct<OverlappedSendInfo>(sendBuff, true, 1);
 		OverlappedSend* ol = sendOlPoolSingle.construct<OverlappedSend>(sendInfo);
 		sendInfo->head = ol;
-		ol->sendInfo = sendInfo;
+		ol->Initalize(sendInfo);
 
-		SendClientSingle(*exClient, sendInfo, ol);
+		return SendClientSingle(*exClient, sendInfo, ol);
 	}
 	else
 	{
+		if (!nClients || (nClients == 1 && exClient))
+		{
+			FreeSendBuffer((WSABufSend&)sendBuff, opType);
+			return false;
+		}
+
 		OverlappedSendInfo* sendInfo = sendOlInfoPool.construct<OverlappedSendInfo>(sendBuff, false, nClients);
 		OverlappedSend* ol = sendOlPoolAll.construct<OverlappedSend>(sendInfo);
 		sendInfo->head = ol;
@@ -396,7 +417,7 @@ void TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient,
 			ClientDataEx* clint = clients[i];
 			if (clint != exClient)
 			{
-				ol[i].sendInfo = sendInfo;
+				ol[i].Initalize(sendInfo);
 				res = clint->pc.SendDataOl(&sendInfo->sendBuff, &ol[i]);
 				err = WSAGetLastError();
 			}
@@ -418,22 +439,29 @@ void TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient,
 			}
 		}
 	}
+	return true;
 }
-void TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients, UINT nClients, OpType opType)
+bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients, UINT nClients, OpType opType)
 {
 	long res = 0, err = 0;
 
 	if (!sendBuff.head)
-		return;
+		return false;
+
+	if (!(clients && nClients))
+	{
+		FreeSendBuffer((WSABufSend&)sendBuff, opType);
+		return false;
+	}
 
 	if (nClients == 1)
 	{
 		OverlappedSendInfo* sendInfo = sendOlInfoPool.construct<OverlappedSendInfo>(sendBuff, true, 1);
 		OverlappedSend* ol = sendOlPoolSingle.construct<OverlappedSend>(sendInfo);
 		sendInfo->head = ol;
-		ol->sendInfo = sendInfo;
+		ol->Initalize(sendInfo);
 
-		SendClientSingle(**clients, sendInfo, ol);
+		return SendClientSingle(**clients, sendInfo, ol);
 	}
 	else
 	{
@@ -445,7 +473,7 @@ void TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients,
 		for (UINT i = 0; i < nClients; i++)
 		{
 			ClientDataEx& clint = **(clients + i);
-			ol[i].sendInfo = sendInfo;
+			ol[i].Initalize(sendInfo);
 			res = clint.pc.SendDataOl(&sendInfo->sendBuff, &ol[i]);
 			err = WSAGetLastError();
 
@@ -466,6 +494,7 @@ void TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients,
 			}
 		}
 	}
+	return true;
 }
 
 void TCPServ::SendMsg(ClientData* exClient, bool single, short type, short message)
@@ -492,20 +521,25 @@ void TCPServ::SendMsg(const std::tstring& user, short type, short message)
 void TCPServ::RecvDataCR(DWORD bytesTrans, ClientDataEx& cd, OverlappedExt* ol)
 {
 	char* ptr = cd.buff.head;
+
+	//Incase there is already a partial block in buffer
+	DWORD prevBytes = cd.buff.curBytes;
 	while (true)
 	{
 		BufSize bufSize(*(DWORD64*)ptr);
 		const DWORD bytesToRecv = ((bufSize.up.nBytesComp) ? bufSize.up.nBytesComp : bufSize.up.nBytesDecomp);
 
 		//If there is a full data block ready for processing
-		if (bytesToRecv >= bytesTrans)
+		if (prevBytes + bytesTrans - sizeof(DWORD64) >= bytesToRecv)
 		{
+			const DWORD temp = bytesToRecv + sizeof(DWORD64);
+			cd.buff.curBytes += temp;
+			bytesTrans -= temp;
 			ptr += sizeof(DWORD64);
-			cd.buff.curBytes += min(bytesTrans, bytesToRecv + sizeof(DWORD64));
+
 			//If data was compressed
 			if (bufSize.up.nBytesComp)
 			{
-				const DWORD maxCompSize = cd.serv.MaxCompSize();
 				BYTE* dest = (BYTE*)(cd.buff.head + sizeof(DWORD64) + maxCompSize);
 				FileMisc::Decompress(dest, maxCompSize, (const BYTE*)ptr, bytesToRecv);	// Decompress data
 				(cd.func)(cd.serv, &cd, dest, bufSize.up.nBytesDecomp);
@@ -516,7 +550,7 @@ void TCPServ::RecvDataCR(DWORD bytesTrans, ClientDataEx& cd, OverlappedExt* ol)
 				(cd.func)(cd.serv, &cd, (const BYTE*)ptr, bufSize.up.nBytesDecomp);
 			}
 			//If no partial blocks to copy to start of buffer
-			if (cd.buff.curBytes == bytesTrans)
+			if (!bytesTrans)
 			{
 				cd.buff.buf = cd.buff.head;
 				cd.buff.curBytes = 0;
@@ -524,17 +558,23 @@ void TCPServ::RecvDataCR(DWORD bytesTrans, ClientDataEx& cd, OverlappedExt* ol)
 			}
 		}
 		//If the next block of data has not been fully received
-		else
+		else if (bytesToRecv <= maxDataSize)
 		{
 			//Concatenate remaining data to buffer
-			const DWORD temp = bytesTrans - cd.buff.curBytes;
+			const DWORD temp = bytesTrans - (cd.buff.curBytes + sizeof(DWORD64));
 			if (cd.buff.head != ptr)
 				memcpy(cd.buff.head, ptr, temp);
-			cd.buff.curBytes = temp;
+			cd.buff.curBytes = bytesToRecv - temp;
 			cd.buff.buf = cd.buff.head + temp;
 			break;
 		}
+		else
+		{
+			//error has occured
+			break;
+		}
 		ptr += bytesToRecv;
+		prevBytes = 0;
 	}
 
 	cd.pc.ReadDataOl(&cd.buff, &cd.ol);
@@ -827,10 +867,10 @@ void TCPServ::RemoveClient(ClientDataEx* client, bool unexpected)
 
 TCPServ::ClientData* TCPServ::FindClient(const std::tstring& user) const
 {
-	for (UINT i = 0; i < nClients; i++)
+	for (ClientDataEx **ptr = clients, **end = clients + nClients; ptr != end; ptr++)
 	{
-		if (clients[i]->user.compare(user) == 0)
-			return clients[i];
+		if ((*ptr)->user.compare(user) == 0)
+			return *ptr;
 	}
 	return nullptr;
 }

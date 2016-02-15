@@ -167,7 +167,7 @@ void DispIPMsg(Socket& pc, const LIB_TCHAR* str)
 void DisconnectHandler(ClientData* data, bool unexpected)
 {
 	if (unexpected)
-		serv->SendMsg(nullptr, false, TYPE_CHANGE, MSG_CHANGE_DISCONNECT);
+		serv->SendMsg(data, false, TYPE_CHANGE, MSG_CHANGE_DISCONNECT);
 
 	LIB_TCHAR buffer[128] = {};
 	_stprintf(buffer, _T("(%s) has disconnected!"), (!data->user.empty()) ? data->user.c_str() : _T("unknown"));

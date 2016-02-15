@@ -68,9 +68,9 @@ public:
 	//Used to send data to clients
 	//addr parameter functions as both the excluded address, and as a single address, 
 	//depending on the value of single
-	void SendClientData(const char* data, DWORD nBytes, ClientData* exClient, bool single, CompressionType compType = BESTFIT) override;
-	void SendClientData(const char* data, DWORD nBytes, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT) override;
-	void SendClientData(const char* data, DWORD nBytes, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT) override;
+	bool SendClientData(const char* data, DWORD nBytes, ClientData* exClient, bool single, CompressionType compType = BESTFIT) override;
+	bool SendClientData(const char* data, DWORD nBytes, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT) override;
+	bool SendClientData(const char* data, DWORD nBytes, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT) override;
 
 	//Send msg funtions used for requests, replies ect. they do not send data
 	void SendMsg(ClientData* exClient, bool single, short type, short message) override;
@@ -135,12 +135,12 @@ public:
 	bool CleanupSendData(ClientDataEx& cd, OverlappedSend* ol);
 	void CleanupAcceptEx(HostSocket& host);
 private:
-	void SendClientData(const char* data, DWORD nBytes, ClientDataEx* exClient, bool single, OpType opType, CompressionType compType);
-	void SendClientData(const char* data, DWORD nBytes, ClientDataEx** clients, UINT nClients, OpType opType, CompressionType compType);
+	bool SendClientData(const char* data, DWORD nBytes, ClientDataEx* exClient, bool single, OpType opType, CompressionType compType);
+	bool SendClientData(const char* data, DWORD nBytes, ClientDataEx** clients, UINT nClients, OpType opType, CompressionType compType);
 
-	void SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient, bool single, OpType opType);
-	void SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients, UINT nClients, OpType opType);
-	void SendClientSingle(ClientDataEx& clint, OverlappedSendInfo* olInfo, OverlappedSend* ol, bool popQueue = false);
+	bool SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient, bool single, OpType opType);
+	bool SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients, UINT nClients, OpType opType);
+	bool SendClientSingle(ClientDataEx& clint, OverlappedSendInfo* olInfo, OverlappedSend* ol, bool popQueue = false);
 
 	HostSocket ipv4Host, ipv6Host; //host/listener sockets
 	ClientDataEx** clients; //array of clients
