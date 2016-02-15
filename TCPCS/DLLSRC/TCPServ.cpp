@@ -523,14 +523,16 @@ void TCPServ::RecvDataCR(DWORD bytesTrans, ClientDataEx& cd, OverlappedExt* ol)
 	char* ptr = cd.buff.head;
 
 	//Incase there is already a partial block in buffer
-	DWORD prevBytes = cd.buff.curBytes;
+	bytesTrans += cd.buff.curBytes;
+	cd.buff.curBytes = 0;
+
 	while (true)
 	{
 		BufSize bufSize(*(DWORD64*)ptr);
 		const DWORD bytesToRecv = ((bufSize.up.nBytesComp) ? bufSize.up.nBytesComp : bufSize.up.nBytesDecomp);
 
 		//If there is a full data block ready for processing
-		if (prevBytes + bytesTrans - sizeof(DWORD64) >= bytesToRecv)
+		if (bytesTrans - sizeof(DWORD64) >= bytesToRecv)
 		{
 			const DWORD temp = bytesToRecv + sizeof(DWORD64);
 			cd.buff.curBytes += temp;
@@ -561,20 +563,20 @@ void TCPServ::RecvDataCR(DWORD bytesTrans, ClientDataEx& cd, OverlappedExt* ol)
 		else if (bytesToRecv <= maxDataSize)
 		{
 			//Concatenate remaining data to buffer
-			const DWORD temp = bytesTrans - (cd.buff.curBytes + sizeof(DWORD64));
+			const DWORD bytesReceived = bytesTrans - cd.buff.curBytes;
 			if (cd.buff.head != ptr)
-				memcpy(cd.buff.head, ptr, temp);
-			cd.buff.curBytes = bytesToRecv - temp;
-			cd.buff.buf = cd.buff.head + temp;
+				memcpy(cd.buff.head, ptr, bytesReceived);
+			cd.buff.curBytes = bytesReceived;
+			cd.buff.buf = cd.buff.head + bytesReceived;
 			break;
 		}
 		else
 		{
+			assert(false);
 			//error has occured
 			break;
 		}
 		ptr += bytesToRecv;
-		prevBytes = 0;
 	}
 
 	cd.pc.ReadDataOl(&cd.buff, &cd.ol);
