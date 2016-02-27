@@ -22,7 +22,6 @@ public:
 	virtual bool RecvServData() = 0;
 
 	virtual void SendServData(const char* data, DWORD nBytes, CompressionType compType = BESTFIT) = 0;
-	virtual HANDLE SendServDataThread(const char* data, DWORD nBytes, CompressionType compType = BESTFIT) = 0;
 
 	virtual void SendMsg(short type, short message) = 0;
 	virtual void SendMsg(const std::tstring& user, short type, short message) = 0;

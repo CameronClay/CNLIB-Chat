@@ -21,7 +21,6 @@ public:
 	void Cleanup();
 
 	void SendServData(const char* data, DWORD nBytes, CompressionType compType = BESTFIT);
-	HANDLE SendServDataThread(const char* data, DWORD nBytes, CompressionType compType = BESTFIT);
 
 	//Should only be called once to intialy create receving thread
 	bool RecvServData();

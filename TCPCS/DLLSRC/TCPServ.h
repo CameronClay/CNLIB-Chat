@@ -65,6 +65,8 @@ public:
 
 	char* GetSendBuffer() override;
 
+	MsgStreamWriterNew CreateOutStream(short type, short msg) override;
+
 	//Used to send data to clients
 	//addr parameter functions as both the excluded address, and as a single address, 
 	//depending on the value of single

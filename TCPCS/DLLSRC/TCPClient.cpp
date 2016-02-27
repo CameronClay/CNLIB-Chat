@@ -221,18 +221,6 @@ void TCPClient::SendServData(const char* data, DWORD nBytes, CompressionType com
 	SendData(construct<SendInfo>(*this, (char*)data, nBytes, compType));
 }
 
-HANDLE TCPClient::SendServDataThread(const char* data, DWORD nBytes, CompressionType compType)
-{
-	if (compType == BESTFIT)
-	{
-		if (nBytes >= COMPBYTECO)
-			compType = SETCOMPRESSION;
-		else
-			compType = NOCOMPRESSION;
-	}
-	return CreateThread(NULL, 0, SendData, construct<SendInfo>(*this, (char*)data, nBytes, compType), NULL, NULL);
-}
-
 
 void TCPClient::SendMsg(short type, short message)
 {

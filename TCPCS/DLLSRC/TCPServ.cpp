@@ -234,7 +234,10 @@ DWORD CALLBACK IOCPThread(LPVOID info)
 	return 0;
 }
 
-
+MsgStreamWriterNew TCPServ::CreateOutStream(short type, short msg)
+{
+	return { GetSendBuffer(), maxDataSize, type, msg };
+}
 char* TCPServ::GetSendBuffer()
 {
 	return sendDataPool.alloc<char>() + sizeof(DWORD64);
@@ -242,8 +245,8 @@ char* TCPServ::GetSendBuffer()
 
 WSABufSend TCPServ::CreateSendBuffer(DWORD nBytesDecomp, char* buffer, OpType opType, CompressionType compType)
 {
-	DWORD nBytesComp = 0, nBytesSend = nBytesDecomp;
-	char* dest = buffer;
+	DWORD nBytesComp = 0, nBytesSend = nBytesDecomp + sizeof(DWORD64);
+	char* dest;
 
 	if (opType == OpType::sendmsg)
 	{
@@ -253,7 +256,7 @@ WSABufSend TCPServ::CreateSendBuffer(DWORD nBytesDecomp, char* buffer, OpType op
 	}
 	else
 	{
-		buffer -= sizeof(DWORD64);
+		dest = buffer -= sizeof(DWORD64);
 		if (nBytesDecomp > maxDataSize)
 		{
 			sendDataPool.destruct(buffer);
@@ -271,9 +274,10 @@ WSABufSend TCPServ::CreateSendBuffer(DWORD nBytesDecomp, char* buffer, OpType op
 
 	if (compType == SETCOMPRESSION)
 	{
-		nBytesComp = FileMisc::Compress((BYTE*)(buffer + maxDataSize + sizeof(DWORD64)), maxCompSize, (const BYTE*)(buffer + sizeof(DWORD64)), nBytesDecomp, compression);
+		DWORD temp = FileMisc::Compress((BYTE*)(buffer + maxDataSize + sizeof(DWORD64)), maxCompSize, (const BYTE*)(buffer + sizeof(DWORD64)), nBytesDecomp, compression);
 		if (nBytesComp < nBytesDecomp)
 		{
+			nBytesComp = temp;
 			nBytesSend = nBytesComp;
 			dest = buffer + maxDataSize;
 		}
@@ -307,7 +311,7 @@ void TCPServ::FreeSendOlInfo(OverlappedSendInfo* ol)
 
 bool TCPServ::SendClientData(const char* data, DWORD nBytes, ClientData* exClient, bool single, CompressionType compType)
 {
-	return SendClientData(data, nBytes, (ClientDataEx**)exClient, single, OpType::send, compType);
+	return SendClientData(data, nBytes, (ClientDataEx*)exClient, single, OpType::send, compType);
 }
 bool TCPServ::SendClientData(const char* data, DWORD nBytes, ClientData** clients, UINT nClients, CompressionType compType)
 {
@@ -315,7 +319,7 @@ bool TCPServ::SendClientData(const char* data, DWORD nBytes, ClientData** client
 }
 bool TCPServ::SendClientData(const char* data, DWORD nBytes, std::vector<ClientData*>& pcs, CompressionType compType)
 {
-	return SendClientData(data, nBytes, pcs.data(), (USHORT)pcs.size(), compType);
+	return SendClientData(data, nBytes, pcs.data(), pcs.size(), compType);
 }
 
 bool TCPServ::SendClientData(const char* data, DWORD nBytes, ClientDataEx* exClient, bool single, OpType opType, CompressionType compType)
@@ -395,7 +399,7 @@ bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient,
 		OverlappedSendInfo* sendInfo = sendOlInfoPool.construct<OverlappedSendInfo>(sendBuff, true, 1);
 		OverlappedSend* ol = sendOlPoolSingle.construct<OverlappedSend>(sendInfo);
 		sendInfo->head = ol;
-		ol->Initalize(sendInfo);
+		ol->Initalize(sendInfo, opType);
 
 		return SendClientSingle(*exClient, sendInfo, ol);
 	}
@@ -415,9 +419,10 @@ bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient,
 		for (UINT i = 0; i < nClients; i++)
 		{
 			ClientDataEx* clint = clients[i];
+
+			ol[i].Initalize(sendInfo, opType);
 			if (clint != exClient)
 			{
-				ol[i].Initalize(sendInfo);
 				res = clint->pc.SendDataOl(&sendInfo->sendBuff, &ol[i]);
 				err = WSAGetLastError();
 			}
@@ -459,7 +464,7 @@ bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients,
 		OverlappedSendInfo* sendInfo = sendOlInfoPool.construct<OverlappedSendInfo>(sendBuff, true, 1);
 		OverlappedSend* ol = sendOlPoolSingle.construct<OverlappedSend>(sendInfo);
 		sendInfo->head = ol;
-		ol->Initalize(sendInfo);
+		ol->Initalize(sendInfo, opType);
 
 		return SendClientSingle(**clients, sendInfo, ol);
 	}
@@ -473,7 +478,7 @@ bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients,
 		for (UINT i = 0; i < nClients; i++)
 		{
 			ClientDataEx& clint = **(clients + i);
-			ol[i].Initalize(sendInfo);
+			ol[i].Initalize(sendInfo, opType);
 			res = clint.pc.SendDataOl(&sendInfo->sendBuff, &ol[i]);
 			err = WSAGetLastError();
 
@@ -669,7 +674,7 @@ TCPServ::TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads
 	recvBuffPool(sizeof(DWORD64) + maxDataSize * 2, maxCon), //only need maxDataSize * 2 because if compressed data size is > than non compressed, it sends noncompressed
 	sendOlInfoPool(sizeof(OverlappedSendInfo), singleOlCount + allOlCount),
 	sendOlPoolSingle(sizeof(OverlappedSend), singleOlCount),
-	sendOlPoolAll(sizeof(OverlappedSend), allOlCount),
+	sendOlPoolAll(sizeof(OverlappedSend) * maxCon, allOlCount),
 	sendDataPool(maxDataSize + maxCompSize + sizeof(DWORD64) * 2, sendBuffCount), //extra DWORD64 incase it sends compressed data, because data written to initial buffer is offset by sizeof(DWORD64)
 	sendMsgPool(sizeof(DWORD64) + MSG_OFFSET, sendMsgBuffCount),
 	opCounter(),
