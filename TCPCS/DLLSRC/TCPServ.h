@@ -14,7 +14,8 @@ class TCPServ : public TCPServInterface, public KeepAliveHI
 {
 public:
 	//sfunc is a message handler, compression is 1-9
-	TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxPCSendOps = 5, UINT maxDataSize = 8192, UINT singleOlCount = 30, UINT allOlCount = 30, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, bool noDelay = false, void* obj = nullptr);
+	//a value of 0.0f of ping interval means dont keepalive at all
+	TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxPCSendOps = 5, UINT maxDataSize = 8192, UINT singleOlCount = 30, UINT allOlCount = 30, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, bool useOwnBuf = true, bool noDelay = false, void* obj = nullptr);
 	TCPServ(TCPServ&& serv);
 	~TCPServ();
 
@@ -74,6 +75,10 @@ public:
 	bool SendClientData(const char* data, DWORD nBytes, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT) override;
 	bool SendClientData(const char* data, DWORD nBytes, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT) override;
 
+	bool SendClientData(MsgStreamWriterNew streamWriter, ClientData* exClient, bool single, CompressionType compType = BESTFIT) override;
+	bool SendClientData(MsgStreamWriterNew streamWriter, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT) override;
+	bool SendClientData(MsgStreamWriterNew streamWriter, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT) override;
+
 	//Send msg funtions used for requests, replies ect. they do not send data
 	void SendMsg(ClientData* exClient, bool single, short type, short message) override;
 	void SendMsg(ClientData** clients, UINT nClients, short type, short message) override;
@@ -106,6 +111,7 @@ public:
 	bool MaxClients() const override;
 	bool IsConnected() const override;
 	bool NoDelay() const override;
+	bool UseOwnBuf() const override;
 
 	void* GetObj() const override;
 	int GetCompression() const;
@@ -137,6 +143,7 @@ public:
 	bool CleanupSendData(ClientDataEx& cd, OverlappedSend* ol);
 	void CleanupAcceptEx(HostSocket& host);
 private:
+	bool BindHost(HostSocket& host, bool ipv6, const LIB_TCHAR* port);
 	bool SendClientData(const char* data, DWORD nBytes, ClientDataEx* exClient, bool single, OpType opType, CompressionType compType);
 	bool SendClientData(const char* data, DWORD nBytes, ClientDataEx** clients, UINT nClients, OpType opType, CompressionType compType);
 
@@ -166,7 +173,8 @@ private:
 	MemPoolSync<HeapAllocator> sendDataPool, sendMsgPool; //Used to help speed up allocation of send buffers
 	InterlockedCounter opCounter; //Used to keep track of number of asynchronous operations
 	HANDLE shutdownEv; //Set when opCounter reaches 0, to notify shutdown it is okay to close iocp
-	bool noDelay; //Used to enable/disable the nagle algorithm, stored at end to keep alignment
+	bool noDelay; //Used to enable/disable the nagle algorithm
+	bool useOwnBuf; //If true calls setsockopt with SO_SENDBUF and 0, to force it to use your own buffer
 };
 
 typedef TCPServ::ClientDataEx ClientDataEx;

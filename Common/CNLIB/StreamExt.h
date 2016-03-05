@@ -15,6 +15,23 @@ public:
 	}
 };
 
+template<typename T>
+class StreamWriterNew::Helper<std::basic_string<T>> : public HelpBase<std::basic_string<T>>
+{
+public:
+	Helper(StreamWriterNew& stream) : HelpBase(stream){}
+	void Write(const std::basic_string<T>& t)
+	{
+		const UINT len = t.size();
+		stream.Write(len);
+		stream.Write(t.c_str(), len);
+	}
+	static UINT SizeType(const std::basic_string<T>& t)
+	{
+		return sizeof(size_t) + t.size() * sizeof(T);
+	}
+};
+
 template<typename T> 
 class StreamReader::Helper<std::basic_string<T>> : public HelpBase<std::basic_string<T>>
 {

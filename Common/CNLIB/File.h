@@ -80,6 +80,8 @@ namespace FileMisc
 	CAMSNETLIB DWORD GetCompressedBufferSize(DWORD srcLen);
 	//																					level 1-9
 	CAMSNETLIB DWORD Compress(BYTE* dest, DWORD destLen, const BYTE* src, DWORD srcLen, int level);
+
+	// returns UINT_MAX on error
 	CAMSNETLIB DWORD Decompress(BYTE* dest, DWORD destLen, const BYTE* src, DWORD srcLen);
 
 	// Access = FILE_GENERIC_READ, FILE_GENERIC_WRITE, FILE_GENERIC_EXECUTE, attributes = FILE_ATTRIBUTE_HIDDEN, FILE_ATTRIBUTE_TEMPORARY, blank = NORMAL

@@ -219,6 +219,11 @@ public:
 	{
 		return data - begin;
 	}
+	UINT GetDataSize() const
+	{
+		//size without MSG_OFFSET
+		return data - (begin + MSG_OFFSET);
+	}
 
 	//no constexpr in vs13 :(
 	template<typename... T>
@@ -304,6 +309,11 @@ public:
 	operator const char*()
 	{
 		return begin;
+	}
+
+	char* GetData()
+	{
+		return (char*)begin;
 	}
 
 	template<typename T> T Read()

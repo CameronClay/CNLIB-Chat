@@ -328,7 +328,7 @@ DWORD FileMisc::Decompress(BYTE* dest, DWORD destLen, const BYTE* src, DWORD src
 	assert(result != Z_MEM_ERROR);
 	assert(result != Z_BUF_ERROR);
 	assert(result != Z_DATA_ERROR);
-	return nBytes;
+	return (result == Z_OK) ? nBytes : UINT_MAX;
 }
 
 

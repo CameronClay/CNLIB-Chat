@@ -271,7 +271,7 @@ void MsgHandler(TCPClientInterface&, const BYTE* data, DWORD nBytes, void*)
 	nBytes -= MSG_OFFSET;
 	MsgStreamReader streamReader((char*)data, nBytes);
 	const short type = streamReader.GetType(), msg = streamReader.GetMsg();
-
+		
 	switch (type)
 	{
 		//Unnecessary now
