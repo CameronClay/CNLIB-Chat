@@ -15,9 +15,9 @@ public:
 			next(nullptr)
 		{}
 
-		Element *prev, *next;
+		Element *next;
 
-		static const size_t OFFSET = 2 * sizeof(Element*);
+		static const size_t OFFSET = sizeof(Element*);
 	};
 
 	//capacity must be >= 1
@@ -31,24 +31,20 @@ public:
 		data(allocator.allocate((elementSizeMax + Element::OFFSET) * capacity)),
 		begin((Element*)(data + elementSizeMax)),
 		end((Element*)((char*)begin + (elementSizeMax + Element::OFFSET) * (capacity - 1))),
-		used(nullptr),
 		avail(begin)
 	{
 		memset(data, 0, (elementSizeMax + Element::OFFSET) * capacity);
 
 		if (capacity > 1)
 		{
-			begin->prev = nullptr;
 			begin->next = (Element*)((char*)begin + (elementSizeMax + Element::OFFSET));
-			for (char *prev = (char*)begin, *ptr = (char*)(begin->next), *next = ptr + (elementSizeMax + Element::OFFSET);
+			for (char *ptr = (char*)(begin->next), *next = ptr + (elementSizeMax + Element::OFFSET);
 				ptr != (char*)end;
-				prev = ptr, ptr = next, next += (elementSizeMax + Element::OFFSET))//loop from 1 to count -1
+				ptr = next, next += (elementSizeMax + Element::OFFSET))//loop from 1 to count -1
 			{
 				Element& temp = *(Element*)(ptr);
-				temp.prev = (Element*)prev;
 				temp.next = (Element*)next;
 			}
-			end->prev = (Element*)(end - (elementSizeMax + Element::OFFSET));
 			end->next = nullptr;
 		}
 	}
@@ -61,7 +57,6 @@ public:
 		data(memPool.data),
 		begin(memPool.begin),
 		end(memPool.end),
-		used(memPool.used),
 		avail(memPool.avail)
 	{
 		memset(&memPool, 0, sizeof(memPool));
@@ -77,7 +72,6 @@ public:
 			data = memPool.data;
 			begin = memPool.begin;
 			end = memPool.end;
-			used = memPool.used;
 			avail = memPool.avail;
 
 			memset(&memPool, 0, sizeof(memPool));
@@ -91,7 +85,7 @@ public:
 			allocator.deallocate(data, NULL);
 	}
 
-	void* alloc(size_t elementSize)
+	inline void* alloc(size_t elementSize)
 	{
 		if (IsNotFull() && FitsInPool(elementSize))
 			return PoolAlloc();
@@ -166,26 +160,15 @@ public:
 		return avail;
 	}
 
-	inline bool IsEmpty() const
-	{
-		return !used;
-	}
-	inline bool IsNotEmpty() const
-	{
-		return used;
-	}
-
 	typedef Allocator<char> allocator_type;
-protected:
+public:
 	inline void* PoolAlloc()
 	{
 		Element* element = PopAvail();
-		PushUsed(element);
 		return (void*)((char*)element - elementSizeMax);
 	}
 	inline void PoolDealloc(Element* element)
 	{
-		EraseUsed(element);
 		PushAvail(element);
 	}
 
@@ -202,55 +185,19 @@ protected:
 	Element *used, *avail;
 private:
 	//Remove element from front available list
-	Element* PopAvail()
+	inline Element* PopAvail()
 	{
-		Element* element = avail;
-		if (avail->next)
-		{
-			avail = avail->next;
-			avail->prev = nullptr;
-		}
-		else
-		{
-			avail = nullptr;
-		}
+		Element *element = avail, *next = avail->next;
+
+		avail = next ? next : nullptr;
+
 		return element;
 	}
-	//Remove element from anywhere in used list
-	void EraseUsed(Element* element)
-	{
-		if (element == used)
-			used = element->next;
-		if (element->prev)
-			element->prev->next = element->next;
-		if (element->next)
-			element->next->prev = element->prev;
-		if (!(element->prev || element->next))
-			used = nullptr;
-	}
 	//Add element to front of available list
-	void PushAvail(Element* element)
+	inline void PushAvail(Element* element)
 	{
-		if (avail)
-		{
-			element->next = avail;
-			element->prev = nullptr;
-			avail = avail->prev = element;
-		}
-		else
-		{
-			element->prev = element->next = nullptr;
-			avail = element;
-		}
-	}
-	//Add element to front of used list
-	void PushUsed(Element* element)
-	{
-		if (used)
-			used->prev = element;
-		element->next = used;
-		element->prev = nullptr;
-		used = element;
+		element->next = avail ? avail : nullptr;
+		avail = element;
 	}
 };
 
