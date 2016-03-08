@@ -684,12 +684,9 @@ TCPServ::TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads
 	maxDataSize(maxDataSize),
 	maxCompSize(FileMisc::GetCompressedBufferSize(maxDataSize)),
 	singleOlPCCount(singleOlPCCount),
-	allOlCount(allOlCount),
-	sendBuffCount(sendBuffCount),
-	sendMsgBuffCount(sendMsgBuffCount),
+	maxPCSendOps(maxPCSendOps),
 	compression(compression),
 	compressionCO(compressionCO),
-	maxPCSendOps(maxPCSendOps),
 	maxCon(maxCon),
 	keepAliveInterval(keepAliveInterval),
 	keepAliveHandler(nullptr),
@@ -720,12 +717,9 @@ TCPServ::TCPServ(TCPServ&& serv)
 	maxDataSize(serv.maxDataSize),
 	maxCompSize(serv.maxCompSize),
 	singleOlPCCount(serv.singleOlPCCount),
-	allOlCount(serv.allOlCount),
-	sendBuffCount(serv.sendBuffCount),
-	sendMsgBuffCount(serv.sendMsgBuffCount),
+	maxPCSendOps(serv.maxPCSendOps),
 	compression(serv.compression),
 	compressionCO(serv.compressionCO),
-	maxPCSendOps(serv.maxPCSendOps),
 	maxCon(serv.maxCon),
 	keepAliveHandler(std::move(serv.keepAliveHandler)),
 	clientPool(std::move(serv.clientPool)),
@@ -761,13 +755,10 @@ TCPServ& TCPServ::operator=(TCPServ&& serv)
 		const_cast<UINT&>(maxDataSize) = serv.maxDataSize;
 		const_cast<UINT&>(maxCompSize) = serv.maxCompSize;
 		const_cast<UINT&>(singleOlPCCount) = serv.singleOlPCCount;
-		const_cast<UINT&>(allOlCount) = serv.allOlCount;
-		const_cast<UINT&>(sendBuffCount) = serv.sendBuffCount;
-		const_cast<UINT&>(sendMsgBuffCount) = serv.sendMsgBuffCount;
+		const_cast<UINT&>(maxPCSendOps) = serv.maxPCSendOps;
 		const_cast<int&>(compression) = serv.compression;
 		const_cast<int&>(compressionCO) = serv.compressionCO;
 		const_cast<UINT&>(maxCon) = serv.maxCon;
-		const_cast<UINT&>(maxPCSendOps) = serv.maxPCSendOps;
 		keepAliveHandler = std::move(serv.keepAliveHandler);
 		clientPool = std::move(serv.clientPool);
 		recvBuffPool = std::move(serv.recvBuffPool);
@@ -1057,18 +1048,6 @@ UINT TCPServ::GetOpCount() const
 UINT TCPServ::SingleOlPCCount() const
 {
 	return singleOlPCCount;
-}
-UINT TCPServ::AllOlCount() const
-{
-	return allOlCount;
-}
-UINT TCPServ::SendBuffCount() const
-{
-	return sendBuffCount;
-}
-UINT TCPServ::SendMsgBuffCount() const
-{
-	return sendMsgBuffCount;
 }
 UINT TCPServ::GetMaxPcSendOps() const
 {

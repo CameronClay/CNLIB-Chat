@@ -81,10 +81,6 @@ public:
 	virtual UINT GetOpCount() const = 0;
 
 	virtual UINT SingleOlPCCount() const = 0;
-	virtual UINT AllOlCount() const = 0;
-	virtual UINT SendBuffCount() const = 0;
-	virtual UINT SendMsgBuffCount() const = 0;
-
 	virtual UINT GetMaxPcSendOps() const = 0;
 
 	virtual int GetCompressionCO() const = 0;

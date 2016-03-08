@@ -123,10 +123,6 @@ public:
 	UINT GetOpCount() const override;
 
 	UINT SingleOlPCCount() const override;
-	UINT AllOlCount() const override;
-	UINT SendBuffCount() const override;
-	UINT SendMsgBuffCount() const override;
-
 	UINT GetMaxPcSendOps() const override;
 
 	IOCP& GetIOCP();
@@ -164,8 +160,7 @@ private:
 	DisconFunc disFunc; //function called when disconnect occurs
 	CRITICAL_SECTION clientSect; //used for synchonization
 	const UINT maxDataSize, maxCompSize; //maximum packet size to send or recv, maximum compressed data size, number of preallocated sendbuffers
-	const UINT singleOlPCCount, allOlCount, sendBuffCount, sendMsgBuffCount; //maximum number of preallocted...
-	const UINT maxPCSendOps; //max per client concurent send operations
+	const UINT singleOlPCCount, maxPCSendOps; //number of preallocated per client ol structs, max per client concurent send operations
 	const int compression, compressionCO; //compression server sends packets at
 	const UINT maxCon; //max clients
 	float keepAliveInterval; //interval at which server keepalives clients
