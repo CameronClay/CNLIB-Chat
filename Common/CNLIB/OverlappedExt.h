@@ -3,25 +3,19 @@
 
 struct OverlappedExt : OVERLAPPED //dont wanna use virtual func because of mem pool and reuse of struct
 {
-	OverlappedExt()
-	{
-		memset(this, 0, sizeof(OverlappedExt));
-	}
-
-	OverlappedExt(OverlappedExt&& ol)
-		:
-		opType(ol.opType)
-	{}
-
 	//int for alignment
 	enum class OpType : int
 	{
 		recv,
 		send,
-		sendmsg,
+		sendsingle,
 		accept
-	} opType;
+	};
 
+	OverlappedExt()
+	{
+		Reset();
+	}
 	OverlappedExt(OpType opType)
 		:
 		opType(opType)
@@ -31,29 +25,32 @@ struct OverlappedExt : OVERLAPPED //dont wanna use virtual func because of mem p
 
 	void Reset()
 	{
-		memset(this, 0, sizeof(OVERLAPPED)); //dont clear optype
+		hEvent = NULL;
+		//memset(this, 0, sizeof(OVERLAPPED)); //dont clear optype
 	}
+
+	OverlappedExt(OverlappedExt&& ol)
+		:
+		opType(ol.opType)
+	{}
+
+	OpType opType;
 };
 
 struct OverlappedSendInfo
 {
 	//single param needed for per client queue to know if refCount was incrimented
-	OverlappedSendInfo(const WSABufSend& buff, bool single, int refCount)
+	OverlappedSendInfo(const WSABufSend& buff, int refCount)
 		:
 		sendBuff(buff),
-		head(nullptr),
-		refCount(single ? -1 : refCount)
+		head(nullptr)
 	{}
 
-	inline bool IsSingle()
-	{
-		return refCount == -1;
-	}
 
 	//Returns true if need to dealloc sendBuff
 	bool DecrementRefCount()
 	{
-		return IsSingle() ? true : (InterlockedDecrement((LONG*)&refCount) == 0);
+		return InterlockedDecrement((LONG*)&refCount) == 0;
 	}
 
 	WSABufSend sendBuff;
@@ -66,16 +63,29 @@ struct OverlappedSend : OverlappedExt
 	//single param needed for per client queue to know if refCount was incrimented
 	OverlappedSend(OverlappedSendInfo* sendInfo)
 		:
+		OverlappedExt(OpType::send),
 		sendInfo(sendInfo)
 	{}
 
-	void Initalize(OverlappedSendInfo* sendInfo, OpType opType)
+	void Initalize(OverlappedSendInfo* sendInfo)
 	{
-		this->opType = opType;
+		Reset();
+		this->opType = OpType::send;
 		this->sendInfo = sendInfo;
 	}
 
 	OverlappedSendInfo* sendInfo;
+};
+
+struct OverlappedSendSingle : OverlappedExt
+{
+	OverlappedSendSingle(const WSABufSend& buff)
+		:
+		OverlappedExt(OpType::sendsingle),
+		sendBuff(buff)
+	{}
+
+	WSABufSend sendBuff;
 };
 
 typedef OverlappedExt::OpType OpType;

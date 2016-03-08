@@ -15,7 +15,7 @@ class TCPServ : public TCPServInterface, public KeepAliveHI
 public:
 	//sfunc is a message handler, compression is 1-9
 	//a value of 0.0f of ping interval means dont keepalive at all
-	TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxPCSendOps = 5, UINT maxDataSize = 8192, UINT singleOlCount = 30, UINT allOlCount = 30, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, bool useOwnBuf = true, bool noDelay = false, void* obj = nullptr);
+	TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxPCSendOps = 5, UINT maxDataSize = 8192, UINT singleOlPCCount = 5, UINT allOlCount = 30, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, bool useOwnBuf = true, bool noDelay = false, void* obj = nullptr);
 	TCPServ(TCPServ&& serv);
 	~TCPServ();
 
@@ -31,7 +31,8 @@ public:
 		OverlappedExt ol;
 		UINT arrayIndex;
 		InterlockedCounter opCount;
-		std::queue<OverlappedSend*> opsPending;
+		MemPoolSync<HeapAllocator> olPool;
+		std::queue<OverlappedSendSingle*> opsPending;
 
 		//int for alignment
 		enum State : int
@@ -121,7 +122,7 @@ public:
 	UINT MaxCompSize() const override;
 	UINT GetOpCount() const override;
 
-	UINT SingleOlCount() const override;
+	UINT SingleOlPCCount() const override;
 	UINT AllOlCount() const override;
 	UINT SendBuffCount() const override;
 	UINT SendMsgBuffCount() const override;
@@ -132,24 +133,25 @@ public:
 
 	MemPool<HeapAllocator>& GetRecvBuffPool();
 
-	WSABufSend CreateSendBuffer(DWORD nBytesDecomp, char* buffer, OpType opType, CompressionType compType = BESTFIT);
+	WSABufSend CreateSendBuffer(DWORD nBytesDecomp, char* buffer, bool msg, CompressionType compType = BESTFIT);
 
-	void FreeSendBuffer(WSABufSend& buff, OpType opType);
+	void FreeSendBuffer(WSABufSend& buff);
 	void FreeSendOlInfo(OverlappedSendInfo* ol);
+	void FreeSendOlSingle(ClientDataEx& client, OverlappedSendSingle* ol);
 
 	void AcceptConCR(HostSocket& host, OverlappedExt* ol);
-	void RecvDataCR(DWORD bytesTrans, ClientDataEx& cd, OverlappedExt* ol);
+	void RecvDataCR(DWORD bytesTrans, ClientDataEx& cd, OverlappedExt* ol);;
 	void SendDataCR(ClientDataEx& cd, OverlappedSend* ol);
-	bool CleanupSendData(ClientDataEx& cd, OverlappedSend* ol);
+	void SendDataSingleCR(ClientDataEx& cd, OverlappedSendSingle* ol);
 	void CleanupAcceptEx(HostSocket& host);
 private:
 	bool BindHost(HostSocket& host, bool ipv6, const LIB_TCHAR* port);
-	bool SendClientData(const char* data, DWORD nBytes, ClientDataEx* exClient, bool single, OpType opType, CompressionType compType);
-	bool SendClientData(const char* data, DWORD nBytes, ClientDataEx** clients, UINT nClients, OpType opType, CompressionType compType);
+	bool SendClientData(const char* data, DWORD nBytes, ClientDataEx* exClient, bool single, bool msg, CompressionType compType);
+	bool SendClientData(const char* data, DWORD nBytes, ClientDataEx** clients, UINT nClients, bool msg, CompressionType compType);
 
-	bool SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient, bool single, OpType opType);
-	bool SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients, UINT nClients, OpType opType);
-	bool SendClientSingle(ClientDataEx& clint, OverlappedSendInfo* olInfo, OverlappedSend* ol, bool popQueue = false);
+	bool SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient, bool single);
+	bool SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients, UINT nClients);
+	bool SendClientSingle(ClientDataEx& clint, OverlappedSendSingle* ol, bool popQueue = false);
 
 	HostSocket ipv4Host, ipv6Host; //host/listener sockets
 	ClientDataEx** clients; //array of clients
@@ -162,14 +164,14 @@ private:
 	DisconFunc disFunc; //function called when disconnect occurs
 	CRITICAL_SECTION clientSect; //used for synchonization
 	const UINT maxDataSize, maxCompSize; //maximum packet size to send or recv, maximum compressed data size, number of preallocated sendbuffers
-	const UINT singleOlCount, allOlCount, sendBuffCount, sendMsgBuffCount; //maximum number of preallocted...
+	const UINT singleOlPCCount, allOlCount, sendBuffCount, sendMsgBuffCount; //maximum number of preallocted...
 	const UINT maxPCSendOps; //max per client concurent send operations
 	const int compression, compressionCO; //compression server sends packets at
 	const UINT maxCon; //max clients
 	float keepAliveInterval; //interval at which server keepalives clients
 	KeepAliveHandler* keepAliveHandler; //handles all KeepAlives to client, to prevent timeout
 	MemPool<HeapAllocator> clientPool, recvBuffPool; //Used to help speed up allocation of client resources
-	MemPoolSync<HeapAllocator> sendOlInfoPool, sendOlPoolSingle, sendOlPoolAll; //Used to help speed up allocation of structures needed to send Ol data
+	MemPoolSync<HeapAllocator> sendOlInfoPool, sendOlPoolAll; //Used to help speed up allocation of structures needed to send Ol data, single pool is backup for per client pool
 	MemPoolSync<HeapAllocator> sendDataPool, sendMsgPool; //Used to help speed up allocation of send buffers
 	InterlockedCounter opCounter; //Used to keep track of number of asynchronous operations
 	HANDLE shutdownEv; //Set when opCounter reaches 0, to notify shutdown it is okay to close iocp

@@ -80,7 +80,7 @@ public:
 	virtual UINT MaxCompSize() const = 0;
 	virtual UINT GetOpCount() const = 0;
 
-	virtual UINT SingleOlCount() const = 0;
+	virtual UINT SingleOlPCCount() const = 0;
 	virtual UINT AllOlCount() const = 0;
 	virtual UINT SendBuffCount() const = 0;
 	virtual UINT SendMsgBuffCount() const = 0;
@@ -104,5 +104,5 @@ typedef void(*const ConFunc)(ClientData* data);
 typedef void(*const DisconFunc)(ClientData* data, bool unexpected);
 
 
-CAMSNETLIB TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 1, DWORD nConcThreads = 1, UINT maxPCSendOps = 5, UINT maxDataSize = 8192, UINT singleOlCount = 30, UINT allOlCount = 30, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, bool useOwnBuf = true, bool noDelay = false, void* obj = nullptr);
+CAMSNETLIB TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 1, DWORD nConcThreads = 1, UINT maxPCSendOps = 5, UINT maxDataSize = 8192, UINT singleOlPCCount = 30, UINT allOlCount = 30, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, bool useOwnBuf = true, bool noDelay = false, void* obj = nullptr);
 CAMSNETLIB void DestroyServer(TCPServInterface*& server);
