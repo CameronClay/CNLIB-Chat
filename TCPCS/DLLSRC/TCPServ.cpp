@@ -3,7 +3,6 @@
 #include "CNLIB/BufSize.h"
 #include "CNLIB/File.h"
 #include "CNLIB/Messages.h"
-//#include "CNLIB/MsgStream.h"
 
 TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads, DWORD nConcThreads, UINT maxPCSendOps, UINT maxDataSize, UINT singleOlPCCount, UINT allOlCount, UINT sendBuffCount, UINT sendMsgBuffCount, UINT maxCon, int compression, int compressionCO, float keepAliveInterval, bool useOwnBuf, bool noDelay, void* obj)
 {
@@ -311,18 +310,13 @@ void TCPServ::FreeSendBuffer(WSABufSend& buff)
 void TCPServ::FreeSendOlInfo(OverlappedSendInfo* ol)
 {
 	FreeSendBuffer(ol->sendBuff);
-
-	if (sendOlPoolAll.InPool(ol->head))
-		sendOlPoolAll.dealloc(ol->head);
-
+	sendOlPoolAll.dealloc(ol->head);
 	sendOlInfoPool.dealloc(ol);
 }
 void TCPServ::FreeSendOlSingle(ClientDataEx& client, OverlappedSendSingle* ol)
 {
 	FreeSendBuffer(ol->sendBuff);
-
-	if (client.olPool.InPool(ol))
-		client.olPool.dealloc(ol);
+	client.olPool.dealloc(ol);
 }
 
 bool TCPServ::SendClientData(const char* data, DWORD nBytes, ClientData* exClient, bool single, CompressionType compType)
@@ -613,7 +607,6 @@ void TCPServ::RecvDataCR(DWORD bytesTrans, ClientDataEx& cd, OverlappedExt* ol)
 
 	cd.pc.ReadDataOl(&cd.buff, &cd.ol);
 }
-
 void TCPServ::AcceptConCR(HostSocket& host, OverlappedExt* ol)
 {
 	sockaddr *localAddr, *remoteAddr;
@@ -636,7 +629,6 @@ void TCPServ::AcceptConCR(HostSocket& host, OverlappedExt* ol)
 	else
 		socket.Disconnect();
 }
-
 void TCPServ::SendDataCR(ClientDataEx& cd, OverlappedSend* ol)
 {
 	OverlappedSendInfo* sendInfo = ol->sendInfo;
@@ -798,7 +790,6 @@ bool TCPServ::BindHost(HostSocket& host, bool ipv6, const LIB_TCHAR* port)
 
 	return b;
 }
-
 IPv TCPServ::AllowConnections(const LIB_TCHAR* port, ConCondition connectionCondition, IPv ipv)
 {
 	if(ipv4Host.listen.IsConnected() || ipv6Host.listen.IsConnected())
