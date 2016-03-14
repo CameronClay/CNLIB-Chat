@@ -167,7 +167,7 @@ void FileSend::SetFullPathSrc(std::tstring& fullFilepathSrc)
 
 void FileSend::RequestTransfer()
 {
-	MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_TRANSFER, StreamWriter::SizeType(username, size));
+	auto streamWriter = client.CreateOutStream(TYPE_REQUEST, MSG_REQUEST_TRANSFER);
 
 	for(auto& i : list)
 		size += i.size;
@@ -177,8 +177,7 @@ void FileSend::RequestTransfer()
 	streamWriter.Write(username);
 	streamWriter.Write(size);
 
-	client.SendServData(streamWriter, streamWriter.GetSize());
-
+	client.SendServData(streamWriter);
 
 	running = true;
 }
@@ -193,7 +192,7 @@ void FileSend::SendFileNameList()
 		nChars += i.fileName.size() + 1;
 
 	const DWORD nBytes = (nChars * sizeof(LIB_TCHAR)) + StreamWriter::SizeType(username) + ((sizeof(SYSTEMTIME) + sizeof(DWORD64) + sizeof(UINT)) * list.size()) + sizeof(UINT);
-	MsgStreamWriter streamWriter(TYPE_FILE, MSG_FILE_LIST, nBytes);
+	auto streamWriter = client.CreateOutStream(TYPE_FILE, MSG_FILE_LIST);
 	streamWriter.Write(username);
 
 	for(auto it = list.begin(), end = list.end(); it != end; it++)
@@ -205,7 +204,7 @@ void FileSend::SendFileNameList()
 		streamWriter.Write(it->fileName.c_str(), fileLen);
 	}
 
-	client.SendServData(streamWriter, streamWriter.GetSize());
+	client.SendServData(streamWriter);
 
 	it = list.begin();
 }

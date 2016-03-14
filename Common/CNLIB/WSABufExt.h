@@ -27,10 +27,10 @@ struct WSABufRecv : WSABufSend
 		WSABufSend()
 	{}
 
-	void Initialize(DWORD len, char* buf, char* head)
+	void Initialize(DWORD len, char* buf)
 	{
 		curBytes = 0;
-		__super::Initialize(len, buf, head);
+		__super::Initialize(len, buf, buf);
 	}
 
 	DWORD curBytes;

@@ -75,7 +75,7 @@ ClientDataEx::ClientDataEx(TCPServ& serv, Socket pc, sfunc func, UINT arrayIndex
 	MemPool<HeapAllocator>& pool = serv.GetRecvBuffPool();
 	const UINT maxDataSize = serv.MaxDataSize();
 	char* temp = pool.alloc<char>();
-	buff.Initialize(maxDataSize, temp, temp);
+	buff.Initialize(maxDataSize, temp);
 }
 ClientDataEx::ClientDataEx(ClientDataEx&& clint)
 	:
@@ -159,7 +159,7 @@ void HostSocket::CloseAcceptSocket()
 }
 
 
-DWORD CALLBACK IOCPThread(LPVOID info)
+static DWORD CALLBACK IOCPThread(LPVOID info)
 {
 	IOCP& iocp = *(IOCP*)info;
 	DWORD bytesTrans = 0;
@@ -244,7 +244,7 @@ DWORD CALLBACK IOCPThread(LPVOID info)
 	return 0;
 }
 
-MsgStreamWriterNew TCPServ::CreateOutStream(short type, short msg)
+MsgStreamWriter TCPServ::CreateOutStream(short type, short msg)
 {
 	return { GetSendBuffer(), maxDataSize, type, msg };
 }
@@ -307,6 +307,7 @@ void TCPServ::FreeSendBuffer(WSABufSend& buff)
 	else
 		sendMsgPool.dealloc(buff.head);
 }
+
 void TCPServ::FreeSendOlInfo(OverlappedSendInfo* ol)
 {
 	FreeSendBuffer(ol->sendBuff);
@@ -332,15 +333,15 @@ bool TCPServ::SendClientData(const char* data, DWORD nBytes, std::vector<ClientD
 	return SendClientData(data, nBytes, pcs.data(), pcs.size(), compType);
 }
 
-bool TCPServ::SendClientData(MsgStreamWriterNew streamWriter, ClientData* exClient, bool single, CompressionType compType)
+bool TCPServ::SendClientData(MsgStreamWriter streamWriter, ClientData* exClient, bool single, CompressionType compType)
 {
 	return SendClientData(streamWriter, streamWriter.GetSize(), (ClientDataEx*)exClient, single, false, compType);
 }
-bool TCPServ::SendClientData(MsgStreamWriterNew streamWriter, ClientData** clients, UINT nClients, CompressionType compType)
+bool TCPServ::SendClientData(MsgStreamWriter streamWriter, ClientData** clients, UINT nClients, CompressionType compType)
 {
 	return SendClientData(streamWriter, streamWriter.GetSize(), (ClientDataEx**)clients, nClients, false, compType);
 }
-bool TCPServ::SendClientData(MsgStreamWriterNew streamWriter, std::vector<ClientData*>& pcs, CompressionType compType)
+bool TCPServ::SendClientData(MsgStreamWriter streamWriter, std::vector<ClientData*>& pcs, CompressionType compType)
 {
 	return SendClientData(streamWriter, streamWriter.GetSize(), pcs.data(), pcs.size(), compType);
 }
@@ -567,14 +568,14 @@ void TCPServ::RecvDataCR(DWORD bytesTrans, ClientDataEx& cd, OverlappedExt* ol)
 			{
 				BYTE* dest = (BYTE*)(cd.buff.head + sizeof(DWORD64) + maxCompSize);
 				if(FileMisc::Decompress(dest, maxCompSize, (const BYTE*)ptr, bytesToRecv) != UINT_MAX)	// Decompress data
-					(cd.func)(cd.serv, &cd, { (char*)dest, bufSize.up.nBytesDecomp - MSG_OFFSET });
+					(cd.func)(cd.serv, &cd, MsgStreamReader{ (char*)dest, bufSize.up.nBytesDecomp - MSG_OFFSET });
 				else
 					RemoveClient(&cd, cd.state != ClientDataEx::closing);  //Disconnect client because decompress failing is an unrecoverable error
 			}
 			//If data was not compressed
 			else
 			{
-				(cd.func)(cd.serv, &cd, { (char*)ptr, bufSize.up.nBytesDecomp - MSG_OFFSET });
+				(cd.func)(cd.serv, &cd, MsgStreamReader{ (char*)ptr, bufSize.up.nBytesDecomp - MSG_OFFSET });
 			}
 			//If no partial blocks to copy to start of buffer
 			if (!bytesTrans)
@@ -638,7 +639,6 @@ void TCPServ::SendDataCR(ClientDataEx& cd, OverlappedSend* ol)
 	if ((--opCounter).GetOpCount() == 0)
 		SetEvent(shutdownEv);
 }	
-
 void TCPServ::SendDataSingleCR(ClientDataEx& cd, OverlappedSendSingle* ol)
 {
 	FreeSendOlSingle(cd, ol);
@@ -914,7 +914,7 @@ void TCPServ::Shutdown()
 		ipv4Host.listen.Disconnect();
 		ipv6Host.listen.Disconnect();
 
-		//Cancel all operations
+		//Cancel all outstanding operations
 		for (ClientDataEx **ptr = clients, **end = clients + nClients; ptr != end; ptr++)
 		{
 			ClientDataEx* cd = *ptr;

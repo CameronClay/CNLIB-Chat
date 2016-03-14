@@ -67,7 +67,7 @@ public:
 
 	char* GetSendBuffer() override;
 
-	MsgStreamWriterNew CreateOutStream(short type, short msg) override;
+	MsgStreamWriter CreateOutStream(short type, short msg) override;
 
 	//Used to send data to clients
 	//addr parameter functions as both the excluded address, and as a single address, 
@@ -76,9 +76,9 @@ public:
 	bool SendClientData(const char* data, DWORD nBytes, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT) override;
 	bool SendClientData(const char* data, DWORD nBytes, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT) override;
 
-	bool SendClientData(MsgStreamWriterNew streamWriter, ClientData* exClient, bool single, CompressionType compType = BESTFIT) override;
-	bool SendClientData(MsgStreamWriterNew streamWriter, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT) override;
-	bool SendClientData(MsgStreamWriterNew streamWriter, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT) override;
+	bool SendClientData(MsgStreamWriter streamWriter, ClientData* exClient, bool single, CompressionType compType = BESTFIT) override;
+	bool SendClientData(MsgStreamWriter streamWriter, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT) override;
+	bool SendClientData(MsgStreamWriter streamWriter, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT) override;
 
 	//Send msg funtions used for requests, replies ect. they do not send data
 	void SendMsg(ClientData* exClient, bool single, short type, short message) override;
@@ -115,7 +115,7 @@ public:
 	bool UseOwnBuf() const override;
 
 	void* GetObj() const override;
-	int GetCompression() const;
+	int GetCompression() const override;
 	int GetCompressionCO() const override;
 
 	UINT MaxDataSize() const override;
@@ -129,8 +129,6 @@ public:
 
 	MemPool<HeapAllocator>& GetRecvBuffPool();
 
-	WSABufSend CreateSendBuffer(DWORD nBytesDecomp, char* buffer, bool msg, CompressionType compType = BESTFIT);
-
 	void FreeSendBuffer(WSABufSend& buff);
 	void FreeSendOlInfo(OverlappedSendInfo* ol);
 	void FreeSendOlSingle(ClientDataEx& client, OverlappedSendSingle* ol);
@@ -141,6 +139,8 @@ public:
 	void SendDataSingleCR(ClientDataEx& cd, OverlappedSendSingle* ol);
 	void CleanupAcceptEx(HostSocket& host);
 private:
+	WSABufSend CreateSendBuffer(DWORD nBytesDecomp, char* buffer, bool msg, CompressionType compType = BESTFIT);
+
 	bool BindHost(HostSocket& host, bool ipv6, const LIB_TCHAR* port);
 	bool SendClientData(const char* data, DWORD nBytes, ClientDataEx* exClient, bool single, bool msg, CompressionType compType);
 	bool SendClientData(const char* data, DWORD nBytes, ClientDataEx** clients, UINT nClients, bool msg, CompressionType compType);

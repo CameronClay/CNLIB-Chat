@@ -274,11 +274,11 @@ void Whiteboard::ChangeTool(Tool tool, float brushSize, BYTE palIndex)
 	brushThickness = brushSize;
 
 	const DWORD nBytes = sizeof(Tool) + sizeof(float) + sizeof(BYTE);
-	MsgStreamWriter streamWriter(TYPE_TOOL, MSG_TOOL_CHANGE, nBytes);
+	auto streamWriter = clint.CreateOutStream(TYPE_TOOL, MSG_TOOL_CHANGE);
 	streamWriter.Write(tool);
 	streamWriter.Write(brushSize);
 	streamWriter.Write(palIndex);
-	clint.SendServData(streamWriter, streamWriter.GetSize());
+	clint.SendServData(streamWriter);
 }
 
 const Palette &Whiteboard::GetPalette(BYTE& count)

@@ -236,6 +236,9 @@ void ClearAll()
 void Disconnect()
 {
 	client->Disconnect();
+	PostMessage(listClients, LB_RESETCONTENT, 0, (LPARAM)_T(""));
+	EnableMenuItem(file, ID_SERV_CONNECT, MF_ENABLED);
+	EnableMenuItem(file, ID_SERV_DISCONNECT, MF_GRAYED);
 }
 
 void Flash()
@@ -265,26 +268,13 @@ int FindClient(const std::tstring& name)
 	return found;
 }
 
-void MsgHandler(TCPClientInterface&, const BYTE* data, DWORD nBytes, void*)
+void MsgHandler(TCPClientInterface&, MsgStreamReader streamReader)
 {
-	char* dat = (char*)(data + MSG_OFFSET);
-	nBytes -= MSG_OFFSET;
-	MsgStreamReader streamReader((char*)data, nBytes);
+	char* dat = streamReader.GetData();
 	const short type = streamReader.GetType(), msg = streamReader.GetMsg();
 		
 	switch (type)
 	{
-		//Unnecessary now
-		//case TYPE_KeepAlive:
-		//{
-		//	switch(msg)
-		//	{
-		//	case MSG_KeepAlive:
-		//		clint.KeepAlive();
-		//		break;
-		//	}
-		//	break;
-		//}//TYPE_KeepAlive
 		case TYPE_CHANGE:
 		{
 			switch(msg)
@@ -458,7 +448,7 @@ void MsgHandler(TCPClientInterface&, const BYTE* data, DWORD nBytes, void*)
 				}
 				case MSG_FILE_DATA:
 				{
-					fileReceive->RecvFile((BYTE*)dat, nBytes);
+					fileReceive->RecvFile((BYTE*)dat, streamReader.GetDataSize());
 					break;
 				}
 				case MSG_FILE_SEND_CANCELED:
@@ -900,9 +890,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			textBuffer.WriteLine(dest); 
 			opts->WriteLine(dest);
 
-			MsgStreamWriter streamWriter(TYPE_DATA, MSG_DATA_TEXT, StreamWriter::SizeType(str));
+			auto streamWriter = client->CreateOutStream(TYPE_DATA, MSG_DATA_TEXT);
 			streamWriter.Write(str);
-			client->SendServData(streamWriter, streamWriter.GetSize());
+			client->SendServData(streamWriter);
 			break;
 		}
 
@@ -1455,10 +1445,10 @@ INT_PTR CALLBACK ConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 			if (client->IsConnected())
 			{
 				client->RecvServData();
-				MsgStreamWriter streamWriter(TYPE_VERSION, MSG_VERSION_CHECK, sizeof(float));
+				auto streamWriter = client->CreateOutStream(TYPE_VERSION, MSG_VERSION_CHECK);
 				streamWriter.Write(APPVERSION);
 
-				client->SendServData(streamWriter, streamWriter.GetSize());
+				client->SendServData(streamWriter);
 
 				EndDialog(hWnd, id);
 			}
@@ -1758,10 +1748,10 @@ INT_PTR CALLBACK AuthenticateProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 			}
 
 			const std::tstring send = user + _T(":") + pass;
-			MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_AUTHENTICATION, StreamWriter::SizeType(send));
+			auto streamWriter = client->CreateOutStream(TYPE_REQUEST, MSG_REQUEST_AUTHENTICATION);
 			streamWriter.Write(send);
 
-			client->SendServData(streamWriter, streamWriter.GetSize());
+			client->SendServData(streamWriter);
 
 			EndDialog(hWnd, id);
 			break;
@@ -2062,14 +2052,14 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM)
 		{
 		case IDOK:
 		{
-			MsgStreamWriter streamWriter(TYPE_WHITEBOARD, MSG_WHITEBOARD_SETTINGS, sizeof(WBParams));
+			auto streamWriter = client->CreateOutStream(TYPE_WHITEBOARD, MSG_WHITEBOARD_SETTINGS);
 			streamWriter.Write(WBParams(
 				(USHORT)GetDlgItemInt(hWnd, WHITEBOARD_RES_X, NULL, FALSE), 
 				(USHORT)GetDlgItemInt(hWnd, WHITEBOARD_RES_Y, NULL, FALSE),
 				(USHORT)GetDlgItemInt(hWnd, WHITEBOARD_FPS, NULL, FALSE), 
 				(BYTE)ComboBox_GetCurSel(Colors)));
 
-			client->SendServData(streamWriter, streamWriter.GetSize());
+			client->SendServData(streamWriter);
 
 			EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_GRAYED);
 			EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_ENABLED);
@@ -2157,11 +2147,11 @@ INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM)
 			//const bool canInvite = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANINVITE));
 			//const bool canDraw = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
 
-			MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_WHITEBOARD, StreamWriter::SizeType(usersel) + sizeof(bool));
+			auto streamWriter = client->CreateOutStream(TYPE_REQUEST, MSG_REQUEST_WHITEBOARD);
 			streamWriter.Write(BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
 			streamWriter.Write(usersel);
 
-			client->SendServData(streamWriter, streamWriter.GetSize());
+			client->SendServData(streamWriter);
 
 			EndDialog(hWnd, id);
 			break;

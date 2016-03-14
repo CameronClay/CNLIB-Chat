@@ -61,22 +61,17 @@ typedef class MsgStreamWriter : public MsgStream
 {
 public:
 	//capacity not including MSG_OFFSET
-	MsgStreamWriter(short type, short msg, UINT capacity)
+	MsgStreamWriter(char* buffer, UINT capacity, short type, short msg)
 		:
-		MsgStream(alloc<char>(capacity + MSG_OFFSET), capacity)
+		MsgStream(buffer, capacity)
 	{
-		((short*)data)[-2] = type;
-		((short*)data)[-1] = msg;
+		((short*)buffer)[0] = type;
+		((short*)buffer)[1] = msg;
 	}
 	MsgStreamWriter(MsgStreamWriter&& stream)
 		:
 		MsgStream(std::move(stream))
 	{}
-
-	~MsgStreamWriter()
-	{
-		dealloc( (char*&)begin );
-	}
 
 	operator const char*()
 	{
@@ -104,6 +99,16 @@ public:
 		Helper<T>(*this).WriteEnd(t);
 	}
 
+	UINT GetSize() const
+	{
+		return data - begin;
+	}
+	UINT GetDataSize() const
+	{
+		//size without MSG_OFFSET
+		return data - (begin + MSG_OFFSET);
+	}
+
 	//no constexpr in vs13 :(
 	template<typename... T>
 	static inline UINT SizeType()
@@ -115,7 +120,7 @@ public:
 	static UINT SizeType(const T&... t)
 	{
 		UINT size = 0;
-		for(auto& a : { Helper<T>::SizeType(t)... })
+		for (auto& a : { Helper<T>::SizeType(t)... })
 			size += a;
 		return size;
 	}
@@ -173,127 +178,6 @@ private:
 	};
 } StreamWriter;
 
-typedef class MsgStreamWriterNew : public MsgStream
-{
-public:
-	//capacity not including MSG_OFFSET
-	MsgStreamWriterNew(char* buffer, UINT capacity, short type, short msg)
-		:
-		MsgStream(buffer, capacity)
-	{
-		((short*)buffer)[0] = type;
-		((short*)buffer)[1] = msg;
-	}
-	MsgStreamWriterNew(MsgStreamWriterNew&& stream)
-		:
-		MsgStream(std::move(stream))
-	{}
-
-	operator const char*()
-	{
-		return begin;
-	}
-
-	template<typename T> void Write(const T& t)
-	{
-		Helper<T>(*this).Write(t);
-	}
-	template<typename T> MsgStreamWriterNew& operator<<(const T& t)
-	{
-		Write(t);
-		return *this;
-	}
-
-	template<typename T>
-	std::enable_if_t<std::is_arithmetic<T>::value> Write(T* t, UINT count)
-	{
-		Helper<T>(*this).Write(t, count);
-	}
-	template<typename T>
-	std::enable_if_t<std::is_arithmetic<T>::value> WriteEnd(T* t)
-	{
-		Helper<T>(*this).WriteEnd(t);
-	}
-
-	UINT GetSize() const
-	{
-		return data - begin;
-	}
-	UINT GetDataSize() const
-	{
-		//size without MSG_OFFSET
-		return data - (begin + MSG_OFFSET);
-	}
-
-	//no constexpr in vs13 :(
-	template<typename... T>
-	static inline UINT SizeType()
-	{
-		return TypeSize<T...>::value;
-	}
-
-	template<typename... T>
-	static UINT SizeType(const T&... t)
-	{
-		UINT size = 0;
-		for (auto& a : { Helper<T>::SizeType(t)... })
-			size += a;
-		return size;
-	}
-
-private:
-	template<typename T, typename... V>
-	struct TypeSize : std::integral_constant<UINT, TypeSize<T>::value + TypeSize<V...>::value>{};
-	template<typename T>
-	struct TypeSize<T> : std::integral_constant<UINT, sizeof(T)>
-	{ static_assert(std::is_arithmetic<T>::value, "cannot call SizeType<T...>() with a non-arithmetic type"); };
-
-	template<typename T> class HelpBase
-	{
-	public:
-		HelpBase(MsgStreamWriterNew& stream)
-			:
-			stream(stream)
-		{}
-		HelpBase operator=(const HelpBase) = delete;
-	protected:
-		MsgStreamWriterNew& stream;
-	};
-	template<typename T> class Helper : public HelpBase<T>
-	{
-	public:
-		Helper(MsgStreamWriterNew& stream)
-			:
-			HelpBase(stream)
-		{}
-
-		void Write(const T& t)
-		{
-			*(T*)(stream.data) = t;
-			stream.data += sizeof(T);
-			assert(stream.data <= stream.end);
-		}
-		void Write(T* t, UINT count)
-		{
-			const UINT nBytes = count * sizeof(T);
-			memcpy(stream.data, t, nBytes);
-			stream.data += nBytes;
-			assert(stream.data <= stream.end);
-		}
-		void WriteEnd(T* t)
-		{
-			const UINT nBytes = stream.end - stream.data;
-			memcpy(stream.data, t, nBytes);
-			stream.data += nBytes;
-			assert(stream.data <= stream.end);
-		}
-		static UINT SizeType(const T&)
-		{
-			return sizeof(T);
-		}
-	};
-} StreamWriterNew;
-
 typedef class MsgStreamReader : public MsgStream
 {
 public:
@@ -313,7 +197,7 @@ public:
 
 	char* GetData()
 	{
-		return (char*)begin;
+		return (char*)(begin + MSG_OFFSET);
 	}
 
 	template<typename T> T Read()

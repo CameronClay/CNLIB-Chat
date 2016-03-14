@@ -150,11 +150,11 @@ void RequestTransfer(TCPServInterface& serv, std::tstring& srcUserName, MsgStrea
 	if(client == nullptr)
 		return;
 
-	MsgStreamWriter streamWriter(TYPE_REQUEST, MSG_REQUEST_TRANSFER, StreamWriter::SizeType(srcUserName) + sizeof(double));
+	MsgStreamWriter streamWriter = serv.CreateOutStream(TYPE_REQUEST, MSG_REQUEST_TRANSFER);
 	streamWriter.Write(srcUserName);
 	streamWriter.Write(streamReader.Read<double>());
 
-	serv.SendClientData(streamWriter, streamWriter.GetSize(), client, true);
+	serv.SendClientData(streamWriter, client, true);
 }
 
 void DispIPMsg(Socket& pc, const LIB_TCHAR* str)
@@ -466,13 +466,13 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, MsgStreamReader
 		{
 			if (!wb)
 			{
-				WBParams* params = (WBParams*)dat;
+				WBParams params = streamReader.Read<WBParams>();
 
 				auto streamWriter = serv.CreateOutStream(TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE);
-				streamWriter.Write(*params);
+				streamWriter.Write(params);
 				serv.SendClientData(streamWriter, clint, true);
 
-				wb = construct<Whiteboard>(serv, std::move(*params), clint->user);
+				wb = construct<Whiteboard>(serv, params, clint->user);
 
 				wb->StartThread();
 			}

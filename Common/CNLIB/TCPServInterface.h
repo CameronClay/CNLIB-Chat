@@ -43,16 +43,16 @@ public:
 
 	virtual IPv AllowConnections(const LIB_TCHAR* port, ConCondition connectionCondition, IPv ipv = ipboth) = 0;
 
-	virtual MsgStreamWriterNew CreateOutStream(short type, short msg) = 0;
+	virtual MsgStreamWriter CreateOutStream(short type, short msg) = 0;
 	virtual char* GetSendBuffer() = 0;
 
 	virtual bool SendClientData(const char* data, DWORD nBytes, ClientData* exClient, bool single, CompressionType compType = BESTFIT) = 0;
 	virtual bool SendClientData(const char* data, DWORD nBytes, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT) = 0;
 	virtual bool SendClientData(const char* data, DWORD nBytes, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT) = 0;
 
-	virtual bool SendClientData(MsgStreamWriterNew streamWriter, ClientData* exClient, bool single, CompressionType compType = BESTFIT) = 0;
-	virtual bool SendClientData(MsgStreamWriterNew streamWriter, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT) = 0;
-	virtual bool SendClientData(MsgStreamWriterNew streamWriter, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT) = 0;
+	virtual bool SendClientData(MsgStreamWriter streamWriter, ClientData* exClient, bool single, CompressionType compType = BESTFIT) = 0;
+	virtual bool SendClientData(MsgStreamWriter streamWriter, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT) = 0;
+	virtual bool SendClientData(MsgStreamWriter streamWriter, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT) = 0;
 
 	virtual void SendMsg(ClientData* exClient, bool single, short type, short message) = 0;
 	virtual void SendMsg(ClientData** clients, UINT nClients, short type, short message) = 0;
@@ -73,17 +73,19 @@ public:
 
 	virtual bool MaxClients() const = 0;
 	virtual bool IsConnected() const = 0;
-	virtual bool NoDelay() const = 0;
-	virtual bool UseOwnBuf() const = 0;
+
+	virtual UINT SingleOlPCCount() const = 0;
+	virtual UINT GetMaxPcSendOps() const = 0;
 
 	virtual UINT MaxDataSize() const = 0;
 	virtual UINT MaxCompSize() const = 0;
 	virtual UINT GetOpCount() const = 0;
 
-	virtual UINT SingleOlPCCount() const = 0;
-	virtual UINT GetMaxPcSendOps() const = 0;
-
+	virtual int GetCompression() const = 0;
 	virtual int GetCompressionCO() const = 0;
+
+	virtual bool NoDelay() const = 0;
+	virtual bool UseOwnBuf() const = 0;
 
 	virtual void* GetObj() const = 0;
 };

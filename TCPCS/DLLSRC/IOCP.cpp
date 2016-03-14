@@ -1,15 +1,17 @@
 #include "StdAfx.h"
 #include "CNLIB/IOCP.h"
+#include "CNLIB/HeapAlloc.h"
 
 IOCP::IOCP(DWORD nThreads, DWORD nConcThreads, LPTHREAD_START_ROUTINE startAddress)
 	:
 	nThreads(nThreads),
 	nConcThreads(nConcThreads),
+	threads(alloc<HANDLE>(nThreads)),
 	iocp(CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, nConcThreads))
 {
 	for (int i = 0; i < nThreads; i++)
 	{
-		CloseHandle(CreateThread(NULL, 0, startAddress, this, NULL, NULL));
+		threads[i] = CreateThread(NULL, 0, startAddress, this, NULL, NULL);
 	}
 }
 
@@ -45,6 +47,8 @@ void IOCP::WaitAndCleanup()
 			CloseHandle(threads[i]);
 			threads[i] = NULL;
 		}
+
+		dealloc(threads);
 		CloseHandle(iocp);
 		iocp = NULL;
 	}
