@@ -6,13 +6,15 @@
 #include "CompressionTypes.h"
 #include "Socket.h"
 #include "MsgStream.h"
+#include "StreamAllocInterface.h"
+#include "SocketOptions.h"
 
 class TCPClientInterface;
 typedef void(*const dcfunc)(bool unexpected);
 typedef void(*cfunc)(TCPClientInterface& client, MsgStreamReader streamReader);
 typedef void(**const cfuncP)(TCPClientInterface& client, MsgStreamReader streamReader);
 
-class CAMSNETLIB TCPClientInterface
+class CAMSNETLIB TCPClientInterface : public StreamAllocInterface
 {
 public:
 	virtual bool Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6 = false, float timeOut = 5.0f) = 0;
@@ -21,9 +23,6 @@ public:
 	virtual void Disconnect() = 0;
 
 	virtual bool RecvServData() = 0;
-
-	virtual MsgStreamWriter CreateOutStream(short type, short msg) = 0;
-	virtual char* GetSendBuffer() = 0;
 
 	virtual bool SendServData(const char* data, DWORD nBytes, CompressionType compType = BESTFIT) = 0;
 	virtual bool SendServData(MsgStreamWriter streamWriter, CompressionType compType = BESTFIT) = 0;
@@ -35,21 +34,14 @@ public:
 
 	virtual bool IsConnected() const = 0;
 
-	virtual UINT MaxDataSize() const = 0;
-	virtual UINT MaxCompSize() const = 0;
 	virtual UINT GetOpCount() const = 0;
-
 	virtual UINT GetMaxSendOps() const = 0;
 
-	virtual int GetCompression() const = 0;
-	virtual int GetCompressionCO() const = 0;
-
-	virtual bool NoDelay() const = 0;
-	virtual bool UseOwnBuf() const = 0;
+	virtual const SocketOptions GetSockOpts() const = 0;
 
 	virtual Socket GetHost() const = 0;
 	virtual void* GetObj() const = 0;
 };
 
-CAMSNETLIB TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, DWORD nThreads = 1, DWORD nConcThreads = 1, UINT maxSendOps = 5, UINT maxDataSize = 8192, UINT olCount = 10, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, bool useOwnBuf = true, bool noDelay = false, void* obj = nullptr);
+CAMSNETLIB TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, DWORD nThreads = 1, DWORD nConcThreads = 1, UINT maxSendOps = 5, UINT maxDataSize = 8192, UINT olCount = 10, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);
 CAMSNETLIB void DestroyClient(TCPClientInterface*& client);

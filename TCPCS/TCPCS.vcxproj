@@ -145,6 +145,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\Common\CNLIB\BufferOptions.h" />
     <ClInclude Include="..\Common\CNLIB\BufSize.h" />
     <ClInclude Include="..\Common\CNLIB\CompressionTypes.h" />
     <ClInclude Include="..\Common\CNLIB\File.h" />
@@ -158,13 +159,17 @@
     <ClInclude Include="..\Common\CNLIB\KeepAlive.h" />
     <ClInclude Include="..\Common\CNLIB\Socket.h" />
     <ClInclude Include="..\Common\CNLIB\SocketInfo.h" />
+    <ClInclude Include="..\Common\CNLIB\SocketOptions.h" />
+    <ClInclude Include="..\Common\CNLIB\StreamAllocInterface.h" />
     <ClInclude Include="..\Common\CNLIB\StreamExt.h" />
     <ClInclude Include="..\Common\CNLIB\TCPClientInterface.h" />
     <ClInclude Include="..\Common\CNLIB\TCPServInterface.h" />
     <ClInclude Include="..\Common\CNLIB\Typedefs.h" />
     <ClInclude Include="..\Common\CNLIB\UPNP.h" />
     <ClInclude Include="..\Common\CNLIB\WSABufExt.h" />
+    <ClCompile Include="DLLSRC\BufferOptions.cpp" />
     <ClInclude Include="DLLSRC\InterlockedCounter.h" />
+    <ClInclude Include="DLLSRC\BufSendAlloc.h" />
     <ClInclude Include="DLLSRC\TCPClient.h" />
     <ClInclude Include="DLLSRC\TCPServ.h" />
     <ClInclude Include="StdAfx.h" />
@@ -177,6 +182,8 @@
     <ClCompile Include="DLLSRC\KeepAlive.cpp" />
     <ClCompile Include="DLLSRC\Socket.cpp" />
     <ClCompile Include="DLLSRC\SocketInfo.cpp" />
+    <ClCompile Include="DLLSRC\BufSendAlloc.cpp" />
+    <ClCompile Include="DLLSRC\SocketOptions.cpp" />
     <ClCompile Include="DLLSRC\TCPClient.cpp" />
     <ClCompile Include="DLLSRC\TCPServ.cpp" />
     <ClCompile Include="DLLSRC\Typedefs.cpp" />

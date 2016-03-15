@@ -1,4 +1,5 @@
 #pragma once
+#define TYPE_CHANGE -128
 #define MSG_CHANGE_DISCONNECT -127
 
 #define MSG_CHANGE_CONNECTINIT -126

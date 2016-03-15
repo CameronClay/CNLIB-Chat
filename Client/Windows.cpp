@@ -279,13 +279,6 @@ void MsgHandler(TCPClientInterface&, MsgStreamReader streamReader)
 		{
 			switch(msg)
 			{
-			case MSG_CHANGE_SERVERFULL:
-			{
-				Flash();
-				MessageBox(hMainWind, _T("Server is full!"), _T("ERROR"), MB_ICONERROR);
-				Disconnect();
-				break;
-			}
 			case MSG_CHANGE_CONNECT:
 			{
 				const std::tstring name = streamReader.Read<std::tstring>();

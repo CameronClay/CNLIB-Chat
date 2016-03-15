@@ -9,13 +9,14 @@
 #include "CNLIB/OverlappedExt.h"
 #include "CNLIB/HeapAlloc.h"
 #include "InterlockedCounter.h"
+#include "BufSendAlloc.h"
 
 class TCPServ : public TCPServInterface, public KeepAliveHI
 {
 public:
 	//sfunc is a message handler, compression is 1-9
 	//a value of 0.0f of ping interval means dont keepalive at all
-	TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxPCSendOps = 5, UINT maxDataSize = 8192, UINT singleOlPCCount = 5, UINT allOlCount = 30, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, bool useOwnBuf = true, bool noDelay = false, void* obj = nullptr);
+	TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxPCSendOps = 5, UINT maxDataSize = 8192, UINT singleOlPCCount = 5, UINT allOlCount = 30, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);
 	TCPServ(TCPServ&& serv);
 	~TCPServ();
 
@@ -66,8 +67,8 @@ public:
 	IPv AllowConnections(const LIB_TCHAR* port, ConCondition connectionCondition, IPv ipv = ipboth) override;
 
 	char* GetSendBuffer() override;
-
 	MsgStreamWriter CreateOutStream(short type, short msg) override;
+	const BufferOptions GetBufferOptions() const override;
 
 	//Used to send data to clients
 	//addr parameter functions as both the excluded address, and as a single address, 
@@ -111,15 +112,11 @@ public:
 
 	bool MaxClients() const override;
 	bool IsConnected() const override;
-	bool NoDelay() const override;
-	bool UseOwnBuf() const override;
+
+	const SocketOptions GetSockOpts() const override;
 
 	void* GetObj() const override;
-	int GetCompression() const override;
-	int GetCompressionCO() const override;
 
-	UINT MaxDataSize() const override;
-	UINT MaxCompSize() const override;
 	UINT GetOpCount() const override;
 
 	UINT SingleOlPCCount() const override;
@@ -129,18 +126,15 @@ public:
 
 	MemPool<HeapAllocator>& GetRecvBuffPool();
 
-	void FreeSendBuffer(WSABufSend& buff);
 	void FreeSendOlInfo(OverlappedSendInfo* ol);
 	void FreeSendOlSingle(ClientDataEx& client, OverlappedSendSingle* ol);
 
 	void AcceptConCR(HostSocket& host, OverlappedExt* ol);
-	void RecvDataCR(DWORD bytesTrans, ClientDataEx& cd, OverlappedExt* ol);;
+	void RecvDataCR(DWORD bytesTrans, ClientDataEx& cd);
 	void SendDataCR(ClientDataEx& cd, OverlappedSend* ol);
 	void SendDataSingleCR(ClientDataEx& cd, OverlappedSendSingle* ol);
 	void CleanupAcceptEx(HostSocket& host);
 private:
-	WSABufSend CreateSendBuffer(DWORD nBytesDecomp, char* buffer, bool msg, CompressionType compType = BESTFIT);
-
 	bool BindHost(HostSocket& host, bool ipv6, const LIB_TCHAR* port);
 	bool SendClientData(const char* data, DWORD nBytes, ClientDataEx* exClient, bool single, bool msg, CompressionType compType);
 	bool SendClientData(const char* data, DWORD nBytes, ClientDataEx** clients, UINT nClients, bool msg, CompressionType compType);
@@ -154,24 +148,21 @@ private:
 	UINT nClients; //number of current connected clients
 	IOCP iocp; //IO completion port
 	sfunc function; //used to intialize what clients default function/msghandler is
-	void* obj; //passed to function/msgHandler for oop programming
 	ConFunc conFunc; //function called when connect
 	ConCondition connectionCondition; //condition for accepting connections
 	DisconFunc disFunc; //function called when disconnect occurs
 	CRITICAL_SECTION clientSect; //used for synchonization
-	const UINT maxDataSize, maxCompSize; //maximum packet size to send or recv, maximum compressed data size, number of preallocated sendbuffers
 	const UINT singleOlPCCount, maxPCSendOps; //number of preallocated per client ol structs, max per client concurent send operations
-	const int compression, compressionCO; //compression server sends packets at
 	const UINT maxCon; //max clients
 	float keepAliveInterval; //interval at which server keepalives clients
 	KeepAliveHandler* keepAliveHandler; //handles all KeepAlives to client, to prevent timeout
+	BufSendAlloc bufSendAlloc;
 	MemPool<HeapAllocator> clientPool, recvBuffPool; //Used to help speed up allocation of client resources
 	MemPoolSync<HeapAllocator> sendOlInfoPool, sendOlPoolAll; //Used to help speed up allocation of structures needed to send Ol data, single pool is backup for per client pool
-	MemPoolSync<HeapAllocator> sendDataPool, sendMsgPool; //Used to help speed up allocation of send buffers
 	InterlockedCounter opCounter; //Used to keep track of number of asynchronous operations
 	HANDLE shutdownEv; //Set when opCounter reaches 0, to notify shutdown it is okay to close iocp
-	bool noDelay; //Used to enable/disable the nagle algorithm
-	bool useOwnBuf; //If true calls setsockopt with SO_SENDBUF and 0, to force it to use your own buffer
+	void* obj; //passed to function/msgHandler for oop programming
+	SocketOptions sockOpts;
 };
 
 typedef TCPServ::ClientDataEx ClientDataEx;

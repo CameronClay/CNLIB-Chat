@@ -6,8 +6,10 @@
 #include "IPV.h"
 #include "CompressionTypes.h"
 #include "MsgStream.h"
+#include "StreamAllocInterface.h"
+#include "SocketOptions.h"
 
-class CAMSNETLIB TCPServInterface
+class CAMSNETLIB TCPServInterface : public StreamAllocInterface
 {
 public:
 	struct ClientData;
@@ -43,9 +45,6 @@ public:
 
 	virtual IPv AllowConnections(const LIB_TCHAR* port, ConCondition connectionCondition, IPv ipv = ipboth) = 0;
 
-	virtual MsgStreamWriter CreateOutStream(short type, short msg) = 0;
-	virtual char* GetSendBuffer() = 0;
-
 	virtual bool SendClientData(const char* data, DWORD nBytes, ClientData* exClient, bool single, CompressionType compType = BESTFIT) = 0;
 	virtual bool SendClientData(const char* data, DWORD nBytes, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT) = 0;
 	virtual bool SendClientData(const char* data, DWORD nBytes, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT) = 0;
@@ -77,15 +76,9 @@ public:
 	virtual UINT SingleOlPCCount() const = 0;
 	virtual UINT GetMaxPcSendOps() const = 0;
 
-	virtual UINT MaxDataSize() const = 0;
-	virtual UINT MaxCompSize() const = 0;
 	virtual UINT GetOpCount() const = 0;
 
-	virtual int GetCompression() const = 0;
-	virtual int GetCompressionCO() const = 0;
-
-	virtual bool NoDelay() const = 0;
-	virtual bool UseOwnBuf() const = 0;
+	virtual const SocketOptions GetSockOpts() const = 0;
 
 	virtual void* GetObj() const = 0;
 };
@@ -102,5 +95,5 @@ typedef void(*const ConFunc)(ClientData* data);
 typedef void(*const DisconFunc)(ClientData* data, bool unexpected);
 
 
-CAMSNETLIB TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 1, DWORD nConcThreads = 1, UINT maxPCSendOps = 5, UINT maxDataSize = 8192, UINT singleOlPCCount = 30, UINT allOlCount = 30, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, bool useOwnBuf = true, bool noDelay = false, void* obj = nullptr);
+CAMSNETLIB TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 1, DWORD nConcThreads = 1, UINT maxPCSendOps = 5, UINT maxDataSize = 8192, UINT singleOlPCCount = 30, UINT allOlCount = 30, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);
 CAMSNETLIB void DestroyServer(TCPServInterface*& server);

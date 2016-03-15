@@ -87,6 +87,21 @@
     <ClInclude Include="StdAfx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DLLSRC\BufSendAlloc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DLLSRC\BufferOptions.cpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\StreamAllocInterface.h">
+      <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\BufferOptions.h">
+      <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\SocketOptions.h">
+      <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DLLSRC\File.cpp">
@@ -123,6 +138,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="StdAfx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DLLSRC\BufSendAlloc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DLLSRC\SocketOptions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
