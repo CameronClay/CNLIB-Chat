@@ -261,10 +261,11 @@ void Whiteboard::SendMouseData(TCPClientInterface* client)
 		UINT count;
 		const DWORD nBytes = mouse.GetBufferLen(count) + MSG_OFFSET;
 		char* msg = alloc<char>(nBytes);
-		msg[0] = TYPE_DATA;
-		msg[1] = MSG_DATA_MOUSE;
-		mouse.Extract((BYTE*)(msg + MSG_OFFSET), count);
-		client->SendServData(msg, nBytes);
+		MsgStreamWriter streamWriter = client->CreateOutStream(TYPE_DATA, MSG_DATA_MOUSE);
+		//*((short*)msg) = TYPE_DATA;
+		//*((short*)msg + 1) = MSG_DATA_MOUSE;
+		mouse.Extract((BYTE*)(streamWriter + MSG_OFFSET), count);
+		client->SendServData(streamWriter, nBytes);
 		dealloc(msg);
 	}
 }

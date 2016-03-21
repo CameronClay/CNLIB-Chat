@@ -2,12 +2,13 @@
 #include "BufSendAlloc.h"
 #include "CNLIB/File.h"
 #include "CNLIB/MsgStream.h"
+#include "CNLIB/MsgHeader.h"
 
 BufSendAlloc::BufSendAlloc(UINT maxDataSize, UINT sendBuffCount, UINT sendMsgBuffCount, int compression, int compressionCO)
 	:
 	bufferOptions(maxDataSize, compression, compressionCO),
-	sendDataPool(maxDataSize + bufferOptions.GetMaxCompSize() + sizeof(DWORD64) * 2, sendBuffCount), //extra DWORD64 incase it sends compressed data, because data written to initial buffer is offset by sizeof(DWORD64)
-	sendMsgPool(sizeof(DWORD64) + MSG_OFFSET, sendMsgBuffCount)
+	sendDataPool(maxDataSize + bufferOptions.GetMaxCompSize() + sizeof(DataHeader) * 2 + MSG_OFFSET, sendBuffCount, bufferOptions.GetPageSize()), //extra DataHeader incase it sends compressed data, because data written to initial buffer is offset by sizeof(DataHeader)
+	sendMsgPool(sizeof(MsgHeader), sendMsgBuffCount)
 {}
 BufSendAlloc::BufSendAlloc(BufSendAlloc&& bufSendAlloc)
 	:
@@ -33,16 +34,16 @@ BufSendAlloc& BufSendAlloc::operator=(BufSendAlloc&& bufSendAlloc)
 
 char* BufSendAlloc::GetSendBuffer()
 {
-	return sendDataPool.alloc<char>() + sizeof(DWORD64);
+	return sendDataPool.alloc<char>() + sizeof(DataHeader);
 }
 MsgStreamWriter BufSendAlloc::CreateOutStream(short type, short msg)
 {
 	return{ GetSendBuffer(), bufferOptions.GetMaxDataSize(), type, msg };
 }
 
-WSABufSend BufSendAlloc::CreateBuff(DWORD nBytesDecomp, char* buffer, bool msg, CompressionType compType)
+WSABufExt BufSendAlloc::CreateBuff(DWORD nBytesDecomp, char* buffer, bool msg, USHORT index, CompressionType compType)
 {
-	DWORD nBytesComp = 0, nBytesSend = nBytesDecomp + sizeof(DWORD64);
+	DWORD nBytesComp = 0, nBytesSend = nBytesDecomp + sizeof(DataHeader);
 	DWORD maxDataSize = bufferOptions.GetMaxDataSize();
 	char* dest;
 
@@ -50,11 +51,11 @@ WSABufSend BufSendAlloc::CreateBuff(DWORD nBytesDecomp, char* buffer, bool msg, 
 	{
 		char* temp = buffer;
 		dest = buffer = sendMsgPool.alloc<char>();
-		*(int*)(buffer + sizeof(DWORD64)) = *(int*)temp;
+		*(int*)(buffer + sizeof(DataHeader)) = *(int*)temp;
 	}
 	else
 	{
-		dest = buffer -= sizeof(DWORD64);
+		dest = buffer -= sizeof(DataHeader);
 		if (nBytesDecomp > maxDataSize)
 		{
 			sendDataPool.destruct(buffer);
@@ -72,7 +73,7 @@ WSABufSend BufSendAlloc::CreateBuff(DWORD nBytesDecomp, char* buffer, bool msg, 
 
 	if (compType == SETCOMPRESSION)
 	{
-		DWORD temp = FileMisc::Compress((BYTE*)(buffer + maxDataSize + sizeof(DWORD64)), bufferOptions.GetMaxCompSize(), (const BYTE*)(buffer + sizeof(DWORD64)), nBytesDecomp, bufferOptions.GetCompression());
+		DWORD temp = FileMisc::Compress((BYTE*)(buffer + maxDataSize + sizeof(DataHeader)), bufferOptions.GetMaxCompSize(), (const BYTE*)(buffer + sizeof(DataHeader)), nBytesDecomp, bufferOptions.GetCompression());
 		if (nBytesComp < nBytesDecomp)
 		{
 			nBytesComp = temp;
@@ -81,13 +82,16 @@ WSABufSend BufSendAlloc::CreateBuff(DWORD nBytesDecomp, char* buffer, bool msg, 
 		}
 	}
 
-	*(DWORD64*)(dest) = ((DWORD64)nBytesDecomp) << 32 | nBytesComp;
+	DataHeader& header = *(DataHeader*)dest;
+	header.size.up.nBytesComp = nBytesComp;
+	header.size.up.nBytesDecomp = nBytesDecomp;
+	header.index = (index == -1) ? ++bufIndex : index;
 
-	WSABufSend buf;
+	WSABufExt buf;
 	buf.Initialize(nBytesSend, dest, buffer);
 	return buf;
 }
-void BufSendAlloc::FreeBuff(WSABufSend& buff)
+void BufSendAlloc::FreeBuff(WSABufExt& buff)
 {
 	if (sendDataPool.InPool(buff.head))
 		sendDataPool.dealloc(buff.head);

@@ -43,7 +43,7 @@ public:
 		ClientData** const clients;
 	};
 
-	virtual IPv AllowConnections(const LIB_TCHAR* port, ConCondition connectionCondition, IPv ipv = ipboth) = 0;
+	virtual IPv AllowConnections(const LIB_TCHAR* port, ConCondition connectionCondition, IPv ipv = ipboth, UINT nConcAccepts = 1) = 0;
 
 	virtual bool SendClientData(const char* data, DWORD nBytes, ClientData* exClient, bool single, CompressionType compType = BESTFIT) = 0;
 	virtual bool SendClientData(const char* data, DWORD nBytes, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT) = 0;
@@ -67,8 +67,8 @@ public:
 	virtual UINT ClientCount() const = 0;
 	virtual UINT MaxClientCount() const = 0;
 
-	virtual Socket GetHostIPv4() const = 0;
-	virtual Socket GetHostIPv6() const = 0;
+	virtual const Socket GetHostIPv4() const = 0;
+	virtual const Socket GetHostIPv6() const = 0;
 
 	virtual bool MaxClients() const = 0;
 	virtual bool IsConnected() const = 0;
@@ -95,5 +95,5 @@ typedef void(*const ConFunc)(ClientData* data);
 typedef void(*const DisconFunc)(ClientData* data, bool unexpected);
 
 
-CAMSNETLIB TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 1, DWORD nConcThreads = 1, UINT maxPCSendOps = 5, UINT maxDataSize = 8192, UINT singleOlPCCount = 30, UINT allOlCount = 30, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);
+CAMSNETLIB TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 1, DWORD nConcThreads = 1, UINT maxPCSendOps = 5, UINT maxDataSize = 4096, UINT singleOlPCCount = 30, UINT allOlCount = 30, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);
 CAMSNETLIB void DestroyServer(TCPServInterface*& server);

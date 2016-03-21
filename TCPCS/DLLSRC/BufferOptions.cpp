@@ -7,7 +7,8 @@ BufferOptions::BufferOptions(UINT maxDataSize, int compression, int compressionC
 	maxDataSize(maxDataSize),
 	maxCompSize(FileMisc::GetCompressedBufferSize(maxDataSize)),
 	compression(compression),
-	compressionCO(compressionCO)
+	compressionCO(compressionCO),
+	pageSize(CalcPageSize())
 {}
 
 BufferOptions& BufferOptions::operator=(const BufferOptions& bufferOptions)
@@ -18,6 +19,7 @@ BufferOptions& BufferOptions::operator=(const BufferOptions& bufferOptions)
 		const_cast<UINT&>(maxCompSize) = bufferOptions.maxCompSize;
 		const_cast<int&>(compression) = bufferOptions.compression;
 		const_cast<int&>(compressionCO) = bufferOptions.compressionCO;
+		const_cast<DWORD&>(pageSize) = bufferOptions.pageSize;
 	}
 	return *this;
 }
@@ -37,4 +39,16 @@ int BufferOptions::GetCompression() const
 int BufferOptions::GetCompressionCO() const
 {
 	return compressionCO;
+}
+
+int BufferOptions::GetPageSize() const
+{
+	return pageSize;
+}
+
+DWORD BufferOptions::CalcPageSize()
+{
+	SYSTEM_INFO si;
+	GetSystemInfo(&si);
+	return si.dwPageSize;
 }

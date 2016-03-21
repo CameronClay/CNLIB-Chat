@@ -8,15 +8,16 @@
 #include "CNLIB/WSABufExt.h"
 #include "CNLIB/OverlappedExt.h"
 #include "CNLIB/HeapAlloc.h"
-#include "InterlockedCounter.h"
 #include "BufSendAlloc.h"
+#include "RecvHandler.h"
+#include "RecvObserverI.h"
 
-class TCPServ : public TCPServInterface, public KeepAliveHI
+class TCPServ : public TCPServInterface, public KeepAliveHI, public RecvObserverI
 {
 public:
 	//sfunc is a message handler, compression is 1-9
 	//a value of 0.0f of ping interval means dont keepalive at all
-	TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxPCSendOps = 5, UINT maxDataSize = 8192, UINT singleOlPCCount = 5, UINT allOlCount = 30, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);
+	TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxPCSendOps = 5, UINT maxDataSize = 4096, UINT singleOlPCCount = 5, UINT allOlCount = 30, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);
 	TCPServ(TCPServ&& serv);
 	~TCPServ();
 
@@ -28,11 +29,11 @@ public:
 		~ClientDataEx();
 
 		TCPServ& serv;
-		WSABufRecv buff;
 		OverlappedExt ol;
 		UINT arrayIndex;
-		InterlockedCounter opCount;
+		std::atomic<UINT> opCount;
 		MemPoolSync<HeapAllocator> olPool;
+		RecvHandler recvHandler;
 		std::queue<OverlappedSendSingle*> opsPending;
 
 		//int for alignment
@@ -42,29 +43,64 @@ public:
 		} state;
 	};
 
-	struct HostSocket
+	class HostSocket
 	{
+	public:
+		class AcceptData
+		{
+		public:
+			AcceptData();
+			AcceptData(AcceptData&& host);
+			AcceptData& operator=(AcceptData&& data);
+
+			void Initalize(HostSocket* hostSocket);
+			void Cleanup();
+
+			void ResetAccept();
+			bool QueueAccept();
+			void AcceptConCR();
+
+			SOCKET GetAccept() const;
+			HostSocket* GetHostSocket() const;
+			void GetAcceptExAddrs(sockaddr** local, int* localLen, sockaddr** remote, int* remoteLen);
+		private:
+			HostSocket* hostSocket;
+			SOCKET accept;
+			char* buffer;
+			OverlappedExt ol;
+		};
+
 		HostSocket(TCPServ& serv);
 		HostSocket(HostSocket&& host);
 		HostSocket& operator=(HostSocket&& data);
-		~HostSocket();
 
-		void SetAcceptSocket();
-		void CloseAcceptSocket();
+		void Initalize(UINT nConcAccepts);
+		void Cleanup();
 
-		TCPServ& serv;
-		Socket listen;
-		SOCKET accept;
-		char* buffer;
-		OverlappedExt ol;
+		bool Bind(const LIB_TCHAR* port, bool ipv6);
+		bool QueueAccept();
+		bool LinkIOCP(IOCP& iocp);
+		void Disconnect();
+
+		TCPServ& GetServ();
+		const Socket& GetListen() const;
 
 		static const DWORD localAddrLen = sizeof(sockaddr_in6) + 16, remoteAddrLen = sizeof(sockaddr_in6) + 16;
+
+	private:
+		TCPServ& serv;
+		Socket listen;
+
+		AcceptData* acceptData;
+		UINT nConcAccepts;
 	};
+
+	typedef HostSocket::AcceptData AcceptData;
 
 	TCPServ& operator=(TCPServ&& serv);
 
 	//Allows connections to the server; should only be called once
-	IPv AllowConnections(const LIB_TCHAR* port, ConCondition connectionCondition, IPv ipv = ipboth) override;
+	IPv AllowConnections(const LIB_TCHAR* port, ConCondition connectionCondition, IPv ipv = ipboth, UINT nConcAccepts = 1) override;
 
 	char* GetSendBuffer() override;
 	MsgStreamWriter CreateOutStream(short type, short msg) override;
@@ -104,8 +140,8 @@ public:
 	UINT ClientCount() const override;
 	UINT MaxClientCount() const override;
 
-	Socket GetHostIPv4() const override;
-	Socket GetHostIPv6() const override;
+	const Socket GetHostIPv4() const override;
+	const Socket GetHostIPv6() const override;
 
 	void SetKeepAliveInterval(float interval) override;
 	float GetKeepAliveInterval() const override;
@@ -124,23 +160,23 @@ public:
 
 	IOCP& GetIOCP();
 
-	MemPool<HeapAllocator>& GetRecvBuffPool();
-
 	void FreeSendOlInfo(OverlappedSendInfo* ol);
 	void FreeSendOlSingle(ClientDataEx& client, OverlappedSendSingle* ol);
 
-	void AcceptConCR(HostSocket& host, OverlappedExt* ol);
+	void AcceptConCR(HostSocket::AcceptData& acceptData);
 	void RecvDataCR(DWORD bytesTrans, ClientDataEx& cd);
 	void SendDataCR(ClientDataEx& cd, OverlappedSend* ol);
 	void SendDataSingleCR(ClientDataEx& cd, OverlappedSendSingle* ol);
-	void CleanupAcceptEx(HostSocket& host);
+	void CleanupAcceptEx(HostSocket::AcceptData& acceptData);
 private:
-	bool BindHost(HostSocket& host, bool ipv6, const LIB_TCHAR* port);
+	void OnNotify(char* data, DWORD nBytes, void* cd) override;
+
+	bool BindHost(HostSocket& host, const LIB_TCHAR* port, bool ipv6, UINT nConcAccepts);
 	bool SendClientData(const char* data, DWORD nBytes, ClientDataEx* exClient, bool single, bool msg, CompressionType compType);
 	bool SendClientData(const char* data, DWORD nBytes, ClientDataEx** clients, UINT nClients, bool msg, CompressionType compType);
 
-	bool SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient, bool single);
-	bool SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients, UINT nClients);
+	bool SendClientData(const WSABufExt& sendBuff, ClientDataEx* exClient, bool single);
+	bool SendClientData(const WSABufExt& sendBuff, ClientDataEx** clients, UINT nClients);
 	bool SendClientSingle(ClientDataEx& clint, OverlappedSendSingle* ol, bool popQueue = false);
 
 	HostSocket ipv4Host, ipv6Host; //host/listener sockets
@@ -157,9 +193,9 @@ private:
 	float keepAliveInterval; //interval at which server keepalives clients
 	KeepAliveHandler* keepAliveHandler; //handles all KeepAlives to client, to prevent timeout
 	BufSendAlloc bufSendAlloc;
-	MemPool<HeapAllocator> clientPool, recvBuffPool; //Used to help speed up allocation of client resources
-	MemPoolSync<HeapAllocator> sendOlInfoPool, sendOlPoolAll; //Used to help speed up allocation of structures needed to send Ol data, single pool is backup for per client pool
-	InterlockedCounter opCounter; //Used to keep track of number of asynchronous operations
+	MemPool<HeapAllocator> clientPool;
+	MemPoolSync<PageAllignAllocator> sendOlInfoPool, sendOlPoolAll; //Used to help speed up allocation of structures needed to send Ol data, single pool is backup for per client pool
+	std::atomic<UINT> opCounter; //Used to keep track of number of asynchronous operations
 	HANDLE shutdownEv; //Set when opCounter reaches 0, to notify shutdown it is okay to close iocp
 	void* obj; //passed to function/msgHandler for oop programming
 	SocketOptions sockOpts;

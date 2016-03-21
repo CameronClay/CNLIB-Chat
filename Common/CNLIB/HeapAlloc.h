@@ -240,6 +240,100 @@ template<class T1, class T2> bool operator!=(const HeapAllocator<T1>&, const Hea
 	return false;
 }
 
+template<class T> class PageAllignAllocator
+{
+public:
+	typedef PageAllignAllocator<T> other;
+
+	typedef T value_type;
+
+	typedef value_type *pointer;
+	typedef const value_type *const_pointer;
+	typedef void *void_pointer;
+	typedef const void *const_void_pointer;
+
+	typedef value_type& reference;
+	typedef const value_type& const_reference;
+
+	typedef size_t size_type;
+	typedef ptrdiff_t difference_type;
+
+	typedef std::true_type propagate_on_container_move_assignment;
+	typedef std::true_type is_always_equal;
+
+	PageAllignAllocator<T> select_on_container_copy_construction() const
+	{
+		return (*this);
+	}
+
+	template<class _Other> struct rebind
+	{
+		typedef PageAllignAllocator<_Other> other;
+	};
+
+	pointer address(reference _Val) const _NOEXCEPT
+	{
+		return (_STD addressof(_Val));
+	}
+
+	const_pointer address(const_reference _Val) const _NOEXCEPT
+	{
+		return (_STD addressof(_Val));
+	}
+
+	PageAllignAllocator() _THROW0(){}
+
+	PageAllignAllocator(const PageAllignAllocator<T>&) _THROW0(){}
+
+	template<class _Other> PageAllignAllocator(const PageAllignAllocator<_Other>&) _THROW0(){}
+
+	template<class _Other> PageAllignAllocator<T>& operator=(const PageAllignAllocator<_Other>&)
+	{
+		return (*this);
+	}
+
+	size_t max_size() const _THROW0()
+	{
+		return ((size_t)(-1) / sizeof(T));
+	}
+
+	static inline pointer allocate(size_type n)
+	{
+		return (pointer)VirtualAlloc(NULL, n * sizeof(T), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+	}
+	static inline pointer allocate(size_type n, const void *)
+	{
+		return allocate(n);
+	}
+	static inline void deallocate(pointer p, size_type n = 0)
+	{
+		VirtualFree(p, 0, MEM_RELEASE);
+	}
+
+	static inline void construct(pointer p, const_reference v)
+	{
+		pmconstruct<T>(p, v);
+	}
+	template<typename P, typename... Args> static inline void construct(P* ptr, Args&&... vals)
+	{
+		pmconstruct<P>(ptr, std::forward<Args>(vals)...);
+	}
+
+	template<typename P> static inline void destroy(P* ptr)
+	{
+		pmdestruct(ptr);
+	}
+};
+
+template<class T1, class T2> bool operator==(const PageAllignAllocator<T1>&, const PageAllignAllocator<T2>&)
+{
+	return true;
+}
+template<class T1, class T2> bool operator!=(const PageAllignAllocator<T1>&, const PageAllignAllocator<T2>&)
+{
+	return false;
+}
+
 template<typename T> struct deleter
 {
 	deleter() throw() {}

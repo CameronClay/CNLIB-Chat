@@ -1,8 +1,9 @@
 #pragma once
+#include "MsgHeader.h"
 
-struct WSABufSend : WSABUF
+struct WSABufExt : public WSABUF
 {
-	WSABufSend()
+	WSABufExt()
 		:
 		head(nullptr)
 	{
@@ -15,24 +16,39 @@ struct WSABufSend : WSABUF
 		this->len = len;
 		this->buf = buf;
 		this->head = head;
+		curBytes = 0;
 	}
 	
 	char* head;
-};
-
-struct WSABufRecv : WSABufSend
-{
-	WSABufRecv()
-		:
-		WSABufSend()
-	{}
-
-	void Initialize(DWORD len, char* buf)
-	{
-		curBytes = 0;
-		__super::Initialize(len, buf, buf);
-	}
-
 	DWORD curBytes;
 };
 
+struct WSABufRecv : public WSABufExt
+{
+	WSABufRecv()
+		:
+		WSABufExt()
+	{
+		used = false;
+	}
+
+	WSABufRecv(const WSABufRecv& b)
+	{
+		*this = b;
+	}
+
+	WSABufRecv& operator=(const WSABufRecv& b)
+	{
+		if (this != &b)
+		{
+			len = b.len;
+			buf = b.buf;
+			head = b.head;
+			curBytes = b.curBytes;
+			used = b.used;
+		}
+		return *this;
+	}
+
+	bool used;
+};

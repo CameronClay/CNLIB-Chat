@@ -11,7 +11,11 @@ public:
 	UINT GetMaxCompSize() const;
 	int GetCompression() const;
 	int GetCompressionCO() const;
+	int GetPageSize() const;
 private:
+	static DWORD CalcPageSize();
+
 	const UINT maxDataSize, maxCompSize; //maximum packet size to send or recv, maximum compressed data size, number of preallocated sendbuffers
 	const int compression, compressionCO; //compression server sends packets at
+	const DWORD pageSize;
 };

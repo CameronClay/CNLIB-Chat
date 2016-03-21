@@ -3,6 +3,7 @@
 #include "CNLIB/HeapAlloc.h"
 #include "CNLIB/BufSize.h"
 #include "CNLIB/File.h"
+#include "CNLIB/MsgHeader.h"
 
 TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, DWORD nThreads, DWORD nConcThreads, UINT maxSendOps, UINT maxDataSize, UINT olCount, UINT sendBuffCount, UINT sendMsgBuffCount, UINT maxCon, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
 {
@@ -39,7 +40,9 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 						//key->Shutdown();
 						continue;
 					}
-					key->RecvDataCR(bytesTrans, ol);
+					//key->RecvDataCR(bytesTrans, ol);
+					if (!key->RecvDataCR(bytesTrans))
+						key->CleanupRecvData();
 				}
 				break;
 			case OpType::sendsingle:
@@ -73,81 +76,17 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 	return 0;
 }
 
-void TCPClient::FreeSendOl(OverlappedSendSingle* ol)
-{
-	bufSendAlloc.FreeBuff(ol->sendBuff);
-	olPool.dealloc(ol);
 
-	if ((--opCounter).GetOpCount() == 0)
-		SetEvent(shutdownEv);
+bool TCPClient::RecvDataCR(DWORD bytesTrans)
+{
+	return recvHandler.RecvDataCR(host, bytesTrans, GetBufferOptions(), nullptr);
 }
 
-void TCPClient::RecvDataCR(DWORD bytesTrans, OverlappedExt* ol)
+void TCPClient::OnNotify(char* data, DWORD nBytes, void*)
 {
-	char* ptr = recvBuff.head;
-
-	//Incase there is already a partial block in buffer
-	bytesTrans += recvBuff.curBytes;
-	recvBuff.curBytes = 0;
-
-	while (true)
-	{
-		BufSize bufSize(*(DWORD64*)ptr);
-		const DWORD bytesToRecv = ((bufSize.up.nBytesComp) ? bufSize.up.nBytesComp : bufSize.up.nBytesDecomp);
-
-		//If there is a full data block ready for processing
-		if (bytesTrans - sizeof(DWORD64) >= bytesToRecv)
-		{
-			const DWORD temp = bytesToRecv + sizeof(DWORD64);
-			recvBuff.curBytes += temp;
-			bytesTrans -= temp;
-			ptr += sizeof(DWORD64);
-
-			//If data was compressed
-			if (bufSize.up.nBytesComp)
-			{
-				BYTE* dest = (BYTE*)(recvBuff.head + sizeof(DWORD64) + GetBufferOptions().GetMaxCompSize());
-				if (FileMisc::Decompress(dest, GetBufferOptions().GetMaxCompSize(), (const BYTE*)ptr, bytesToRecv) != UINT_MAX)	// Decompress data
-					(function)(*this, MsgStreamReader{ (char*)dest, bufSize.up.nBytesDecomp - MSG_OFFSET });
-				else
-					Shutdown();  //Shutdown client because decompress failing is an unrecoverable error
-			}
-			//If data was not compressed
-			else
-			{
-				(function)(*this, MsgStreamReader{ (char*)ptr, bufSize.up.nBytesDecomp - MSG_OFFSET });
-			}
-			//If no partial blocks to copy to start of buffer
-			if (!bytesTrans)
-			{
-				recvBuff.buf = recvBuff.head;
-				recvBuff.curBytes = 0;
-				break;
-			}
-		}
-		//If the next block of data has not been fully received
-		else if (bytesToRecv <= GetBufferOptions().GetMaxDataSize())
-		{
-			//Concatenate remaining data to buffer
-			const DWORD bytesReceived = bytesTrans - recvBuff.curBytes;
-			if (recvBuff.head != ptr)
-				memcpy(recvBuff.head, ptr, bytesReceived);
-			recvBuff.curBytes = bytesReceived;
-			recvBuff.buf = recvBuff.head + bytesReceived;
-			break;
-		}
-		else
-		{
-			assert(false);
-			//error has occured
-			//To do: have client ask for maximum transfer size
-			break;
-		}
-		ptr += bytesToRecv;
-	}
-
-	host.ReadDataOl(&recvBuff, &recvOl);
+	(function)(*this, MsgStreamReader{ data, nBytes - MSG_OFFSET });
 }
+
 void TCPClient::SendDataCR(OverlappedSendSingle* ol)
 {
 	FreeSendOl(ol);
@@ -163,7 +102,16 @@ void TCPClient::CleanupRecvData()
 
 	RunDisconFunc();
 
-	if ((--opCounter).GetOpCount() == 0)
+	if (--opCounter == 0)
+		SetEvent(shutdownEv);
+}
+
+void TCPClient::FreeSendOl(OverlappedSendSingle* ol)
+{
+	bufSendAlloc.FreeBuff(ol->sendBuff);
+	olPool.dealloc(ol);
+
+	if (--opCounter == 0)
 		SetEvent(shutdownEv);
 }
 
@@ -174,17 +122,16 @@ TCPClient::TCPClient(cfunc func, dcfunc disconFunc, DWORD nThreads, DWORD nConcT
 	iocp(nThreads, nConcThreads, IOCPThread),
 	maxSendOps(maxSendOps),
 	unexpectedShutdown(true),
-	recvBuff(), //only need maxDataSize * 2 because if compressed data size is > than non compressed, it sends noncompressed
-	recvOl(OpType::recv),
 	keepAliveInterval(keepAliveInterval),
 	keepAliveHandler(nullptr),
 	bufSendAlloc(maxDataSize, sendBuffCount, sendMsgBuffCount, compression, compressionCO),
+	recvHandler(GetBufferOptions(), 2, this),
 	olPool(sizeof(OverlappedSendSingle), maxSendOps),
 	shutdownEv(NULL),
 	sockOpts(sockOpts),
 	obj(obj)
 {
-	recvBuff.Initialize(maxDataSize, alloc<char>(sizeof(DWORD64) + maxDataSize * 2));
+
 }
 
 TCPClient::TCPClient(TCPClient&& client)
@@ -195,14 +142,13 @@ TCPClient::TCPClient(TCPClient&& client)
 	iocp(std::move(client.iocp)),
 	maxSendOps(client.maxSendOps),
 	unexpectedShutdown(client.unexpectedShutdown),
-	recvBuff(client.recvBuff), //only need maxDataSize * 2 because if compressed data size is > than non compressed, it sends noncompressed
-	recvOl(client.recvOl),
 	keepAliveInterval(client.keepAliveInterval),
 	keepAliveHandler(std::move(client.keepAliveHandler)),
 	bufSendAlloc(std::move(client.bufSendAlloc)),
+	recvHandler(std::move(client.recvHandler)),
 	olPool(std::move(client.olPool)),
 	opsPending(std::move(client.opsPending)),
-	opCounter(client.opCounter),
+	opCounter(client.opCounter.load()),
 	shutdownEv(client.shutdownEv),
 	sockOpts(client.sockOpts),
 	obj(client.obj)
@@ -222,14 +168,13 @@ TCPClient& TCPClient::operator=(TCPClient&& client)
 		iocp = std::move(client.iocp);
 		const_cast<UINT&>(maxSendOps) = client.maxSendOps;
 		unexpectedShutdown = client.unexpectedShutdown;
-		recvBuff = client.recvBuff;
-		recvOl = client.recvOl;
 		keepAliveInterval = client.keepAliveInterval;
 		keepAliveHandler = std::move(client.keepAliveHandler);
 		bufSendAlloc = std::move(client.bufSendAlloc);
+		recvHandler = std::move(client.recvHandler);
 		olPool = std::move(client.olPool);
 		opsPending = std::move(client.opsPending);
-		opCounter = client.opCounter;
+		opCounter = client.opCounter.load();
 		shutdownEv = client.shutdownEv;
 		sockOpts = client.sockOpts;
 		obj = client.obj;
@@ -280,8 +225,8 @@ void TCPClient::Shutdown()
 		//Wait for iocp threads to close, then cleanup iocp
 		iocp.WaitAndCleanup();
 
-		//Free up client resources
-		dealloc(recvBuff.head);
+		////Free up client resources
+		//dealloc(recvBuff.head);
 
 		CloseHandle(shutdownEv);
 		shutdownEv = NULL;
@@ -318,7 +263,7 @@ bool TCPClient::SendServData(OverlappedSendSingle* ol, bool popQueue)
 {
 	if (host.IsConnected())
 	{
-		if (opCounter.GetOpCount() - 1 < maxSendOps)
+		if (opCounter.load() - 1 < maxSendOps)
 		{
 			++opCounter;
 
@@ -377,7 +322,7 @@ bool TCPClient::RecvServData()
 
 	++opCounter; //For recv
 
-	host.ReadDataOl(&recvBuff, &recvOl);
+	recvHandler.StartRead(host);
 
 	shutdownEv = CreateEvent(NULL, TRUE, FALSE, NULL);
 
@@ -448,7 +393,7 @@ bool TCPClient::IsConnected() const
 
 UINT TCPClient::GetOpCount() const
 {
-	return opCounter.GetOpCount();
+	return opCounter.load();
 }
 UINT TCPClient::GetMaxSendOps() const
 {

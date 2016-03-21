@@ -34,3 +34,5 @@
 //#include <deque>
 
 #include <queue>
+
+#include <atomic>

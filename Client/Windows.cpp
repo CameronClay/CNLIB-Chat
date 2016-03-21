@@ -1299,68 +1299,6 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		ReleaseCapture();
 		break;
 	}
-	//case WM_RBUTTONDOWN:
-	//	mServ.OnRightPressed(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-	//	break;
-	//case WM_RBUTTONUP:
-	//	mServ.OnRightReleased(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-	//	break;
-
-	//case WM_INPUT:
-	//{
-	//	UpdateMouse();
-	//	break;
-	//}
-	//case WM_CREATE:
-	//{
-	//	int temp;
-	//	SystemParametersInfo(SPI_GETMOUSESPEED, 0, &temp, 0);
-	//	if(temp >= 10)
-	//	{
-	//		const double exponent = pow(4, 1.0 / 10.0);
-	//		mouseSpeed = pow(exponent, temp - 10);
-	//	}
-	//	else if(temp < 10)
-	//	{
-	//		const double exponent = pow((1.0 / 10.0) / (4.0 * (9.0 / 10.0)), 1.0 / 10.0);
-	//		mouseSpeed = pow(exponent, 10 - temp);
-	//	};
-	//	InitializeCriticalSection(&mouseSect);
-	//	cursor = LoadIcon(hInst, MAKEINTRESOURCE(DEFAULT_CURSOR));
-	//	mouseThread = CreateThread(NULL, NULL, MouseThread, NULL, NULL, &mouseThreadID);
-	//	Sleep(100);
-	//	BOOL res = AttachThreadInput(GetWindowThreadProcessId(hMainWind, NULL), mouseThreadID, TRUE);
-	//	DWORD err = GetLastError();
-	//	break;
-	//}
-	//case WM_MOVE:
-	//{
-	//	GetWindowRect(hWnd, &wbWindowRect);
-	//	USHORT sizes[4];
-	//	GetWindowSizes(sizes);
-	//	RECT rc = {};
-	//	rc.left = wbWindowRect.left + sizes[2],
-	//		rc.right = rc.left + sizes[0],
-	//		rc.top = wbWindowRect.top,
-	//		rc.bottom = rc.top + sizes[3];
-	//	pt.x = mouseX = (rc.left + rc.right) / 2.0;
-	//	pt.y = mouseY = (rc.top + rc.bottom) / 2.0;
-	//	SetCursorPos(pt.x, pt.y);
-	//	break;
-	//}
-	//case WM_ACTIVATE:
-	//{
-	//	if(LOWORD(wParam) == WA_ACTIVE)
-	//	{
-	//		GetWindowRect(hWnd, &wbWindowRect);
-	//		RECT rect = GetD3DRect();
-	//		pt.x = mouseX = (double)(rect.right + rect.left) / 2.0;
-	//		pt.y = mouseY = (double)(rect.bottom + rect.top) / 2.0;
-	//		SetCursorPos(pt.x, pt.y);
-	//	}
-	//	break;
-	//}
-
 	case WM_CREATE:
 		wb.Initialize(hWnd);
 
@@ -1375,8 +1313,8 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_ACTIVATE:
 		if (pWhiteboard)
 		{
-			wb.GetD3D().BeginFrame();
-			wb.GetD3D().EndFrame();
+			/*wb.GetD3D().BeginFrame();
+			wb.GetD3D().EndFrame();*/
 		}
 		break;
 
@@ -1391,11 +1329,6 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		EnableMenuItem(wbMenu, ID_WHITEBOARD_START, MF_ENABLED);
 		EnableMenuItem(wbMenu, ID_WHITEBOARD_TERMINATE, MF_GRAYED);
-
-
-		/*PostThreadMessage(mouseThreadID, WM_QUIT, NULL, NULL);
-		WaitAndCloseHandle(mouseThread);
-		DeleteCriticalSection(&mouseSect);*/
 
 		wbHandle = nullptr;
 		UnregisterClass(wbClassName, hInst);

@@ -8,10 +8,11 @@
 #include "CNLIB/WSABufExt.h"
 #include "CNLIB/OverlappedExt.h"
 #include "CNLIB/HeapAlloc.h"
-#include "InterlockedCounter.h"
 #include "BufSendAlloc.h"
+#include "RecvHandler.h"
+#include "RecvObserverI.h"
 
-class TCPClient : public TCPClientInterface, public KeepAliveHI
+class TCPClient : public TCPClientInterface, public KeepAliveHI, public RecvObserverI
 {
 public:
 	//cfunc is a message handler, compression 1-9
@@ -64,11 +65,13 @@ public:
 
 	void FreeSendOl(OverlappedSendSingle* ol);
 
-	void RecvDataCR(DWORD bytesTrans,OverlappedExt* ol);
+	bool RecvDataCR(DWORD bytesTrans);
 	void SendDataCR(OverlappedSendSingle* ol);
 
 	void CleanupRecvData();
 private:
+	void OnNotify(char* data, DWORD nBytes, void*) override;
+
 	bool SendServData(const char* data, DWORD nBytes, bool msg, CompressionType compType = BESTFIT);
 	bool SendServData(OverlappedSendSingle* ol, bool popQueue = false);
 
@@ -78,14 +81,13 @@ private:
 	IOCP iocp; //IO completion port
 	const UINT maxSendOps; //max send operations
 	bool unexpectedShutdown; //passed to disconnect handler
-	WSABufRecv recvBuff; //recv buffer
-	OverlappedExt recvOl; //recv overlapped
 	float keepAliveInterval; //interval at which client KeepAlives server
 	KeepAliveHandler* keepAliveHandler; //handles all KeepAlives(technically is a keep alive message that sends data) to server, to prevent timeout
 	BufSendAlloc bufSendAlloc;
+	RecvHandler recvHandler;
 	MemPoolSync<HeapAllocator> olPool; //Used to help speed up allocation of overlapped structures
 	std::queue<OverlappedSendSingle*> opsPending; //Used to store pending ops
-	InterlockedCounter opCounter; //Used to keep track of number of asynchronous operations
+	std::atomic<UINT> opCounter; //Used to keep track of number of asynchronous operations
 	HANDLE shutdownEv; //Set when opCounter reaches 0, to notify shutdown it is okay to close iocp
 	SocketOptions sockOpts;
 	void* obj; //passed to function/msgHandler for oop programming

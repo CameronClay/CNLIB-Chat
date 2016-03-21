@@ -81,17 +81,11 @@
     <ClInclude Include="..\Common\CNLIB\KeepAlive.h">
       <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
-    <ClInclude Include="DLLSRC\InterlockedCounter.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="StdAfx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DLLSRC\BufSendAlloc.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DLLSRC\BufferOptions.cpp">
-      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\CNLIB\StreamAllocInterface.h">
       <Filter>Header Files\CNLIB</Filter>
@@ -101,6 +95,15 @@
     </ClInclude>
     <ClInclude Include="..\Common\CNLIB\SocketOptions.h">
       <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\MsgHeader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DLLSRC\RecvHandler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DLLSRC\RecvObserverI.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -144,6 +147,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DLLSRC\SocketOptions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DLLSRC\BufferOptions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DLLSRC\RecvHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
