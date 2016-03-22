@@ -1,6 +1,6 @@
 #pragma once
-#include "MsgHeader.h"
-#include "BuffAllocator.h"
+#include "CNLIB/MsgHeader.h"
+#include "CNLIB/BuffAllocator.h"
 
 struct WSABufExt : public WSABUF
 {

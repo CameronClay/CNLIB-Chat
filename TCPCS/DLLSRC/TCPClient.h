@@ -5,7 +5,7 @@
 #include "CNLIB/IOCP.h"
 #include "CNLIB/MemPool.h"
 #include "CNLIB/KeepAlive.h"
-#include "CNLIB/WSABufExt.h"
+#include "WSABufExt.h"
 #include "CNLIB/OverlappedExt.h"
 #include "CNLIB/HeapAlloc.h"
 #include "BufSendAlloc.h"

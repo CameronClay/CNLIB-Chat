@@ -1,7 +1,7 @@
 #pragma once
 #include "CNLIB/MemPool.h"
 #include "CNLIB/HeapAlloc.h"
-#include "CNLIB/WSABufExt.h"
+#include "WSABufExt.h"
 #include "CNLIB/BufferOptions.h"
 #include "CNLIB/Socket.h"
 #include "CNLIB/OverlappedExt.h"

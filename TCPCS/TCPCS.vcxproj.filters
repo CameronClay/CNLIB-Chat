@@ -72,12 +72,6 @@
     <ClInclude Include="..\Common\CNLIB\MemPool.h">
       <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\BufSize.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\WSABufExt.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\CNLIB\KeepAlive.h">
       <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
@@ -96,9 +90,6 @@
     <ClInclude Include="..\Common\CNLIB\SocketOptions.h">
       <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\MsgHeader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="DLLSRC\RecvHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -106,6 +97,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\CNLIB\BuffAllocator.h">
+      <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
+    <ClInclude Include="DLLSRC\WSABufExt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\BufSize.h">
+      <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\MsgHeader.h">
       <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
   </ItemGroup>

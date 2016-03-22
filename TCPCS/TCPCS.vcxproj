@@ -168,13 +168,13 @@
     <ClInclude Include="..\Common\CNLIB\TCPServInterface.h" />
     <ClInclude Include="..\Common\CNLIB\Typedefs.h" />
     <ClInclude Include="..\Common\CNLIB\UPNP.h" />
-    <ClInclude Include="..\Common\CNLIB\WSABufExt.h" />
     <ClCompile Include="DLLSRC\BufferOptions.cpp" />
     <ClInclude Include="DLLSRC\BufSendAlloc.h" />
     <ClInclude Include="DLLSRC\RecvHandler.h" />
     <ClInclude Include="DLLSRC\RecvObserverI.h" />
     <ClInclude Include="DLLSRC\TCPClient.h" />
     <ClInclude Include="DLLSRC\TCPServ.h" />
+    <ClInclude Include="DLLSRC\WSABufExt.h" />
     <ClInclude Include="StdAfx.h" />
   </ItemGroup>
   <ItemGroup>

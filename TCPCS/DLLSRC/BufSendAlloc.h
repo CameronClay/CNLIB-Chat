@@ -1,7 +1,7 @@
 #pragma once
 #include "CNLIB/BufferOptions.h"
 #include "CNLIB/StreamAllocInterface.h"
-#include "CNLIB/WSABufExt.h"
+#include "WSABufExt.h"
 #include "CNLIB/CompressionTypes.h"
 #include "CNLIB/MemPool.h"
 #include "CNLIB/HeapAlloc.h"
