@@ -62,20 +62,21 @@ typedef class MsgStreamWriter : public MsgStream
 {
 public:
 	//capacity not including MSG_OFFSET
-	MsgStreamWriter(BuffSendInfo buffSendInfo, UINT capacity, short type, short msg)
+	MsgStreamWriter(const BuffSendInfo& buffSendInfo, UINT capacity, short type, short msg)
 		:
 		MsgStream(buffSendInfo.buffer, capacity),
-		compType(buffSendInfo.compType)
+		buffSendInfo(buffSendInfo)
 	{
 		((short*)begin)[0] = type;
 		((short*)begin)[1] = msg;
 	}
 	MsgStreamWriter(MsgStreamWriter&& stream)
 		:
-		MsgStream(std::move(stream))
+		MsgStream(std::move(stream)),
+		buffSendInfo(stream.buffSendInfo)
 	{}
 
-	operator const char*()
+	operator const char*() const
 	{
 		return begin;
 	}
@@ -102,7 +103,7 @@ public:
 		Helper<T>(*this).WriteEnd(t);
 	}
 
-	char* GetData()
+	char* GetData() const
 	{
 		return (char*)begin;
 	}
@@ -133,13 +134,13 @@ public:
 		return size;
 	}
 
-	CompressionType GetCompType() const
+	BuffSendInfo GetBuffSendInfo() const
 	{
-		return compType;
+		return buffSendInfo;
 	}
 
 private:
-	CompressionType compType;
+	BuffSendInfo buffSendInfo;
 
 	template<typename T, typename... V>
 	struct TypeSize : std::integral_constant<UINT, TypeSize<T>::value + TypeSize<V...>::value>{};

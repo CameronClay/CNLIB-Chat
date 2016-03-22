@@ -4,11 +4,13 @@
 
 struct CAMSNETLIB BuffSendInfo
 {
-	BuffSendInfo(CompressionType compType, DWORD nBytesDecomp, int compressionCO);
-	BuffSendInfo(char* buffer, CompressionType compType, DWORD nBytesDecomp, int compressionCO);
-	BuffSendInfo(char* buffer, CompressionType compType);
+	BuffSendInfo();
+	BuffSendInfo(CompressionType compType, DWORD nBytesDecomp, int compressionCO, DWORD maxCompSize = 0);
+	BuffSendInfo(char* buffer, CompressionType compType, DWORD nBytesDecomp, int compressionCO, DWORD maxCompSize = 0);
+	BuffSendInfo(char* buffer, CompressionType compType, DWORD maxCompSize = 0);
 	static CompressionType CalcCompType(CompressionType compType, DWORD nBytesDecomp, int compressionCO);
 
 	char* buffer;
-	CompressionType compType;
+	const CompressionType compType;
+	const DWORD maxCompSize;
 };

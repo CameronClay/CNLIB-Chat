@@ -8,7 +8,7 @@
 //To do: have only one compressed buffer
 RecvHandler::RecvHandler(const BufferOptions& buffOpts, UINT initialCap, RecvObserverI* observer)
 	:
-	recvBuffPool(sizeof(MsgHeader) + buffOpts.GetMaxDataSize(), initialCap + 1, buffOpts.GetPageSize()),  //only need maxDataSize, because compData buffer takes care of decompression
+	recvBuffPool(buffOpts.GetMaxDatBuffSize(), initialCap + 1, buffOpts.GetPageSize()),  //only need maxDataSize, because compData buffer takes care of decompression
 	decompData(recvBuffPool.alloc<char>()),
 	ol(OpType::recv),
 	primaryBuff(CreateBuffer(buffOpts)),

@@ -16,7 +16,7 @@ class TCPClient : public TCPClientInterface, public KeepAliveHI, public RecvObse
 {
 public:
 	//cfunc is a message handler, compression 1-9
-	TCPClient(cfunc func, dcfunc disconFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxSendOps = 5, UINT maxDataSize = 8192, UINT olCount = 10, UINT sendBuffCount = 35, UINT sendCompBuffCount = 15, UINT sendMsgBuffCount = 10, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);
+	TCPClient(cfunc func, dcfunc disconFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxSendOps = 5, UINT maxDataBuffSize = 8192, UINT olCount = 10, UINT sendBuffCount = 35, UINT sendCompBuffCount = 15, UINT sendMsgBuffCount = 10, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);
 	TCPClient(TCPClient&& client);
 	~TCPClient();
 
@@ -35,7 +35,7 @@ public:
 	const BufferOptions GetBufferOptions() const override;
 
 	bool SendServData(const BuffSendInfo& buffSendInfo, DWORD nBytes, BuffAllocator* alloc = nullptr) override;
-	bool SendServData(MsgStreamWriter streamWriter, BuffAllocator* alloc = nullptr) override;
+	bool SendServData(const MsgStreamWriter& streamWriter, BuffAllocator* alloc = nullptr) override;
 
 	//Should only be called once to intialy create receving thread
 	bool RecvServData() override;

@@ -1,23 +1,33 @@
 #pragma once
 #include "Stdafx.h"
 #include "BuffSendInfo.h"
+#include "File.h"
 
-BuffSendInfo::BuffSendInfo(CompressionType compType, DWORD nBytesDecomp, int compressionCO)
+BuffSendInfo::BuffSendInfo()
 	:
 	buffer(nullptr),
-	compType(CalcCompType(compType, nBytesDecomp, compressionCO))
+	compType(NOCOMPRESSION),
+	maxCompSize(0)
+{}
+BuffSendInfo::BuffSendInfo(CompressionType compType, DWORD nBytesDecomp, int compressionCO, DWORD maxCompSize)
+	:
+	buffer(nullptr),
+	compType(CalcCompType(compType, nBytesDecomp, compressionCO)),
+	maxCompSize((compType == SETCOMPRESSION) ? maxCompSize ? maxCompSize : FileMisc::GetCompressedBufferSize(nBytesDecomp) : 0)
 {}
 
-BuffSendInfo::BuffSendInfo(char* buffer, CompressionType compType, DWORD nBytesDecomp, int compressionCO)
+BuffSendInfo::BuffSendInfo(char* buffer, CompressionType compType, DWORD nBytesDecomp, int compressionCO, DWORD maxCompSize)
 	:
 	buffer(buffer),
-	compType(CalcCompType(compType, nBytesDecomp, compressionCO))
+	compType(CalcCompType(compType, nBytesDecomp, compressionCO)),
+	maxCompSize(maxCompSize ? maxCompSize : FileMisc::GetCompressedBufferSize(nBytesDecomp))
 {}
 
-BuffSendInfo::BuffSendInfo(char* buffer, CompressionType compType)
+BuffSendInfo::BuffSendInfo(char* buffer, CompressionType compType, DWORD maxCompSize)
 	:
 	buffer(buffer),
-	compType(compType)
+	compType(compType),
+	maxCompSize(maxCompSize)
 {}
 
 CompressionType BuffSendInfo::CalcCompType(CompressionType compType, DWORD nBytesDecomp, int compressionCO)

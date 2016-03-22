@@ -7,15 +7,17 @@ public:
 	BufferOptions(UINT maxDataSize = 8192, int compression = 9, int compressionCO = 512);
 	BufferOptions& operator=(const BufferOptions& bufferOptions);
 
+	UINT GetMaxDatBuffSize() const;
+	UINT GetMaxDatCompSize() const;
 	UINT GetMaxDataSize() const;
-	UINT GetMaxCompSize() const;
+
 	int GetCompression() const;
 	int GetCompressionCO() const;
 	int GetPageSize() const;
 private:
 	static DWORD CalcPageSize();
 
-	const UINT maxDataSize, maxCompSize; //maximum packet size to send or recv, maximum compressed data size, number of preallocated sendbuffers
-	const int compression, compressionCO; //compression server sends packets at
 	const DWORD pageSize;
+	const UINT maxDatBuffSize, maxDatCompSize, maxDataSize; //maximum buffer size to send or recv, maximum compressed buffer size
+	const int compression, compressionCO; //compression server sends packets at
 };

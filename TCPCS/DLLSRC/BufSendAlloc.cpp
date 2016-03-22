@@ -6,7 +6,7 @@
 
 DataPoolAllocator::DataPoolAllocator(const BufferOptions& bufferOptions, UINT maxDataSize, UINT sendBuffCount)
 	:
-	sendDataPool(maxDataSize + sizeof(MsgHeader), sendBuffCount, bufferOptions.GetPageSize())
+	sendDataPool(maxDataSize, sendBuffCount, bufferOptions.GetPageSize())
 {}
 DataPoolAllocator::DataPoolAllocator(DataPoolAllocator&& dataPoolObs)
 	:
@@ -36,7 +36,7 @@ char* DataPoolAllocator::alloc(DWORD)
 
 DataCompPoolAllocator::DataCompPoolAllocator(const BufferOptions& bufferOptions, UINT maxDataSize, UINT sendCompBuffCount)
 	:
-	sendDataCompPool(maxDataSize + bufferOptions.GetMaxCompSize() + sizeof(DataHeader) * 2 + MSG_OFFSET, sendCompBuffCount, bufferOptions.GetPageSize())
+	sendDataCompPool(maxDataSize + bufferOptions.GetMaxDatCompSize(), sendCompBuffCount, bufferOptions.GetPageSize())
 {}
 DataCompPoolAllocator::DataCompPoolAllocator(DataCompPoolAllocator&& dataPoolObs)
 	:
@@ -128,11 +128,21 @@ BufSendAlloc& BufSendAlloc::operator=(BufSendAlloc&& bufSendAlloc)
 
 BuffSendInfo BufSendAlloc::GetSendBuffer(DWORD hiByteEstimate, CompressionType compType)
 {
-	return{ dataPool.alloc(NULL) + sizeof(DataHeader), compType, hiByteEstimate, bufferOptions.GetCompressionCO() };
+	if (hiByteEstimate > bufferOptions.GetMaxDataSize())
+		return{};
+
+	BuffSendInfo si(compType, hiByteEstimate, bufferOptions.GetCompressionCO());
+	si.buffer = (si.compType == SETCOMPRESSION) ? dataCompPool.alloc() : dataPool.alloc();
+
+	return si;
+
 }
 BuffSendInfo BufSendAlloc::GetSendBuffer(BuffAllocator* alloc, DWORD nBytes, CompressionType compType)
 {
-	return{ alloc->alloc(nBytes + sizeof(DataHeader)) + sizeof(DataHeader), compType, nBytes, bufferOptions.GetCompressionCO() };
+	nBytes += sizeof(DataHeader);
+	BuffSendInfo si(compType, nBytes, bufferOptions.GetCompressionCO());
+	si.buffer = alloc->alloc(nBytes + si.maxCompSize);
+	return si;
 }
 
 MsgStreamWriter BufSendAlloc::CreateOutStream(DWORD hiByteEstimate, short type, short msg, CompressionType compType)
@@ -141,7 +151,12 @@ MsgStreamWriter BufSendAlloc::CreateOutStream(DWORD hiByteEstimate, short type, 
 }
 MsgStreamWriter BufSendAlloc::CreateOutStream(BuffAllocator* alloc, DWORD nBytes, short type, short msg, CompressionType compType)
 {
-	return{ GetSendBuffer(alloc, nBytes), nBytes + sizeof(DataHeader), type, msg };
+	nBytes += sizeof(DataHeader);
+	BuffSendInfo si(compType, nBytes, bufferOptions.GetCompressionCO());
+	nBytes += si.maxCompSize;
+	si.buffer = alloc->alloc(nBytes);
+
+	return{ si, nBytes, type, msg };
 }
 
 WSABufSend BufSendAlloc::CreateBuff(const BuffSendInfo& buffSendInfo, DWORD nBytesDecomp, bool msg, USHORT index, BuffAllocator* alloc)
@@ -184,7 +199,7 @@ WSABufSend BufSendAlloc::CreateBuff(const BuffSendInfo& buffSendInfo, DWORD nByt
 
 	if (buffSendInfo.compType == SETCOMPRESSION)
 	{
-		DWORD temp = FileMisc::Compress((BYTE*)(buffer + maxDataSize + sizeof(DataHeader)), bufferOptions.GetMaxCompSize(), (const BYTE*)(buffer + sizeof(DataHeader)), nBytesDecomp, bufferOptions.GetCompression());
+		DWORD temp = FileMisc::Compress((BYTE*)(buffer + maxDataSize + sizeof(DataHeader)), bufferOptions.GetMaxDatCompSize(), (const BYTE*)(buffer + sizeof(DataHeader)), nBytesDecomp, bufferOptions.GetCompression());
 		if (nBytesComp < nBytesDecomp)
 		{
 			nBytesComp = temp;

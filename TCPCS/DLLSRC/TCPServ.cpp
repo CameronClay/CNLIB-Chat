@@ -5,9 +5,9 @@
 #include "CNLIB/Messages.h"
 #include "CNLIB/MsgHeader.h"
 
-TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads, DWORD nConcThreads, UINT maxPCSendOps, UINT maxDataSize, UINT singleOlPCCount, UINT allOlCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, UINT maxCon, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
+TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads, DWORD nConcThreads, UINT maxPCSendOps, UINT maxDataBuffSize, UINT singleOlPCCount, UINT allOlCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, UINT maxCon, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
 {
-	return construct<TCPServ>(msgHandler, conFunc, disFunc, nThreads, nConcThreads, maxPCSendOps, maxDataSize, singleOlPCCount, allOlCount, sendBuffCount, sendCompBuffCount, sendMsgBuffCount, maxCon, compression, compressionCO, keepAliveInterval, sockOpts, obj);
+	return construct<TCPServ>(msgHandler, conFunc, disFunc, nThreads, nConcThreads, maxPCSendOps, maxDataBuffSize, singleOlPCCount, allOlCount, sendBuffCount, sendCompBuffCount, sendMsgBuffCount, maxCon, compression, compressionCO, keepAliveInterval, sockOpts, obj);
 }
 void DestroyServer(TCPServInterface*& server)
 {
@@ -409,17 +409,17 @@ bool TCPServ::SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, std
 	return SendClientData(buffSendInfo, nBytes, pcs.data(), pcs.size(), alloc);
 }
 
-bool TCPServ::SendClientData(MsgStreamWriter streamWriter, ClientData* exClient, bool single, BuffAllocator* alloc)
+bool TCPServ::SendClientData(const MsgStreamWriter& streamWriter, ClientData* exClient, bool single, BuffAllocator* alloc)
 {
-	return SendClientData(BuffSendInfo{ streamWriter.GetData(), streamWriter.GetCompType() }, streamWriter.GetSize(), (ClientDataEx*)exClient, single, false, alloc);
+	return SendClientData(streamWriter.GetBuffSendInfo(), streamWriter.GetSize(), (ClientDataEx*)exClient, single, false, alloc);
 }
-bool TCPServ::SendClientData(MsgStreamWriter streamWriter, ClientData** clients, UINT nClients, BuffAllocator* alloc)
+bool TCPServ::SendClientData(const MsgStreamWriter& streamWriter, ClientData** clients, UINT nClients, BuffAllocator* alloc)
 {
-	return SendClientData(BuffSendInfo{ streamWriter.GetData(), streamWriter.GetCompType() }, streamWriter.GetSize(), (ClientDataEx**)clients, nClients, false, alloc);
+	return SendClientData(streamWriter.GetBuffSendInfo(), streamWriter.GetSize(), (ClientDataEx**)clients, nClients, false, alloc);
 }
-bool TCPServ::SendClientData(MsgStreamWriter streamWriter, std::vector<ClientData*>& pcs, BuffAllocator* alloc)
+bool TCPServ::SendClientData(const MsgStreamWriter& streamWriter, std::vector<ClientData*>& pcs, BuffAllocator* alloc)
 {
-	return SendClientData(BuffSendInfo{ streamWriter.GetData(), streamWriter.GetCompType() }, streamWriter.GetSize(), pcs.data(), pcs.size(), alloc);
+	return SendClientData(streamWriter.GetBuffSendInfo(), streamWriter.GetSize(), pcs.data(), pcs.size(), alloc);
 }
 
 bool TCPServ::SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientDataEx* exClient, bool single, bool msg, BuffAllocator* alloc)
@@ -606,13 +606,13 @@ void TCPServ::SendMsg(ClientData* exClient, bool single, short type, short messa
 {
 	short msg[] = { type, message };
 
-	SendClientData({ (char*)msg, NOCOMPRESSION }, MSG_OFFSET, (ClientDataEx*)exClient, single, true);
+	SendClientData({ (char*)msg, NOCOMPRESSION, 0 }, MSG_OFFSET, (ClientDataEx*)exClient, single, true);
 }
 void TCPServ::SendMsg(ClientData** clients, UINT nClients, short type, short message)
 {
 	short msg[] = { type, message };
 
-	SendClientData({ (char*)msg, NOCOMPRESSION }, MSG_OFFSET, (ClientDataEx**)clients, nClients, true);
+	SendClientData({ (char*)msg, NOCOMPRESSION, 0 }, MSG_OFFSET, (ClientDataEx**)clients, nClients, true);
 }
 void TCPServ::SendMsg(std::vector<ClientData*>& pcs, short type, short message)
 {
@@ -742,7 +742,7 @@ void TCPServ::CleanupAcceptEx(HostSocket::AcceptData& acceptData)
 }
 
 
-TCPServ::TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads, DWORD nConcThreads, UINT maxPCSendOps, UINT maxDataSize, UINT singleOlPCCount, UINT allOlCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, UINT maxCon, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
+TCPServ::TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads, DWORD nConcThreads, UINT maxPCSendOps, UINT maxDataBuffSize, UINT singleOlPCCount, UINT allOlCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, UINT maxCon, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
 	:
 	ipv4Host(*this),
 	ipv6Host(*this),
@@ -758,7 +758,7 @@ TCPServ::TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads
 	maxCon(maxCon),
 	keepAliveInterval(keepAliveInterval),
 	keepAliveHandler(nullptr),
-	bufSendAlloc(maxDataSize, sendBuffCount, sendCompBuffCount, sendMsgBuffCount, compression, compressionCO),
+	bufSendAlloc(maxDataBuffSize, sendBuffCount, sendCompBuffCount, sendMsgBuffCount, compression, compressionCO),
 	clientPool(sizeof(ClientDataEx), maxCon),
 	sendOlInfoPool(sizeof(OverlappedSendInfo), allOlCount),
 	sendOlPoolAll(sizeof(OverlappedSend) * maxCon, allOlCount),
@@ -792,6 +792,7 @@ TCPServ::TCPServ(TCPServ&& serv)
 	sockOpts(serv.sockOpts),
 	obj(serv.obj)
 {
+	int size = sizeof(DataHeader);
 	ZeroMemory(&serv, sizeof(TCPServ));
 }
 TCPServ& TCPServ::operator=(TCPServ&& serv)
