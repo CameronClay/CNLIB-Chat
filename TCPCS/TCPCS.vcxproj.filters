@@ -108,6 +108,9 @@
     <ClInclude Include="..\Common\CNLIB\MsgHeader.h">
       <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\BuffSendInfo.h">
+      <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DLLSRC\File.cpp">
@@ -156,6 +159,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DLLSRC\RecvHandler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\CNLIB\BuffSendInfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

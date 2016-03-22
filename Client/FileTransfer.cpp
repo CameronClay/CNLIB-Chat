@@ -167,7 +167,7 @@ void FileSend::SetFullPathSrc(std::tstring& fullFilepathSrc)
 
 void FileSend::RequestTransfer()
 {
-	auto streamWriter = client.CreateOutStream(TYPE_REQUEST, MSG_REQUEST_TRANSFER);
+	auto streamWriter = client.CreateOutStream(StreamWriter::SizeType(username, size), TYPE_REQUEST, MSG_REQUEST_TRANSFER);
 
 	for(auto& i : list)
 		size += i.size;
@@ -192,7 +192,7 @@ void FileSend::SendFileNameList()
 		nChars += i.fileName.size() + 1;
 
 	const DWORD nBytes = (nChars * sizeof(LIB_TCHAR)) + StreamWriter::SizeType(username) + ((sizeof(SYSTEMTIME) + sizeof(DWORD64) + sizeof(UINT)) * list.size()) + sizeof(UINT);
-	auto streamWriter = client.CreateOutStream(TYPE_FILE, MSG_FILE_LIST);
+	auto streamWriter = client.CreateOutStream(StreamWriter::SizeType(username) + ((sizeof(SYSTEMTIME) + sizeof(DWORD64) + sizeof(UINT)) * list.size()) + sizeof(UINT), TYPE_FILE, MSG_FILE_LIST);
 	streamWriter.Write(username);
 
 	for(auto it = list.begin(), end = list.end(); it != end; it++)
@@ -246,7 +246,7 @@ void FileSend::SendCurrentFile()
 		DWORD bytesRead = file.Read(msg + pos, nBytesPerLoop);
 		progress += ((double)bytesRead) / (double)(1024 * 1024);
 		dialog.SetProgress((DWORD)((progress / size) * 1000));
-		client.SendServData(msg, bytesRead + extraBytesData);
+		//client.SendServData(msg, bytesRead + extraBytesData);
 		it->size -= bytesRead;
 	}
 

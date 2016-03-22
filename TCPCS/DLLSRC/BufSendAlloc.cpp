@@ -4,80 +4,109 @@
 #include "CNLIB/MsgStream.h"
 #include "CNLIB/MsgHeader.h"
 
-DataPoolObserver::DataPoolObserver(const BufferOptions& bufferOptions, UINT maxDataSize, UINT sendBuffCount)
+DataPoolAllocator::DataPoolAllocator(const BufferOptions& bufferOptions, UINT maxDataSize, UINT sendBuffCount)
 	:
-	sendDataPool(maxDataSize + bufferOptions.GetMaxCompSize() + sizeof(DataHeader) * 2 + MSG_OFFSET, sendBuffCount, bufferOptions.GetPageSize())
+	sendDataPool(maxDataSize + sizeof(MsgHeader), sendBuffCount, bufferOptions.GetPageSize())
 {}
-
-DataPoolObserver::DataPoolObserver(DataPoolObserver&& dataPoolObs)
+DataPoolAllocator::DataPoolAllocator(DataPoolAllocator&& dataPoolObs)
 	:
 	sendDataPool(std::move(dataPoolObs.sendDataPool))
 {
-	memset(&dataPoolObs, 0, sizeof(DataPoolObserver));
+	memset(&dataPoolObs, 0, sizeof(DataPoolAllocator));
 }
-DataPoolObserver& DataPoolObserver::operator=(DataPoolObserver&& dataPoolObs)
+DataPoolAllocator& DataPoolAllocator::operator=(DataPoolAllocator&& dataPoolObs)
 {
 	if (this != &dataPoolObs)
 	{
 		sendDataPool = std::move(dataPoolObs.sendDataPool);
-		memset(&dataPoolObs, 0, sizeof(DataPoolObserver));
+		memset(&dataPoolObs, 0, sizeof(DataPoolAllocator));
 	}
 	return *this;
 }
 
-void DataPoolObserver::dealloc(char* data, DWORD nBytes)
+void DataPoolAllocator::dealloc(char* data, DWORD nBytes)
 {
 	sendDataPool.dealloc(data);
 }
-
-char* DataPoolObserver::alloc(DWORD)
+char* DataPoolAllocator::alloc(DWORD)
 {
 	return sendDataPool.alloc<char>();
 }
 
 
-MsgPoolObserver::MsgPoolObserver(UINT sendMsgBuffCount)
+DataCompPoolAllocator::DataCompPoolAllocator(const BufferOptions& bufferOptions, UINT maxDataSize, UINT sendCompBuffCount)
+	:
+	sendDataCompPool(maxDataSize + bufferOptions.GetMaxCompSize() + sizeof(DataHeader) * 2 + MSG_OFFSET, sendCompBuffCount, bufferOptions.GetPageSize())
+{}
+DataCompPoolAllocator::DataCompPoolAllocator(DataCompPoolAllocator&& dataPoolObs)
+	:
+	sendDataCompPool(std::move(dataPoolObs.sendDataCompPool))
+{
+	memset(&dataPoolObs, 0, sizeof(DataCompPoolAllocator));
+}
+DataCompPoolAllocator& DataCompPoolAllocator::operator=(DataCompPoolAllocator&& dataPoolObs)
+{
+	if (this != &dataPoolObs)
+	{
+		sendDataCompPool = std::move(dataPoolObs.sendDataCompPool);
+		memset(&dataPoolObs, 0, sizeof(DataCompPoolAllocator));
+	}
+	return *this;
+}
+
+void DataCompPoolAllocator::dealloc(char* data, DWORD nBytes)
+{
+	sendDataCompPool.dealloc(data);
+}
+char* DataCompPoolAllocator::alloc(DWORD)
+{
+	return sendDataCompPool.alloc<char>();
+}
+
+
+MsgPoolAllocator::MsgPoolAllocator(UINT sendMsgBuffCount)
 	:
 	sendMsgPool(sizeof(MsgHeader), sendMsgBuffCount)
 {}
-
-MsgPoolObserver::MsgPoolObserver(MsgPoolObserver&& msgPoolObs)
+MsgPoolAllocator::MsgPoolAllocator(MsgPoolAllocator&& msgPoolObs)
 	:
 	sendMsgPool(std::move(msgPoolObs.sendMsgPool))
 {
-	memset(&msgPoolObs, 0, sizeof(MsgPoolObserver));
+	memset(&msgPoolObs, 0, sizeof(MsgPoolAllocator));
 }
-MsgPoolObserver& MsgPoolObserver::operator=(MsgPoolObserver&& msgPoolObs)
+MsgPoolAllocator& MsgPoolAllocator::operator=(MsgPoolAllocator&& msgPoolObs)
 {
 	if (this != &msgPoolObs)
 	{
 		sendMsgPool = std::move(msgPoolObs.sendMsgPool);
-		memset(&msgPoolObs, 0, sizeof(MsgPoolObserver));
+		memset(&msgPoolObs, 0, sizeof(MsgPoolAllocator));
 	}
 
 	return *this;
 }
-void MsgPoolObserver::dealloc(char* data, DWORD nBytes)
+
+void MsgPoolAllocator::dealloc(char* data, DWORD nBytes)
 {
 	sendMsgPool.dealloc(data);
 }
-
-char* MsgPoolObserver::alloc(DWORD)
+char* MsgPoolAllocator::alloc(DWORD)
 {
 	return sendMsgPool.alloc<char>();
 }
 
 
-BufSendAlloc::BufSendAlloc(UINT maxDataSize, UINT sendBuffCount, UINT sendMsgBuffCount, int compression, int compressionCO)
+BufSendAlloc::BufSendAlloc(UINT maxDataSize, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, int compression, int compressionCO)
 	:
 	bufferOptions(maxDataSize, compression, compressionCO),
 	dataPool(bufferOptions, maxDataSize, sendBuffCount),
+	dataCompPool(bufferOptions, maxDataSize, sendCompBuffCount),
 	msgPool(sendMsgBuffCount)
 {}
 BufSendAlloc::BufSendAlloc(BufSendAlloc&& bufSendAlloc)
 	:
 	bufferOptions(bufSendAlloc.bufferOptions),
 	dataPool(std::move(bufSendAlloc.dataPool)),
+	dataCompPool(std::move(bufSendAlloc.dataCompPool)),
 	msgPool(std::move(bufSendAlloc.msgPool))
 {
 	memset(&bufSendAlloc, 0, sizeof(BufSendAlloc));
@@ -90,41 +119,42 @@ BufSendAlloc& BufSendAlloc::operator=(BufSendAlloc&& bufSendAlloc)
 
 		const_cast<BufferOptions&>(bufferOptions) = bufSendAlloc.bufferOptions;
 		dataPool = std::move(bufSendAlloc.dataPool);
+		dataCompPool = std::move(bufSendAlloc.dataCompPool);
 		msgPool = std::move(bufSendAlloc.msgPool);
 		memset(&bufSendAlloc, 0, sizeof(BufSendAlloc));
 	}
 	return *this;
 }
 
-char* BufSendAlloc::GetSendBuffer()
+BuffSendInfo BufSendAlloc::GetSendBuffer(DWORD hiByteEstimate, CompressionType compType)
 {
-	return dataPool.alloc(NULL) + sizeof(DataHeader);
+	return{ dataPool.alloc(NULL) + sizeof(DataHeader), compType, hiByteEstimate, bufferOptions.GetCompressionCO() };
 }
-char* BufSendAlloc::GetSendBuffer(BuffAllocator* alloc, DWORD nBytes)
+BuffSendInfo BufSendAlloc::GetSendBuffer(BuffAllocator* alloc, DWORD nBytes, CompressionType compType)
 {
-	return alloc->alloc(nBytes + sizeof(DataHeader)) + sizeof(DataHeader);
-}
-
-MsgStreamWriter BufSendAlloc::CreateOutStream(short type, short msg)
-{
-	return{ GetSendBuffer(), bufferOptions.GetMaxDataSize(), type, msg };
+	return{ alloc->alloc(nBytes + sizeof(DataHeader)) + sizeof(DataHeader), compType, nBytes, bufferOptions.GetCompressionCO() };
 }
 
-MsgStreamWriter BufSendAlloc::CreateOutStream(BuffAllocator* alloc, DWORD nBytes, short type, short msg)
+MsgStreamWriter BufSendAlloc::CreateOutStream(DWORD hiByteEstimate, short type, short msg, CompressionType compType)
+{
+	return{ GetSendBuffer(hiByteEstimate + sizeof(DataHeader)), bufferOptions.GetMaxDataSize(), type, msg };
+}
+MsgStreamWriter BufSendAlloc::CreateOutStream(BuffAllocator* alloc, DWORD nBytes, short type, short msg, CompressionType compType)
 {
 	return{ GetSendBuffer(alloc, nBytes), nBytes + sizeof(DataHeader), type, msg };
 }
 
-WSABufSend BufSendAlloc::CreateBuff(DWORD nBytesDecomp, char* buffer, bool msg, USHORT index, CompressionType compType, BuffAllocator* alloc)
+WSABufSend BufSendAlloc::CreateBuff(const BuffSendInfo& buffSendInfo, DWORD nBytesDecomp, bool msg, USHORT index, BuffAllocator* alloc)
 {
 	DWORD nBytesComp = 0, nBytesSend = nBytesDecomp + sizeof(DataHeader);
 	DWORD maxDataSize = bufferOptions.GetMaxDataSize();
 	WSABufSend buf;
+	char* buffer = buffSendInfo.buffer;
 	char* dest;
 
 	if (msg)
 	{
-		char* temp = buffer;
+		char* temp = buffSendInfo.buffer;
 		dest = buffer = msgPool.alloc();
 		*(int*)(buffer + sizeof(DataHeader)) = *(int*)temp;
 
@@ -135,11 +165,14 @@ WSABufSend BufSendAlloc::CreateBuff(DWORD nBytesDecomp, char* buffer, bool msg, 
 		dest = buffer -= sizeof(DataHeader);
 		if (!alloc)
 		{
-			buf.alloc = &dataPool;
+			if (buffSendInfo.compType == SETCOMPRESSION)
+				buf.alloc = &dataCompPool;
+			else
+				buf.alloc = &dataPool;
 
 			if (nBytesDecomp > maxDataSize)
 			{
-				dataPool.dealloc(buffer);
+				buf.alloc->dealloc(buffer);
 				return{};
 			}
 		}
@@ -149,15 +182,7 @@ WSABufSend BufSendAlloc::CreateBuff(DWORD nBytesDecomp, char* buffer, bool msg, 
 		}
 	}
 
-	if (compType == BESTFIT)
-	{
-		if (nBytesDecomp >= bufferOptions.GetCompressionCO())
-			compType = SETCOMPRESSION;
-		else
-			compType = NOCOMPRESSION;
-	}
-
-	if (compType == SETCOMPRESSION)
+	if (buffSendInfo.compType == SETCOMPRESSION)
 	{
 		DWORD temp = FileMisc::Compress((BYTE*)(buffer + maxDataSize + sizeof(DataHeader)), bufferOptions.GetMaxCompSize(), (const BYTE*)(buffer + sizeof(DataHeader)), nBytesDecomp, bufferOptions.GetCompression());
 		if (nBytesComp < nBytesDecomp)
@@ -176,7 +201,6 @@ WSABufSend BufSendAlloc::CreateBuff(DWORD nBytesDecomp, char* buffer, bool msg, 
 	buf.Initialize(nBytesSend, dest, buffer);
 	return buf;
 }
-
 void BufSendAlloc::FreeBuff(WSABufSend& buff)
 {
 	buff.alloc->dealloc(buff.head, buff.len);

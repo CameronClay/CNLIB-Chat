@@ -3,6 +3,7 @@
 #pragma once
 #include "HeapAlloc.h"
 #include "Messages.h"
+#include "CNLIB/BuffSendInfo.h"
 
 class MsgStream
 {
@@ -61,12 +62,13 @@ typedef class MsgStreamWriter : public MsgStream
 {
 public:
 	//capacity not including MSG_OFFSET
-	MsgStreamWriter(char* buffer, UINT capacity, short type, short msg)
+	MsgStreamWriter(BuffSendInfo buffSendInfo, UINT capacity, short type, short msg)
 		:
-		MsgStream(buffer, capacity)
+		MsgStream(buffSendInfo.buffer, capacity),
+		compType(buffSendInfo.compType)
 	{
-		((short*)buffer)[0] = type;
-		((short*)buffer)[1] = msg;
+		((short*)begin)[0] = type;
+		((short*)begin)[1] = msg;
 	}
 	MsgStreamWriter(MsgStreamWriter&& stream)
 		:
@@ -77,6 +79,7 @@ public:
 	{
 		return begin;
 	}
+
 
 	template<typename T> void Write(const T& t)
 	{
@@ -97,6 +100,11 @@ public:
 	std::enable_if_t<std::is_arithmetic<T>::value> WriteEnd(T* t)
 	{
 		Helper<T>(*this).WriteEnd(t);
+	}
+
+	char* GetData()
+	{
+		return (char*)begin;
 	}
 
 	UINT GetSize() const
@@ -125,7 +133,14 @@ public:
 		return size;
 	}
 
+	CompressionType GetCompType() const
+	{
+		return compType;
+	}
+
 private:
+	CompressionType compType;
+
 	template<typename T, typename... V>
 	struct TypeSize : std::integral_constant<UINT, TypeSize<T>::value + TypeSize<V...>::value>{};
 	template<typename T>

@@ -17,7 +17,7 @@ class TCPServ : public TCPServInterface, public KeepAliveHI, public RecvObserver
 public:
 	//sfunc is a message handler, compression is 1-9
 	//a value of 0.0f of ping interval means dont keepalive at all
-	TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxPCSendOps = 5, UINT maxDataSize = 4096, UINT singleOlPCCount = 5, UINT allOlCount = 30, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);
+	TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxPCSendOps = 5, UINT maxDataSize = 4096, UINT singleOlPCCount = 5, UINT allOlCount = 30, UINT sendBuffCount = 35, UINT sendCompBuffCount = 15, UINT sendMsgBuffCount = 10, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);
 	TCPServ(TCPServ&& serv);
 	~TCPServ();
 
@@ -102,24 +102,24 @@ public:
 	//Allows connections to the server; should only be called once
 	IPv AllowConnections(const LIB_TCHAR* port, ConCondition connectionCondition, IPv ipv = ipboth, UINT nConcAccepts = 1) override;
 
-	char* GetSendBuffer() override;
-	char* GetSendBuffer(BuffAllocator* alloc, DWORD nBytes) override;
+	BuffSendInfo GetSendBuffer(DWORD hiByteEstimate, CompressionType compType = BESTFIT) override;
+	BuffSendInfo GetSendBuffer(BuffAllocator* alloc, DWORD nBytes, CompressionType compType = BESTFIT) override;
 
-	MsgStreamWriter CreateOutStream(short type, short msg) override;
-	MsgStreamWriter CreateOutStream(BuffAllocator* alloc, DWORD nBytes, short type, short msg) override;
+	MsgStreamWriter CreateOutStream(DWORD hiByteEstimate, short type, short msg, CompressionType compType = BESTFIT) override;
+	MsgStreamWriter CreateOutStream(BuffAllocator* alloc, DWORD nBytes, short type, short msg, CompressionType compType = BESTFIT) override;
 
 	const BufferOptions GetBufferOptions() const override;
 
 	//Used to send data to clients
 	//addr parameter functions as both the excluded address, and as a single address, 
 	//depending on the value of single
-	bool SendClientData(const char* data, DWORD nBytes, ClientData* exClient, bool single, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) override;
-	bool SendClientData(const char* data, DWORD nBytes, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) override;
-	bool SendClientData(const char* data, DWORD nBytes, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) override;
+	bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientData* exClient, bool single, BuffAllocator* alloc = nullptr) override;
+	bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientData** clients, UINT nClients, BuffAllocator* alloc = nullptr) override;
+	bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, std::vector<ClientData*>& pcs, BuffAllocator* alloc = nullptr) override;
 
-	bool SendClientData(MsgStreamWriter streamWriter, ClientData* exClient, bool single, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) override;
-	bool SendClientData(MsgStreamWriter streamWriter, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) override;
-	bool SendClientData(MsgStreamWriter streamWriter, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) override;
+	bool SendClientData(MsgStreamWriter streamWriter, ClientData* exClient, bool single, BuffAllocator* alloc = nullptr) override;
+	bool SendClientData(MsgStreamWriter streamWriter, ClientData** clients, UINT nClients, BuffAllocator* alloc = nullptr) override;
+	bool SendClientData(MsgStreamWriter streamWriter, std::vector<ClientData*>& pcs, BuffAllocator* alloc = nullptr) override;
 
 	//Send msg funtions used for requests, replies ect. they do not send data
 	void SendMsg(ClientData* exClient, bool single, short type, short message) override;
@@ -176,8 +176,8 @@ private:
 	void OnNotify(char* data, DWORD nBytes, void* cd) override;
 
 	bool BindHost(HostSocket& host, const LIB_TCHAR* port, bool ipv6, UINT nConcAccepts);
-	bool SendClientData(const char* data, DWORD nBytes, ClientDataEx* exClient, bool single, bool msg, CompressionType compType, BuffAllocator* alloc = nullptr);
-	bool SendClientData(const char* data, DWORD nBytes, ClientDataEx** clients, UINT nClients, bool msg, CompressionType compType, BuffAllocator* alloc = nullptr);
+	bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientDataEx* exClient, bool single, bool msg, BuffAllocator* alloc = nullptr);
+	bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientDataEx** clients, UINT nClients, bool msg, BuffAllocator* alloc = nullptr);
 
 	bool SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient, bool single);
 	bool SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients, UINT nClients);

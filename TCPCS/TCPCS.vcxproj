@@ -159,6 +159,7 @@
     <ClInclude Include="..\Common\CNLIB\MsgStream.h" />
     <ClInclude Include="..\Common\CNLIB\OverlappedExt.h" />
     <ClInclude Include="..\Common\CNLIB\KeepAlive.h" />
+    <ClInclude Include="..\Common\CNLIB\BuffSendInfo.h" />
     <ClInclude Include="..\Common\CNLIB\Socket.h" />
     <ClInclude Include="..\Common\CNLIB\SocketInfo.h" />
     <ClInclude Include="..\Common\CNLIB\SocketOptions.h" />
@@ -168,6 +169,7 @@
     <ClInclude Include="..\Common\CNLIB\TCPServInterface.h" />
     <ClInclude Include="..\Common\CNLIB\Typedefs.h" />
     <ClInclude Include="..\Common\CNLIB\UPNP.h" />
+    <ClCompile Include="..\Common\CNLIB\BuffSendInfo.cpp" />
     <ClCompile Include="DLLSRC\BufferOptions.cpp" />
     <ClInclude Include="DLLSRC\BufSendAlloc.h" />
     <ClInclude Include="DLLSRC\RecvHandler.h" />

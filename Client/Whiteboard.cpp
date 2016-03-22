@@ -261,11 +261,11 @@ void Whiteboard::SendMouseData(TCPClientInterface* client)
 		UINT count;
 		const DWORD nBytes = mouse.GetBufferLen(count) + MSG_OFFSET;
 		char* msg = alloc<char>(nBytes);
-		MsgStreamWriter streamWriter = client->CreateOutStream(TYPE_DATA, MSG_DATA_MOUSE);
+		MsgStreamWriter streamWriter = client->CreateOutStream(nBytes, TYPE_DATA, MSG_DATA_MOUSE);
 		//*((short*)msg) = TYPE_DATA;
 		//*((short*)msg + 1) = MSG_DATA_MOUSE;
 		mouse.Extract((BYTE*)(streamWriter + MSG_OFFSET), count);
-		client->SendServData(streamWriter, nBytes);
+		client->SendServData(streamWriter);
 		dealloc(msg);
 	}
 }
@@ -275,7 +275,7 @@ void Whiteboard::ChangeTool(Tool tool, float brushSize, BYTE palIndex)
 	brushThickness = brushSize;
 
 	const DWORD nBytes = sizeof(Tool) + sizeof(float) + sizeof(BYTE);
-	auto streamWriter = clint.CreateOutStream(TYPE_TOOL, MSG_TOOL_CHANGE);
+	auto streamWriter = clint.CreateOutStream(nBytes, TYPE_TOOL, MSG_TOOL_CHANGE);
 	streamWriter.Write(tool);
 	streamWriter.Write(brushSize);
 	streamWriter.Write(palIndex);

@@ -883,7 +883,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			textBuffer.WriteLine(dest); 
 			opts->WriteLine(dest);
 
-			auto streamWriter = client->CreateOutStream(TYPE_DATA, MSG_DATA_TEXT);
+			auto streamWriter = client->CreateOutStream(StreamWriter::SizeType(str), TYPE_DATA, MSG_DATA_TEXT);
 			streamWriter.Write(str);
 			client->SendServData(streamWriter);
 			break;
@@ -1371,7 +1371,7 @@ INT_PTR CALLBACK ConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 			if (client->IsConnected())
 			{
 				client->RecvServData();
-				auto streamWriter = client->CreateOutStream(TYPE_VERSION, MSG_VERSION_CHECK);
+				auto streamWriter = client->CreateOutStream(sizeof(float), TYPE_VERSION, MSG_VERSION_CHECK);
 				streamWriter.Write(APPVERSION);
 
 				client->SendServData(streamWriter);
@@ -1674,7 +1674,7 @@ INT_PTR CALLBACK AuthenticateProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 			}
 
 			const std::tstring send = user + _T(":") + pass;
-			auto streamWriter = client->CreateOutStream(TYPE_REQUEST, MSG_REQUEST_AUTHENTICATION);
+			auto streamWriter = client->CreateOutStream(StreamWriter::SizeType(send), TYPE_REQUEST, MSG_REQUEST_AUTHENTICATION);
 			streamWriter.Write(send);
 
 			client->SendServData(streamWriter);
@@ -1978,7 +1978,7 @@ INT_PTR CALLBACK WBSettingsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM)
 		{
 		case IDOK:
 		{
-			auto streamWriter = client->CreateOutStream(TYPE_WHITEBOARD, MSG_WHITEBOARD_SETTINGS);
+			auto streamWriter = client->CreateOutStream(sizeof(WBParams), TYPE_WHITEBOARD, MSG_WHITEBOARD_SETTINGS);
 			streamWriter.Write(WBParams(
 				(USHORT)GetDlgItemInt(hWnd, WHITEBOARD_RES_X, NULL, FALSE), 
 				(USHORT)GetDlgItemInt(hWnd, WHITEBOARD_RES_Y, NULL, FALSE),
@@ -2073,7 +2073,7 @@ INT_PTR CALLBACK WBInviteProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM)
 			//const bool canInvite = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANINVITE));
 			//const bool canDraw = (BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
 
-			auto streamWriter = client->CreateOutStream(TYPE_REQUEST, MSG_REQUEST_WHITEBOARD);
+			auto streamWriter = client->CreateOutStream(StreamWriter::SizeType(usersel) + sizeof(bool), TYPE_REQUEST, MSG_REQUEST_WHITEBOARD);
 			streamWriter.Write(BST_CHECKED == IsDlgButtonChecked(hWnd, ID_WHITEBOARD_CANDRAW));
 			streamWriter.Write(usersel);
 

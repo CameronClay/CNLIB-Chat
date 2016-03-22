@@ -110,13 +110,14 @@ void SendSingleUserData(TCPServInterface& serv, const char* dat, DWORD nBytes, c
 
 	const UINT offset = sizeof(UINT) + (userLen * sizeof(LIB_TCHAR));
 	const DWORD nBy = (nBytes - offset) + MSG_OFFSET;
-	char* msg = serv.GetSendBuffer();
+	BuffSendInfo msgInfo = serv.GetSendBuffer(nBy);
+	char* msg = msgInfo.buffer;
 
 	((short*)msg)[0] = type;
 	((short*)msg)[1] = message;
 	memcpy(msg + MSG_OFFSET, dat + offset, nBytes - offset);
 
-	serv.SendClientData(msg, nBy, client, true);
+	serv.SendClientData(msgInfo, nBy, client, true);
 }
 
 void TransferMessageWithName(TCPServInterface& serv, const std::tstring& user, std::tstring& srcUserName, MsgStreamReader& streamReader)
@@ -125,7 +126,7 @@ void TransferMessageWithName(TCPServInterface& serv, const std::tstring& user, s
 	if(client == nullptr)
 		return;
 
-	auto streamWriter = serv.CreateOutStream(streamReader.GetType(), streamReader.GetMsg());
+	auto streamWriter = serv.CreateOutStream(StreamWriter::SizeType(srcUserName), streamReader.GetType(), streamReader.GetMsg());
 	streamWriter.Write(srcUserName);
 
 	serv.SendClientData(streamWriter, client, true);
@@ -138,8 +139,9 @@ void TransferMessage(TCPServInterface& serv, MsgStreamReader& streamReader)
 	if(client == nullptr)
 		return;
 
-	auto mStreamOut = serv.CreateOutStream(streamReader.GetType(), streamReader.GetMsg());
-	serv.SendClientData(mStreamOut, client, true);
+	serv.SendMsg(client, true, streamReader.GetType(), streamReader.GetMsg());
+	//auto mStreamOut = serv.CreateOutStream(streamReader.GetType(), streamReader.GetMsg());
+	//serv.SendClientData(mStreamOut, client, true);
 }
 
 void RequestTransfer(TCPServInterface& serv, std::tstring& srcUserName, MsgStreamReader& streamReader)
@@ -150,7 +152,7 @@ void RequestTransfer(TCPServInterface& serv, std::tstring& srcUserName, MsgStrea
 	if(client == nullptr)
 		return;
 
-	MsgStreamWriter streamWriter = serv.CreateOutStream(TYPE_REQUEST, MSG_REQUEST_TRANSFER);
+	MsgStreamWriter streamWriter = serv.CreateOutStream(TYPE_REQUEST, MSG_REQUEST_TRANSFER, StreamWriter::SizeType(srcUserName) + sizeof(double));
 	streamWriter.Write(srcUserName);
 	streamWriter.Write(streamReader.Read<double>());
 
@@ -165,7 +167,7 @@ void DispIPMsg(Socket& pc, const LIB_TCHAR* str)
 
 void DisconnectHandler(ClientData* data, bool unexpected)
 {
-	auto& streamWriter = serv->CreateOutStream(TYPE_CHANGE, MSG_CHANGE_DISCONNECT);
+	auto& streamWriter = serv->CreateOutStream(StreamWriter::SizeType(data->user), TYPE_CHANGE, MSG_CHANGE_DISCONNECT);
 	streamWriter.Write(data->user);
 	
 	serv->SendClientData(streamWriter, data, false);
@@ -247,14 +249,14 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, MsgStreamReader
 				{
 					if(clients[i] != clint && !clients[i]->user.empty())
 					{
-						auto streamWriter = serv.CreateOutStream(TYPE_CHANGE, MSG_CHANGE_CONNECTINIT);
+						auto streamWriter = serv.CreateOutStream(StreamWriter::SizeType(clients[i]->user), TYPE_CHANGE, MSG_CHANGE_CONNECTINIT);
 						streamWriter.Write(clients[i]->user);
 
 						serv.SendClientData(streamWriter, clint, true);
 					}
 				}
 
-				auto streamWriter = serv.CreateOutStream(TYPE_CHANGE, MSG_CHANGE_CONNECT);
+				auto streamWriter = serv.CreateOutStream(StreamWriter::SizeType(user), TYPE_CHANGE, MSG_CHANGE_CONNECT);
 				streamWriter.Write(user);
 
 				serv.SendClientData(streamWriter, clint, false);
@@ -284,7 +286,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, MsgStreamReader
 				auto fClint = serv.FindClient(name);
 				if(!fClint)
 					break;
-				auto streamWriter = serv.CreateOutStream(streamReader.GetType(), streamReader.GetMsg());
+				auto streamWriter = serv.CreateOutStream(StreamWriter::SizeType(canDraw, clint->user), streamReader.GetType(), streamReader.GetMsg());
 				streamWriter.Write(canDraw);
 				streamWriter.Write(clint->user);
 				serv.SendClientData(streamWriter, fClint, true);
@@ -306,7 +308,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, MsgStreamReader
 			std::tstring str = streamReader.Read<std::tstring>();
 			Format::FormatText(str, str, clint->user, false);
 
-			auto streamWriter = serv.CreateOutStream(TYPE_DATA, MSG_DATA_TEXT);
+			auto streamWriter = serv.CreateOutStream(StreamWriter::SizeType(str), TYPE_DATA, MSG_DATA_TEXT);
 			streamWriter.Write(str);
 			
 			serv.SendClientData(streamWriter, clint, false);
@@ -360,7 +362,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, MsgStreamReader
 			const WBParams& wbParams = wb->GetParams();
 
 			//Send activate message to new client
-			auto streamWriter = serv.CreateOutStream(TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE);
+			auto streamWriter = serv.CreateOutStream(sizeof(WBParams), TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE);
 			streamWriter.Write(wbParams);
 			serv.SendClientData(streamWriter, clint, true);
 			break;
@@ -370,7 +372,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, MsgStreamReader
 			if(!wb->IsCreator(clint->user))
 			{
 				//Tell current whiteboard members someone joined
-				auto streamWriter = serv.CreateOutStream(TYPE_RESPONSE, MSG_RESPONSE_WHITEBOARD_CONFIRMED);
+				auto streamWriter = serv.CreateOutStream(StreamWriter::SizeType(clint->user), TYPE_RESPONSE, MSG_RESPONSE_WHITEBOARD_CONFIRMED);
 				streamWriter.Write(clint->user);
 				serv.SendClientData(streamWriter, wb->GetPcs());
 
@@ -468,7 +470,7 @@ void MsgHandler(TCPServInterface& serv, ClientData* const clint, MsgStreamReader
 			{
 				WBParams params = streamReader.Read<WBParams>();
 
-				auto streamWriter = serv.CreateOutStream(TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE);
+				auto streamWriter = serv.CreateOutStream(sizeof(WBParams), TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE);
 				streamWriter.Write(params);
 				serv.SendClientData(streamWriter, clint, true);
 

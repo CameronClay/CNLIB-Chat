@@ -16,7 +16,7 @@ class TCPClient : public TCPClientInterface, public KeepAliveHI, public RecvObse
 {
 public:
 	//cfunc is a message handler, compression 1-9
-	TCPClient(cfunc func, dcfunc disconFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxSendOps = 5, UINT maxDataSize = 8192, UINT olCount = 10, UINT sendBuffCount = 40, UINT sendMsgBuffCount = 20, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);
+	TCPClient(cfunc func, dcfunc disconFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxSendOps = 5, UINT maxDataSize = 8192, UINT olCount = 10, UINT sendBuffCount = 35, UINT sendCompBuffCount = 15, UINT sendMsgBuffCount = 10, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);
 	TCPClient(TCPClient&& client);
 	~TCPClient();
 
@@ -26,16 +26,16 @@ public:
 	void Disconnect();
 	void Shutdown();
 
-	char* GetSendBuffer() override;
-	char* GetSendBuffer(BuffAllocator* alloc, DWORD nBytes) override;
+	BuffSendInfo GetSendBuffer(DWORD hiByteEstimate, CompressionType compType = BESTFIT) override;
+	BuffSendInfo GetSendBuffer(BuffAllocator* alloc, DWORD nBytes, CompressionType compType = BESTFIT) override;
 
-	MsgStreamWriter CreateOutStream(short type, short msg) override;
-	MsgStreamWriter CreateOutStream(BuffAllocator* alloc, DWORD nBytes, short type, short msg) override;
+	MsgStreamWriter CreateOutStream(DWORD hiByteEstimate, short type, short msg, CompressionType compType = BESTFIT) override;
+	MsgStreamWriter CreateOutStream(BuffAllocator* alloc, DWORD nBytes, short type, short msg, CompressionType compType = BESTFIT) override;
 
 	const BufferOptions GetBufferOptions() const override;
 
-	bool SendServData(const char* data, DWORD nBytes, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) override;
-	bool SendServData(MsgStreamWriter streamWriter, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) override;
+	bool SendServData(const BuffSendInfo& buffSendInfo, DWORD nBytes, BuffAllocator* alloc = nullptr) override;
+	bool SendServData(MsgStreamWriter streamWriter, BuffAllocator* alloc = nullptr) override;
 
 	//Should only be called once to intialy create receving thread
 	bool RecvServData() override;
@@ -76,7 +76,7 @@ public:
 private:
 	void OnNotify(char* data, DWORD nBytes, void*) override;
 
-	bool SendServData(const char* data, DWORD nBytes, bool msg, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr);
+	bool SendServData(const BuffSendInfo& buffSendInfo, DWORD nBytes, bool msg, BuffAllocator* alloc = nullptr);
 	bool SendServData(OverlappedSendSingle* ol, bool popQueue = false);
 
 	Socket host; //server/host you are connected to
