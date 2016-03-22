@@ -45,13 +45,13 @@ public:
 
 	virtual IPv AllowConnections(const LIB_TCHAR* port, ConCondition connectionCondition, IPv ipv = ipboth, UINT nConcAccepts = 1) = 0;
 
-	virtual bool SendClientData(const char* data, DWORD nBytes, ClientData* exClient, bool single, CompressionType compType = BESTFIT) = 0;
-	virtual bool SendClientData(const char* data, DWORD nBytes, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT) = 0;
-	virtual bool SendClientData(const char* data, DWORD nBytes, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT) = 0;
+	virtual bool SendClientData(const char* data, DWORD nBytes, ClientData* exClient, bool single, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) = 0;
+	virtual bool SendClientData(const char* data, DWORD nBytes, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) = 0;
+	virtual bool SendClientData(const char* data, DWORD nBytes, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) = 0;
 
-	virtual bool SendClientData(MsgStreamWriter streamWriter, ClientData* exClient, bool single, CompressionType compType = BESTFIT) = 0;
-	virtual bool SendClientData(MsgStreamWriter streamWriter, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT) = 0;
-	virtual bool SendClientData(MsgStreamWriter streamWriter, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT) = 0;
+	virtual bool SendClientData(MsgStreamWriter streamWriter, ClientData* exClient, bool single, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) = 0;
+	virtual bool SendClientData(MsgStreamWriter streamWriter, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) = 0;
+	virtual bool SendClientData(MsgStreamWriter streamWriter, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) = 0;
 
 	virtual void SendMsg(ClientData* exClient, bool single, short type, short message) = 0;
 	virtual void SendMsg(ClientData** clients, UINT nClients, short type, short message) = 0;

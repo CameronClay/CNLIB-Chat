@@ -27,11 +27,15 @@ public:
 	void Shutdown();
 
 	char* GetSendBuffer() override;
+	char* GetSendBuffer(BuffAllocator* alloc, DWORD nBytes) override;
+
 	MsgStreamWriter CreateOutStream(short type, short msg) override;
+	MsgStreamWriter CreateOutStream(BuffAllocator* alloc, DWORD nBytes, short type, short msg) override;
+
 	const BufferOptions GetBufferOptions() const override;
 
-	bool SendServData(const char* data, DWORD nBytes, CompressionType compType = BESTFIT) override;
-	bool SendServData(MsgStreamWriter streamWriter, CompressionType compType = BESTFIT) override;
+	bool SendServData(const char* data, DWORD nBytes, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) override;
+	bool SendServData(MsgStreamWriter streamWriter, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) override;
 
 	//Should only be called once to intialy create receving thread
 	bool RecvServData() override;
@@ -72,7 +76,7 @@ public:
 private:
 	void OnNotify(char* data, DWORD nBytes, void*) override;
 
-	bool SendServData(const char* data, DWORD nBytes, bool msg, CompressionType compType = BESTFIT);
+	bool SendServData(const char* data, DWORD nBytes, bool msg, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr);
 	bool SendServData(OverlappedSendSingle* ol, bool popQueue = false);
 
 	Socket host; //server/host you are connected to

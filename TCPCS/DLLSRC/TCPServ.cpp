@@ -377,48 +377,58 @@ char* TCPServ::GetSendBuffer()
 {
 	return bufSendAlloc.GetSendBuffer();
 }
+char* TCPServ::GetSendBuffer(BuffAllocator* alloc, DWORD nBytes)
+{
+	return bufSendAlloc.GetSendBuffer(alloc, nBytes);
+}
+
 MsgStreamWriter TCPServ::CreateOutStream(short type, short msg)
 {
 	return bufSendAlloc.CreateOutStream(type, msg);
 }
+MsgStreamWriter TCPServ::CreateOutStream(BuffAllocator* alloc, DWORD nBytes, short type, short msg)
+{
+	return bufSendAlloc.CreateOutStream(alloc, nBytes, type, msg);
+}
+
 const BufferOptions TCPServ::GetBufferOptions() const
 {
 	return bufSendAlloc.GetBufferOptions();
 }
 
-bool TCPServ::SendClientData(const char* data, DWORD nBytes, ClientData* exClient, bool single, CompressionType compType)
+bool TCPServ::SendClientData(const char* data, DWORD nBytes, ClientData* exClient, bool single, CompressionType compType, BuffAllocator* alloc)
 {
-	return SendClientData(data, nBytes, (ClientDataEx*)exClient, single, false, compType);
+	return SendClientData(data, nBytes, (ClientDataEx*)exClient, single, false, compType, alloc);
 }
-bool TCPServ::SendClientData(const char* data, DWORD nBytes, ClientData** clients, UINT nClients, CompressionType compType)
+bool TCPServ::SendClientData(const char* data, DWORD nBytes, ClientData** clients, UINT nClients, CompressionType compType, BuffAllocator* alloc)
 {
-	return SendClientData(data, nBytes, (ClientDataEx**)clients, nClients, false, compType);
+	return SendClientData(data, nBytes, (ClientDataEx**)clients, nClients, false, compType, alloc);
 }
-bool TCPServ::SendClientData(const char* data, DWORD nBytes, std::vector<ClientData*>& pcs, CompressionType compType)
+bool TCPServ::SendClientData(const char* data, DWORD nBytes, std::vector<ClientData*>& pcs, CompressionType compType, BuffAllocator* alloc)
 {
-	return SendClientData(data, nBytes, pcs.data(), pcs.size(), compType);
-}
-
-bool TCPServ::SendClientData(MsgStreamWriter streamWriter, ClientData* exClient, bool single, CompressionType compType)
-{
-	return SendClientData(streamWriter, streamWriter.GetSize(), (ClientDataEx*)exClient, single, false, compType);
-}
-bool TCPServ::SendClientData(MsgStreamWriter streamWriter, ClientData** clients, UINT nClients, CompressionType compType)
-{
-	return SendClientData(streamWriter, streamWriter.GetSize(), (ClientDataEx**)clients, nClients, false, compType);
-}
-bool TCPServ::SendClientData(MsgStreamWriter streamWriter, std::vector<ClientData*>& pcs, CompressionType compType)
-{
-	return SendClientData(streamWriter, streamWriter.GetSize(), pcs.data(), pcs.size(), compType);
+	return SendClientData(data, nBytes, pcs.data(), pcs.size(), compType, alloc);
 }
 
-bool TCPServ::SendClientData(const char* data, DWORD nBytes, ClientDataEx* exClient, bool single, bool msg, CompressionType compType)
+bool TCPServ::SendClientData(MsgStreamWriter streamWriter, ClientData* exClient, bool single, CompressionType compType, BuffAllocator* alloc)
 {
-	return SendClientData(bufSendAlloc.CreateBuff(nBytes, (char*)data, msg, compType), exClient, single);
+	return SendClientData(streamWriter, streamWriter.GetSize(), (ClientDataEx*)exClient, single, false, compType, alloc);
 }
-bool TCPServ::SendClientData(const char* data, DWORD nBytes, ClientDataEx** clients, UINT nClients, bool msg, CompressionType compType)
+bool TCPServ::SendClientData(MsgStreamWriter streamWriter, ClientData** clients, UINT nClients, CompressionType compType, BuffAllocator* alloc)
 {
-	return SendClientData(bufSendAlloc.CreateBuff(nBytes, (char*)data, msg, compType), clients, nClients);
+	return SendClientData(streamWriter, streamWriter.GetSize(), (ClientDataEx**)clients, nClients, false, compType, alloc);
+}
+bool TCPServ::SendClientData(MsgStreamWriter streamWriter, std::vector<ClientData*>& pcs, CompressionType compType, BuffAllocator* alloc)
+{
+	return SendClientData(streamWriter, streamWriter.GetSize(), pcs.data(), pcs.size(), compType, alloc);
+}
+
+bool TCPServ::SendClientData(const char* data, DWORD nBytes, ClientDataEx* exClient, bool single, bool msg, CompressionType compType, BuffAllocator* alloc)
+{
+	return SendClientData(bufSendAlloc.CreateBuff(nBytes, (char*)data, msg, -1, compType, alloc), exClient, single);
+}
+bool TCPServ::SendClientData(const char* data, DWORD nBytes, ClientDataEx** clients, UINT nClients, bool msg, CompressionType compType, BuffAllocator* alloc)
+{
+	return SendClientData(bufSendAlloc.CreateBuff(nBytes, (char*)data, msg, -1, compType, alloc), clients, nClients);
 }
 
 bool TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSendSingle* ol, bool popQueue)
@@ -470,7 +480,7 @@ bool TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSendSingle* ol, bo
 
 	return true;
 }
-bool TCPServ::SendClientData(const WSABufExt& sendBuff, ClientDataEx* exClient, bool single)
+bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient, bool single)
 {
 	long res = 0, err = 0;
 
@@ -481,7 +491,7 @@ bool TCPServ::SendClientData(const WSABufExt& sendBuff, ClientDataEx* exClient, 
 	{
 		if (!(exClient && exClient->pc.IsConnected()))
 		{
-			bufSendAlloc.FreeBuff((WSABufExt&)sendBuff);
+			bufSendAlloc.FreeBuff((WSABufSend&)sendBuff);
 			return false;
 		}
 
@@ -495,7 +505,7 @@ bool TCPServ::SendClientData(const WSABufExt& sendBuff, ClientDataEx* exClient, 
 	{
 		if (!nClients || (nClients == 1 && exClient))
 		{
-			bufSendAlloc.FreeBuff((WSABufExt&)sendBuff);
+			bufSendAlloc.FreeBuff((WSABufSend&)sendBuff);
 			return false;
 		}
 
@@ -536,7 +546,7 @@ bool TCPServ::SendClientData(const WSABufExt& sendBuff, ClientDataEx* exClient, 
 	}
 	return true;
 }
-bool TCPServ::SendClientData(const WSABufExt& sendBuff, ClientDataEx** clients, UINT nClients)
+bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients, UINT nClients)
 {
 	long res = 0, err = 0;
 
@@ -545,7 +555,7 @@ bool TCPServ::SendClientData(const WSABufExt& sendBuff, ClientDataEx** clients, 
 
 	if (!(clients && nClients))
 	{
-		bufSendAlloc.FreeBuff((WSABufExt&)sendBuff);
+		bufSendAlloc.FreeBuff((WSABufSend&)sendBuff);
 		return false;
 	}
 

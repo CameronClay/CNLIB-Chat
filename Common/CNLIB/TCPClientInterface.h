@@ -24,8 +24,8 @@ public:
 
 	virtual bool RecvServData() = 0;
 
-	virtual bool SendServData(const char* data, DWORD nBytes, CompressionType compType = BESTFIT) = 0;
-	virtual bool SendServData(MsgStreamWriter streamWriter, CompressionType compType = BESTFIT) = 0;
+	virtual bool SendServData(const char* data, DWORD nBytes, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) = 0;
+	virtual bool SendServData(MsgStreamWriter streamWriter, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) = 0;
 
 	virtual void SendMsg(short type, short message) = 0;
 	virtual void SendMsg(const std::tstring& user, short type, short message) = 0;

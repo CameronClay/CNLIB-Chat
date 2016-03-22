@@ -145,6 +145,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\Common\CNLIB\BuffAllocator.h" />
     <ClInclude Include="..\Common\CNLIB\BufferOptions.h" />
     <ClInclude Include="..\Common\CNLIB\BufSize.h" />
     <ClInclude Include="..\Common\CNLIB\CompressionTypes.h" />

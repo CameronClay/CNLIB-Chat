@@ -103,19 +103,23 @@ public:
 	IPv AllowConnections(const LIB_TCHAR* port, ConCondition connectionCondition, IPv ipv = ipboth, UINT nConcAccepts = 1) override;
 
 	char* GetSendBuffer() override;
+	char* GetSendBuffer(BuffAllocator* alloc, DWORD nBytes) override;
+
 	MsgStreamWriter CreateOutStream(short type, short msg) override;
+	MsgStreamWriter CreateOutStream(BuffAllocator* alloc, DWORD nBytes, short type, short msg) override;
+
 	const BufferOptions GetBufferOptions() const override;
 
 	//Used to send data to clients
 	//addr parameter functions as both the excluded address, and as a single address, 
 	//depending on the value of single
-	bool SendClientData(const char* data, DWORD nBytes, ClientData* exClient, bool single, CompressionType compType = BESTFIT) override;
-	bool SendClientData(const char* data, DWORD nBytes, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT) override;
-	bool SendClientData(const char* data, DWORD nBytes, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT) override;
+	bool SendClientData(const char* data, DWORD nBytes, ClientData* exClient, bool single, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) override;
+	bool SendClientData(const char* data, DWORD nBytes, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) override;
+	bool SendClientData(const char* data, DWORD nBytes, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) override;
 
-	bool SendClientData(MsgStreamWriter streamWriter, ClientData* exClient, bool single, CompressionType compType = BESTFIT) override;
-	bool SendClientData(MsgStreamWriter streamWriter, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT) override;
-	bool SendClientData(MsgStreamWriter streamWriter, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT) override;
+	bool SendClientData(MsgStreamWriter streamWriter, ClientData* exClient, bool single, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) override;
+	bool SendClientData(MsgStreamWriter streamWriter, ClientData** clients, UINT nClients, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) override;
+	bool SendClientData(MsgStreamWriter streamWriter, std::vector<ClientData*>& pcs, CompressionType compType = BESTFIT, BuffAllocator* alloc = nullptr) override;
 
 	//Send msg funtions used for requests, replies ect. they do not send data
 	void SendMsg(ClientData* exClient, bool single, short type, short message) override;
@@ -172,11 +176,11 @@ private:
 	void OnNotify(char* data, DWORD nBytes, void* cd) override;
 
 	bool BindHost(HostSocket& host, const LIB_TCHAR* port, bool ipv6, UINT nConcAccepts);
-	bool SendClientData(const char* data, DWORD nBytes, ClientDataEx* exClient, bool single, bool msg, CompressionType compType);
-	bool SendClientData(const char* data, DWORD nBytes, ClientDataEx** clients, UINT nClients, bool msg, CompressionType compType);
+	bool SendClientData(const char* data, DWORD nBytes, ClientDataEx* exClient, bool single, bool msg, CompressionType compType, BuffAllocator* alloc = nullptr);
+	bool SendClientData(const char* data, DWORD nBytes, ClientDataEx** clients, UINT nClients, bool msg, CompressionType compType, BuffAllocator* alloc = nullptr);
 
-	bool SendClientData(const WSABufExt& sendBuff, ClientDataEx* exClient, bool single);
-	bool SendClientData(const WSABufExt& sendBuff, ClientDataEx** clients, UINT nClients);
+	bool SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient, bool single);
+	bool SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients, UINT nClients);
 	bool SendClientSingle(ClientDataEx& clint, OverlappedSendSingle* ol, bool popQueue = false);
 
 	HostSocket ipv4Host, ipv6Host; //host/listener sockets

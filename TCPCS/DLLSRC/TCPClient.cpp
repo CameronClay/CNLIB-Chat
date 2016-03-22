@@ -237,27 +237,38 @@ char* TCPClient::GetSendBuffer()
 {
 	return bufSendAlloc.GetSendBuffer();
 }
+char* TCPClient::GetSendBuffer(BuffAllocator* alloc, DWORD nBytes)
+{
+	return bufSendAlloc.GetSendBuffer(alloc, nBytes);
+}
+
 MsgStreamWriter TCPClient::CreateOutStream(short type, short msg)
 {
 	return bufSendAlloc.CreateOutStream(type, msg);
 }
+MsgStreamWriter TCPClient::CreateOutStream(BuffAllocator* alloc, DWORD nBytes, short type, short msg)
+{
+	return bufSendAlloc.CreateOutStream(alloc, nBytes, type, msg);
+}
+
+
 const BufferOptions TCPClient::GetBufferOptions() const
 {
 	return bufSendAlloc.GetBufferOptions();
 }
 
-bool TCPClient::SendServData(const char* data, DWORD nBytes, CompressionType compType)
+bool TCPClient::SendServData(const char* data, DWORD nBytes, CompressionType compType, BuffAllocator* alloc)
 {
 	return SendServData(data, nBytes, false, compType);
 }
-bool TCPClient::SendServData(MsgStreamWriter streamWriter, CompressionType compType)
+bool TCPClient::SendServData(MsgStreamWriter streamWriter, CompressionType compType, BuffAllocator* alloc)
 {
 	return SendServData(streamWriter, streamWriter.GetSize(), false, compType);
 }
 
-bool TCPClient::SendServData(const char* data, DWORD nBytes, bool msg, CompressionType compType)
+bool TCPClient::SendServData(const char* data, DWORD nBytes, bool msg, CompressionType compType, BuffAllocator* alloc)
 {
-	return SendServData(olPool.construct<OverlappedSendSingle>(bufSendAlloc.CreateBuff(nBytes, (char*)data, msg, compType)), false);
+	return SendServData(olPool.construct<OverlappedSendSingle>(bufSendAlloc.CreateBuff(nBytes, (char*)data, msg, -1, compType, alloc)), false);
 }
 bool TCPClient::SendServData(OverlappedSendSingle* ol, bool popQueue)
 {

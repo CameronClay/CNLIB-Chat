@@ -1,5 +1,6 @@
 #pragma once
 #include "MsgHeader.h"
+#include "BuffAllocator.h"
 
 struct WSABufExt : public WSABUF
 {
@@ -27,15 +28,9 @@ struct WSABufRecv : public WSABufExt
 {
 	WSABufRecv()
 		:
-		WSABufExt()
-	{
-		used = false;
-	}
-
-	WSABufRecv(const WSABufRecv& b)
-	{
-		*this = b;
-	}
+		WSABufExt(),
+		used(false)
+	{}
 
 	WSABufRecv& operator=(const WSABufRecv& b)
 	{
@@ -52,3 +47,31 @@ struct WSABufRecv : public WSABufExt
 
 	bool used;
 };
+
+struct WSABufSend : public WSABufExt
+{
+	WSABufSend()
+		:
+		WSABufExt(),
+		alloc(nullptr)
+	{}
+
+	WSABufSend& operator=(const WSABufSend& b)
+	{
+		if (this != &b)
+		{
+			len = b.len;
+			buf = b.buf;
+			head = b.head;
+			curBytes = b.curBytes;
+			alloc = b.alloc;
+		}
+		return *this;
+	}
+
+	BuffAllocator* alloc;
+};
+
+
+
+
