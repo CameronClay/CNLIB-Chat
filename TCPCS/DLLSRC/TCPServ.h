@@ -36,6 +36,8 @@ public:
 		RecvHandler recvHandler;
 		std::queue<OverlappedSendSingle*> opsPending;
 
+		bool DecRefCount();
+
 		//int for alignment
 		enum State : int
 		{

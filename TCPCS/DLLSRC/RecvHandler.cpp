@@ -109,11 +109,12 @@ char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, std::unordered_map<UIN
 
 		if (destBuff.curBytes - sizeof(DataHeader) >= bytesToRecv)
 		{
-			const DWORD temp = bytesToRecv + sizeof(DataHeader);
-			if (!Process(ptr, destBuff, bytesToRecv, header, buffOpts, obj))
-				return nullptr;
+			bool res = Process(ptr, destBuff, destBuff.curBytes, header, buffOpts, obj);
 
 			EraseFromMap(it);
+
+			if (!res)
+				return nullptr;
 
 			return ptr + bytesToRecv;
 		}
@@ -212,7 +213,7 @@ bool RecvHandler::Process(char* ptr, WSABufRecv& buff, DWORD bytesToRecv, const 
 	if (header.size.up.nBytesComp)
 	{
 		//Max Data size because it sends decomp if > than maxDataSize
-		if (FileMisc::Decompress((BYTE*)decompData, buffOpts.GetMaxDataSize(), (const BYTE*)ptr, bytesToRecv) != UINT_MAX)	// Decompress data
+		if (FileMisc::Decompress((BYTE*)decompData, header.size.up.nBytesDecomp, (const BYTE*)ptr, bytesToRecv) != UINT_MAX)	// Decompress data
 			observer->OnNotify(decompData, header.size.up.nBytesDecomp, obj);
 		else
 			return nullptr;  //return value of false is an unrecoverable error

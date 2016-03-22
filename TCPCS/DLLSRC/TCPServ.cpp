@@ -68,7 +68,7 @@ ClientDataEx::ClientDataEx(TCPServ& serv, Socket pc, sfunc func, UINT arrayIndex
 	serv(serv),
 	ol(OpType::recv),
 	arrayIndex(arrayIndex),
-	opCount(),
+	opCount(1), // for recv
 	olPool(sizeof(OverlappedSendSingle), serv.SingleOlPCCount()),
 	recvHandler(serv.GetBufferOptions(), 2, &serv),
 	opsPending(),
@@ -110,6 +110,11 @@ ClientDataEx& TCPServ::ClientDataEx::operator=(ClientDataEx&& data)
 }
 ClientDataEx::~ClientDataEx()
 {}
+
+bool ClientDataEx::DecRefCount()
+{
+	return --opCount == 0;
+}
 
 
 HostSocket::HostSocket(TCPServ& serv)
@@ -290,7 +295,9 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 						cd.serv.RemoveClient(&cd, cd.state != ClientDataEx::closing);
 						continue;
 					}
-					if(!cd.recvHandler.RecvDataCR(cd.pc, bytesTrans, cd.serv.GetBufferOptions(), (void*)key))
+
+					//Access violation problem
+					if (!cd.recvHandler.RecvDataCR(cd.pc, bytesTrans, cd.serv.GetBufferOptions(), (void*)key) && cd.DecRefCount())
 						cd.serv.RemoveClient(&cd, cd.state != ClientDataEx::closing);
 				}
 				break;
@@ -334,8 +341,10 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 				}
 				else if (ol->opType == OpType::recv)
 				{
+					//Access violation problem
 					ClientDataEx* cd = (ClientDataEx*)key;
-					cd->serv.RemoveClient(cd, cd->state != ClientDataEx::closing); //closing flag only set when you initiated close
+					if (cd->DecRefCount())
+						cd->serv.RemoveClient(cd, cd->state != ClientDataEx::closing); //closing flag only set when you initiated close
 				}
 				else
 				{
@@ -523,6 +532,8 @@ bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient,
 			ol[i].Initalize(sendInfo);
 			if (clint != exClient)
 			{
+				++clint->opCount;
+
 				res = clint->pc.SendDataOl(&sendInfo->sendBuff, &ol[i]);
 				err = WSAGetLastError();
 			}
@@ -537,6 +548,9 @@ bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient,
 				//}
 				//else
 				//{
+				if (clint != exClient)
+					--clint->opCount;
+
 					--opCounter;
 					if (sendInfo->DecrementRefCount())
 						FreeSendOlInfo(sendInfo);
@@ -579,6 +593,8 @@ bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients,
 		{
 			ClientDataEx& clint = **(clients + i);
 			ol[i].Initalize(sendInfo);
+			++clint.opCount;
+
 			res = clint.pc.SendDataOl(&sendInfo->sendBuff, &ol[i]);
 			err = WSAGetLastError();
 
@@ -592,6 +608,7 @@ bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients,
 				//}
 				//else
 				//{
+					--clint.opCount;
 					--opCounter;
 					if (sendInfo->DecrementRefCount())
 						FreeSendOlInfo(sendInfo);
@@ -719,6 +736,9 @@ void TCPServ::SendDataCR(ClientDataEx& cd, OverlappedSend* ol)
 	if (sendInfo->DecrementRefCount())
 		FreeSendOlInfo(sendInfo);
 
+	if (cd.DecRefCount())
+		RemoveClient(&cd, cd.state != ClientDataEx::closing);
+
 	if (--opCounter == 0)
 		SetEvent(shutdownEv);
 }	
@@ -729,6 +749,9 @@ void TCPServ::SendDataSingleCR(ClientDataEx& cd, OverlappedSendSingle* ol)
 	//If there are per client operations pending then attempt to complete them
 	if (!cd.opsPending.empty() && cd.state != cd.closing)
 		SendClientSingle(cd, cd.opsPending.front(), true);
+
+	if (cd.DecRefCount())
+		RemoveClient(&cd, cd.state != ClientDataEx::closing);
 
 	if (--opCounter == 0)
 		SetEvent(shutdownEv);

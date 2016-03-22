@@ -132,7 +132,7 @@ BuffSendInfo BufSendAlloc::GetSendBuffer(DWORD hiByteEstimate, CompressionType c
 		return{};
 
 	BuffSendInfo si(compType, hiByteEstimate, bufferOptions.GetCompressionCO());
-	si.buffer = (si.compType == SETCOMPRESSION) ? dataCompPool.alloc() : dataPool.alloc();
+	si.buffer = (si.compType == SETCOMPRESSION) ? dataCompPool.alloc() + sizeof(DataHeader) : dataPool.alloc() + sizeof(DataHeader);
 
 	return si;
 
@@ -141,7 +141,7 @@ BuffSendInfo BufSendAlloc::GetSendBuffer(BuffAllocator* alloc, DWORD nBytes, Com
 {
 	nBytes += sizeof(DataHeader);
 	BuffSendInfo si(compType, nBytes, bufferOptions.GetCompressionCO());
-	si.buffer = alloc->alloc(nBytes + si.maxCompSize);
+	si.buffer = alloc->alloc(nBytes + si.maxCompSize) + sizeof(DataHeader);
 	return si;
 }
 
@@ -154,7 +154,7 @@ MsgStreamWriter BufSendAlloc::CreateOutStream(BuffAllocator* alloc, DWORD nBytes
 	nBytes += sizeof(DataHeader);
 	BuffSendInfo si(compType, nBytes, bufferOptions.GetCompressionCO());
 	nBytes += si.maxCompSize;
-	si.buffer = alloc->alloc(nBytes);
+	si.buffer = alloc->alloc(nBytes) + sizeof(DataHeader);
 
 	return{ si, nBytes, type, msg };
 }
