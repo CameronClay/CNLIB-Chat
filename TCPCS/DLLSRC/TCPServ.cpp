@@ -62,7 +62,7 @@ UINT ClientData::GetOpCount() const
 }
 
 
-ClientDataEx::ClientDataEx(TCPServ& serv, Socket pc, sfunc func, UINT arrayIndex)
+ClientDataEx::ClientDataEx(TCPServ& serv, MemPool<HeapAllocator>& recvPoolPool, Socket pc, sfunc func, UINT arrayIndex)
 	:
 	ClientData(pc, func),
 	serv(serv),
@@ -70,7 +70,7 @@ ClientDataEx::ClientDataEx(TCPServ& serv, Socket pc, sfunc func, UINT arrayIndex
 	arrayIndex(arrayIndex),
 	opCount(1), // for recv
 	olPool(sizeof(OverlappedSendSingle), serv.SingleOlPCCount()),
-	recvHandler(serv.GetBufferOptions(), 2, &serv),
+	recvHandler(serv.GetBufferOptions(), recvPoolPool, 2, &serv),
 	opsPending(),
 	state(running)
 {
@@ -781,6 +781,7 @@ TCPServ::TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads
 	keepAliveHandler(nullptr),
 	bufSendAlloc(maxDataBuffSize, sendBuffCount, sendCompBuffCount, sendMsgBuffCount, compression, compressionCO),
 	clientPool(sizeof(ClientDataEx), maxCon),
+	recvPoolPool(sizeof(MemPool<PageAllignAllocator>), (size_t)((float)maxCon / 2.0f + 0.5f)),
 	sendOlInfoPool(sizeof(OverlappedSendInfo), allOlCount),
 	sendOlPoolAll(sizeof(OverlappedSend) * maxCon, allOlCount),
 	opCounter(),
@@ -806,6 +807,7 @@ TCPServ::TCPServ(TCPServ&& serv)
 	keepAliveHandler(std::move(serv.keepAliveHandler)),
 	bufSendAlloc(std::move(serv.bufSendAlloc)),
 	clientPool(std::move(serv.clientPool)),
+	recvPoolPool(std::move(serv.recvPoolPool)),
 	sendOlInfoPool(std::move(serv.sendOlInfoPool)),
 	sendOlPoolAll(std::move(serv.sendOlPoolAll)),
 	opCounter(serv.opCounter.load()),
@@ -838,6 +840,7 @@ TCPServ& TCPServ::operator=(TCPServ&& serv)
 		keepAliveHandler = std::move(serv.keepAliveHandler);
 		bufSendAlloc = std::move(serv.bufSendAlloc);
 		clientPool = std::move(serv.clientPool);
+		recvPoolPool = std::move(serv.recvPoolPool);
 		sendOlInfoPool = std::move(serv.sendOlInfoPool);
 		sendOlPoolAll = std::move(serv.sendOlPoolAll);
 		opCounter = serv.opCounter.load();
@@ -911,7 +914,7 @@ void TCPServ::AddClient(Socket pc)
 
 	EnterCriticalSection(&clientSect);
 
-	ClientDataEx* cd = clients[nClients] = clientPool.construct<ClientDataEx>(*this, pc, function, nClients);
+	ClientDataEx* cd = clients[nClients] = clientPool.construct<ClientDataEx>(*this, recvPoolPool, pc, function, nClients);
 	nClients += 1;
 
 	LeaveCriticalSection(&clientSect);

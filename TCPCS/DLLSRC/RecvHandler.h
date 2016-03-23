@@ -11,7 +11,7 @@
 class RecvHandler
 {
 public:
-	RecvHandler(const BufferOptions& buffOpts, UINT initialCap, RecvObserverI* observer);
+	RecvHandler(const BufferOptions& buffOpts, MemPool<HeapAllocator>& recvPoolPool, UINT initialCap, RecvObserverI* observer);
 	RecvHandler(RecvHandler&& recvHandler);
 	~RecvHandler();
 
@@ -32,7 +32,8 @@ private:
 	void EraseFromMap(std::unordered_map<UINT, WSABufRecv>::iterator it);
 	void AppendToMap(UINT index, WSABufRecv& buff, const BufferOptions& buffOpts);
 
-	MemPool<PageAllignAllocator> recvBuffPool;
+	MemPool<HeapAllocator>& recvPoolPool;
+	MemPool<PageAllignAllocator>* recvBuffPool;
 	char* decompData;
 	std::unordered_map<UINT, WSABufRecv> buffMap;
 	OverlappedExt ol;

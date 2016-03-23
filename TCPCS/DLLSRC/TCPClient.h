@@ -88,6 +88,7 @@ private:
 	float keepAliveInterval; //interval at which client KeepAlives server
 	KeepAliveHandler* keepAliveHandler; //handles all KeepAlives(technically is a keep alive message that sends data) to server, to prevent timeout
 	BufSendAlloc bufSendAlloc;
+	MemPool<HeapAllocator> recvPoolPool; //for compatability with serv
 	RecvHandler recvHandler;
 	MemPoolSync<HeapAllocator> olPool; //Used to help speed up allocation of overlapped structures
 	std::queue<OverlappedSendSingle*> opsPending; //Used to store pending ops

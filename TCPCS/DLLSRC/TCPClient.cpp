@@ -125,7 +125,8 @@ TCPClient::TCPClient(cfunc func, dcfunc disconFunc, DWORD nThreads, DWORD nConcT
 	keepAliveInterval(keepAliveInterval),
 	keepAliveHandler(nullptr),
 	bufSendAlloc(maxDataBuffSize, sendBuffCount, sendCompBuffCount, sendMsgBuffCount, compression, compressionCO),
-	recvHandler(GetBufferOptions(), 2, this),
+	recvPoolPool(sizeof(MemPool<PageAllignAllocator>), 1),
+	recvHandler(GetBufferOptions(), recvPoolPool, 2, this),
 	olPool(sizeof(OverlappedSendSingle), maxSendOps),
 	shutdownEv(NULL),
 	sockOpts(sockOpts),
@@ -145,6 +146,7 @@ TCPClient::TCPClient(TCPClient&& client)
 	keepAliveInterval(client.keepAliveInterval),
 	keepAliveHandler(std::move(client.keepAliveHandler)),
 	bufSendAlloc(std::move(client.bufSendAlloc)),
+	recvPoolPool(std::move(client.recvPoolPool)),
 	recvHandler(std::move(client.recvHandler)),
 	olPool(std::move(client.olPool)),
 	opsPending(std::move(client.opsPending)),
@@ -171,6 +173,7 @@ TCPClient& TCPClient::operator=(TCPClient&& client)
 		keepAliveInterval = client.keepAliveInterval;
 		keepAliveHandler = std::move(client.keepAliveHandler);
 		bufSendAlloc = std::move(client.bufSendAlloc);
+		recvPoolPool = std::move(client.recvPoolPool);
 		recvHandler = std::move(client.recvHandler);
 		olPool = std::move(client.olPool);
 		opsPending = std::move(client.opsPending);
