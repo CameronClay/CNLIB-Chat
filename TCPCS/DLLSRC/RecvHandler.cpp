@@ -4,11 +4,12 @@
 #include "CNLIB/MsgStream.h"
 #include "CNLIB/File.h"
 
-RecvHandler::RecvHandler(const BufferOptions& buffOpts, MemPool<HeapAllocator>& recvPoolPool, UINT initialCap, RecvObserverI* observer)
+
+//To do: have only one compressed buffer
+RecvHandler::RecvHandler(const BufferOptions& buffOpts, UINT initialCap, RecvObserverI* observer)
 	:
-	recvPoolPool(recvPoolPool),
-	recvBuffPool(recvPoolPool.construct<MemPool<PageAllignAllocator>>(buffOpts.GetMaxDatBuffSize(), initialCap + 1, buffOpts.GetPageSize())),  //only need maxDataSize, because compData buffer takes care of decompression
-	decompData(recvBuffPool->alloc<char>()),
+	recvBuffPool(buffOpts.GetMaxDatBuffSize(), initialCap + 1, buffOpts.GetPageSize()),  //only need maxDataSize, because compData buffer takes care of decompression
+	decompData(recvBuffPool.alloc<char>()),
 	ol(OpType::recv),
 	primaryBuff(CreateBuffer(buffOpts)),
 	secondaryBuff(CreateBuffer(buffOpts)),
@@ -21,7 +22,6 @@ RecvHandler::RecvHandler(const BufferOptions& buffOpts, MemPool<HeapAllocator>& 
 
 RecvHandler::RecvHandler(RecvHandler&& recvHandler)
 	:
-	recvPoolPool(std::move(recvHandler.recvPoolPool)),
 	recvBuffPool(std::move(recvHandler.recvBuffPool)),
 	decompData(recvHandler.decompData),
 	buffMap(std::move(recvHandler.buffMap)),
@@ -38,7 +38,6 @@ RecvHandler::RecvHandler(RecvHandler&& recvHandler)
 RecvHandler::~RecvHandler()
 {
 	//no need to free objects from pool because they will die when pool dies
-	recvPoolPool.destruct(recvBuffPool);
 }
 
 RecvHandler& RecvHandler::operator=(RecvHandler&& recvHandler)
@@ -47,7 +46,6 @@ RecvHandler& RecvHandler::operator=(RecvHandler&& recvHandler)
 	{
 		this->~RecvHandler();
 
-		recvPoolPool = std::move(recvHandler.recvPoolPool);
 		recvBuffPool = std::move(recvHandler.recvBuffPool);
 		decompData = recvHandler.decompData;
 		buffMap = std::move(recvHandler.buffMap);
@@ -243,19 +241,19 @@ void RecvHandler::EraseFromMap(std::unordered_map<UINT, WSABufRecv>::iterator it
 }
 void RecvHandler::AppendToMap(UINT index, WSABufRecv& buff, const BufferOptions& buffOpts)
 {
-	buffMap.emplace(index, buff);
+	buffMap.emplace(std::make_pair(index, buff));
 	*curBuff = CreateBuffer(buffOpts);
 }
 
 WSABufRecv RecvHandler::CreateBuffer(const BufferOptions& buffOpts)
 {
-	char* temp = recvBuffPool->alloc<char>();
+	char* temp = recvBuffPool.alloc<char>();
 	WSABufRecv buff;
-	buff.Initialize(buffOpts.GetMaxDatBuffSize(), temp, temp);
+	buff.Initialize(buffOpts.GetMaxDataSize() + sizeof(MsgHeader), temp, temp);
 	return buff;
 }
 
 void RecvHandler::FreeBuffer(WSABufRecv& buff)
 {
-	recvBuffPool->dealloc(buff.head);
+	recvBuffPool.dealloc(buff.head);
 }
