@@ -11,7 +11,7 @@
 class DataPoolAllocator : public BuffAllocator
 {
 public:
-	DataPoolAllocator(const BufferOptions& bufferOptions, UINT maxDataSize = 4096, UINT sendBuffCount = 35);
+	DataPoolAllocator(const BufferOptions& bufferOptions, UINT sendBuffCount = 35);
 	DataPoolAllocator(DataPoolAllocator&& dataPoolObs);
 	DataPoolAllocator& operator=(DataPoolAllocator&& dataPoolObs);
 
@@ -24,7 +24,7 @@ private:
 class DataCompPoolAllocator : public BuffAllocator
 {
 public:
-	DataCompPoolAllocator(const BufferOptions& bufferOptions, UINT maxDataSize = 4096, UINT sendCompBuffCount = 15);
+	DataCompPoolAllocator(const BufferOptions& bufferOptions, UINT sendCompBuffCount = 15);
 	DataCompPoolAllocator(DataCompPoolAllocator&& dataPoolObs);
 	DataCompPoolAllocator& operator=(DataCompPoolAllocator&& dataPoolObs);
 
@@ -50,7 +50,7 @@ private:
 class BufSendAlloc : public StreamAllocInterface
 {
 public:
-	BufSendAlloc(UINT maxDataSize = 4096, UINT sendBuffCount = 35, UINT sendCompBuffCount = 15, UINT sendMsgBuffCount = 10, int compression = 9, int compressionCO = 512);
+	BufSendAlloc(UINT maxDataBuffSize = 4096, UINT sendBuffCount = 35, UINT sendCompBuffCount = 15, UINT sendMsgBuffCount = 10, int compression = 9, int compressionCO = 512);
 	BufSendAlloc(const BufSendAlloc&) = delete;
 	BufSendAlloc(BufSendAlloc&& bufSendAlloc);
 	BufSendAlloc& operator=(BufSendAlloc&& bufSendAlloc);

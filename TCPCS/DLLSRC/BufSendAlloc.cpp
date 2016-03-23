@@ -4,9 +4,9 @@
 #include "CNLIB/MsgStream.h"
 #include "CNLIB/MsgHeader.h"
 
-DataPoolAllocator::DataPoolAllocator(const BufferOptions& bufferOptions, UINT maxDataSize, UINT sendBuffCount)
+DataPoolAllocator::DataPoolAllocator(const BufferOptions& bufferOptions, UINT sendBuffCount)
 	:
-	sendDataPool(maxDataSize, sendBuffCount, bufferOptions.GetPageSize())
+	sendDataPool(bufferOptions.GetMaxDatBuffSize(), sendBuffCount, bufferOptions.GetPageSize())
 {}
 DataPoolAllocator::DataPoolAllocator(DataPoolAllocator&& dataPoolObs)
 	:
@@ -34,9 +34,9 @@ char* DataPoolAllocator::alloc(DWORD)
 }
 
 
-DataCompPoolAllocator::DataCompPoolAllocator(const BufferOptions& bufferOptions, UINT maxDataSize, UINT sendCompBuffCount)
+DataCompPoolAllocator::DataCompPoolAllocator(const BufferOptions& bufferOptions, UINT sendCompBuffCount)
 	:
-	sendDataCompPool(maxDataSize + bufferOptions.GetMaxDatCompSize(), sendCompBuffCount, bufferOptions.GetPageSize())
+	sendDataCompPool(bufferOptions.GetMaxDatBuffSize() + bufferOptions.GetMaxDatCompSize(), sendCompBuffCount, bufferOptions.GetPageSize())
 {}
 DataCompPoolAllocator::DataCompPoolAllocator(DataCompPoolAllocator&& dataPoolObs)
 	:
@@ -95,11 +95,11 @@ char* MsgPoolAllocator::alloc(DWORD)
 }
 
 
-BufSendAlloc::BufSendAlloc(UINT maxDataSize, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, int compression, int compressionCO)
+BufSendAlloc::BufSendAlloc(UINT maxDataBuffSize, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, int compression, int compressionCO)
 	:
-	bufferOptions(maxDataSize, compression, compressionCO),
-	dataPool(bufferOptions, maxDataSize, sendBuffCount),
-	dataCompPool(bufferOptions, maxDataSize, sendCompBuffCount),
+	bufferOptions(maxDataBuffSize, compression, compressionCO),
+	dataPool(bufferOptions, sendBuffCount),
+	dataCompPool(bufferOptions, sendCompBuffCount),
 	msgPool(sendMsgBuffCount)
 {}
 BufSendAlloc::BufSendAlloc(BufSendAlloc&& bufSendAlloc)

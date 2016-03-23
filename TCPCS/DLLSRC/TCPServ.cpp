@@ -296,7 +296,6 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 						continue;
 					}
 
-					//Access violation problem
 					if (!cd.recvHandler.RecvDataCR(cd.pc, bytesTrans, cd.serv.GetBufferOptions(), (void*)key) && cd.DecRefCount())
 						cd.serv.RemoveClient(&cd, cd.state != ClientDataEx::closing);
 				}
@@ -341,7 +340,6 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 				}
 				else if (ol->opType == OpType::recv)
 				{
-					//Access violation problem
 					ClientDataEx* cd = (ClientDataEx*)key;
 					if (cd->DecRefCount())
 						cd->serv.RemoveClient(cd, cd->state != ClientDataEx::closing); //closing flag only set when you initiated close
