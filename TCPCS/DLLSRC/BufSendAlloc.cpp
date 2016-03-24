@@ -159,7 +159,7 @@ MsgStreamWriter BufSendAlloc::CreateOutStream(BuffAllocator* alloc, DWORD nBytes
 	return{ si, nBytes, type, msg };
 }
 
-WSABufSend BufSendAlloc::CreateBuff(const BuffSendInfo& buffSendInfo, DWORD nBytesDecomp, bool msg, USHORT index, BuffAllocator* alloc)
+WSABufSend BufSendAlloc::CreateBuff(const BuffSendInfo& buffSendInfo, DWORD nBytesDecomp, bool msg, short index, BuffAllocator* alloc)
 {
 	DWORD nBytesComp = 0, nBytesSend = nBytesDecomp + sizeof(DataHeader);
 	DWORD maxDataSize = bufferOptions.GetMaxDataSize();

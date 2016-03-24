@@ -4,7 +4,7 @@
 struct DataHeader
 {
 	BufSize size;
-	unsigned short index;
+	short index;
 };
 
 struct MsgHeader : public DataHeader

@@ -447,9 +447,6 @@ bool TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSendSingle* ol, bo
 			++clint.opCount;
 			++opCounter;
 
-			//UINT localOpIndex = ++clint.opIndex;
-			//ol->sendBuff.SetOpIndex(opIndex.GetCount() + localOpIndex);
-
 			long res = clint.pc.SendDataOl(&ol->sendBuff, ol);
 			long err = WSAGetLastError();
 			if ((res == SOCKET_ERROR) && (err != WSA_IO_PENDING))
@@ -502,11 +499,7 @@ bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient,
 			return false;
 		}
 
-		OverlappedSendSingle* ol = nullptr;
-		if (exClient->olPool.IsNotFull())
-			ol = exClient->olPool.construct<OverlappedSendSingle>(sendBuff);
-
-		return SendClientSingle(*exClient, ol);
+		return SendClientSingle(*exClient, exClient->olPool.construct<OverlappedSendSingle>(sendBuff));
 	}
 	else
 	{
@@ -574,11 +567,8 @@ bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients,
 	if (nClients == 1)
 	{
 		ClientDataEx& clint = **clients;
-		OverlappedSendSingle* ol = nullptr;
-		if (clint.olPool.IsNotFull())
-			ol = clint.olPool.construct<OverlappedSendSingle>(sendBuff);
 
-		return SendClientSingle(clint, ol);
+		return SendClientSingle(clint, clint.olPool.construct<OverlappedSendSingle>(sendBuff));
 	}
 	else
 	{
@@ -637,73 +627,6 @@ void TCPServ::SendMsg(const std::tstring& user, short type, short message)
 {
 	SendMsg((ClientDataEx*)FindClient(user), true, type, message);
 }
-
-//void TCPServ::RecvDataCR(DWORD bytesTrans, ClientDataEx& cd)
-//{
-//	char* ptr = cd.buff.head;
-//
-//	//Incase there is already a partial block in buffer
-//	bytesTrans += cd.buff.curBytes;
-//	cd.buff.curBytes = 0;
-//
-//	while (true)
-//	{
-//		DataHeader& header = *(DataHeader*)ptr;
-//		const DWORD bytesToRecv = ((header.size.up.nBytesComp) ? header.size.up.nBytesComp : header.size.up.nBytesDecomp);
-//
-//		//If there is a full data block ready for processing
-//		if (bytesTrans - sizeof(DWORD64) >= bytesToRecv)
-//		{
-//			const DWORD temp = bytesToRecv + sizeof(DWORD64);
-//			cd.buff.curBytes += temp;
-//			bytesTrans -= temp;
-//			ptr += sizeof(DWORD64);
-//
-//			//If data was compressed
-//			if (header.size.up.nBytesComp)
-//			{
-//				BYTE* dest = (BYTE*)(cd.buff.head + sizeof(DWORD64) + GetBufferOptions().GetMaxCompSize());
-//				if (FileMisc::Decompress(dest, GetBufferOptions().GetMaxCompSize(), (const BYTE*)ptr, bytesToRecv) != UINT_MAX)	// Decompress data
-//					(cd.func)(cd.serv, &cd, MsgStreamReader{ (char*)dest, header.size.up.nBytesDecomp - MSG_OFFSET });
-//				else
-//					RemoveClient(&cd, cd.state != ClientDataEx::closing);  //Disconnect client because decompress failing is an unrecoverable error
-//			}
-//			//If data was not compressed
-//			else
-//			{
-//				(cd.func)(cd.serv, &cd, MsgStreamReader{ (char*)ptr, header.size.up.nBytesDecomp - MSG_OFFSET });
-//			}
-//			//If no partial blocks to copy to start of buffer
-//			if (!bytesTrans)
-//			{
-//				cd.buff.buf = cd.buff.head;
-//				cd.buff.curBytes = 0;
-//				break;
-//			}
-//		}
-//		//If the next block of data has not been fully received
-//		else if (bytesToRecv <= GetBufferOptions().GetMaxDataSize())
-//		{
-//			//Concatenate remaining data to buffer
-//			const DWORD bytesReceived = bytesTrans - cd.buff.curBytes;
-//			if (cd.buff.head != ptr)
-//				memcpy(cd.buff.head, ptr, bytesReceived);
-//			cd.buff.curBytes = bytesReceived;
-//			cd.buff.buf = cd.buff.head + bytesReceived;
-//			break;
-//		}
-//		else
-//		{
-//			assert(false);
-//			//error has occured
-//			//To do: have client ask for maximum transfer size
-//			break;
-//		}
-//		ptr += bytesToRecv;
-//	}
-//
-//	cd.pc.ReadDataOl(&cd.buff, &cd.ol);
-//}
 void TCPServ::AcceptConCR(HostSocket::AcceptData& acceptData)
 {
 	sockaddr *localAddr, *remoteAddr;

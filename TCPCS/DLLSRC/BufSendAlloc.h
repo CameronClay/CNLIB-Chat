@@ -63,11 +63,11 @@ public:
 
 	const BufferOptions GetBufferOptions() const override;
 
-	WSABufSend CreateBuff(const BuffSendInfo& buffSendInfo, DWORD nBytesDecomp, bool msg, USHORT index = -1, BuffAllocator* alloc = nullptr);
+	WSABufSend CreateBuff(const BuffSendInfo& buffSendInfo, DWORD nBytesDecomp, bool msg, short index = -1, BuffAllocator* alloc = nullptr);
 	void FreeBuff(WSABufSend& buff);
 private:
 	const BufferOptions bufferOptions;
-	std::atomic<USHORT> bufIndex;
+	std::atomic<short> bufIndex;
 	DataPoolAllocator dataPool;
 	DataCompPoolAllocator dataCompPool;
 	MsgPoolAllocator msgPool;

@@ -77,18 +77,21 @@ bool RecvHandler::RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& 
 
 	curBuff->used = true;
 
-	char* ptr = curBuff->head;
-
 	pc.ReadDataOl(nextBuff, &ol);
 
-	while (bytesTrans)
+	char* ptr = curBuff->head;
+
+	do
 	{
 		DataHeader& header = *(DataHeader*)ptr;
 		
 		auto& it = buffMap.find(header.index); //Find if there is already a partial buffer with matching index
-		if(!(ptr = RecvData(bytesTrans, ptr, it, header, buffOpts, obj)))
+		if (!(ptr = RecvData(bytesTrans, ptr, it, header, buffOpts, obj)))
+		{
+			curBuff->used = false;
 			return false;
-	}
+		}
+	} while (bytesTrans);
 
 	std::swap(curBuff, nextBuff);
 
@@ -97,7 +100,7 @@ bool RecvHandler::RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& 
 	return true;
 }
 
-char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, std::unordered_map<UINT, WSABufRecv>::iterator it, const DataHeader& header, const BufferOptions& buffOpts, void* obj)
+char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, std::unordered_map<short, WSABufRecv>::iterator it, const DataHeader& header, const BufferOptions& buffOpts, void* obj)
 {
 	const DWORD bytesToRecv = ((header.size.up.nBytesComp) ? header.size.up.nBytesComp : header.size.up.nBytesDecomp);
 	WSABufRecv& srcBuff = *curBuff;
@@ -109,14 +112,12 @@ char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, std::unordered_map<UIN
 
 		if (destBuff.curBytes - sizeof(DataHeader) >= bytesToRecv)
 		{
-			bool res = Process(ptr, destBuff, destBuff.curBytes, header, buffOpts, obj);
+			char* newPtr = Process(ptr, destBuff, destBuff.curBytes, header, buffOpts, obj);
 
 			EraseFromMap(it);
+			srcBuff.curBytes = 0;
 
-			if (!res)
-				return nullptr;
-
-			return ptr + bytesToRecv;
+			return newPtr;
 		}
 
 		bytesTrans = 0;
@@ -130,25 +131,32 @@ char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, std::unordered_map<UIN
 		{
 			bytesTrans -= bytesToRecv + sizeof(DataHeader);
 			ptr += sizeof(DataHeader);
-	
-			if (!Process(ptr, srcBuff, bytesToRecv, header, buffOpts, obj))
-				return nullptr;
 
 			srcBuff.curBytes = 0;
-
-			ptr += bytesToRecv;
-			return ptr;
+	
+			return Process(ptr, srcBuff, bytesToRecv, header, buffOpts, obj);
 		}
 
-		//Concatenate remaining data to front of buffer
-		const DWORD bytesReceived = initialBytesTrans - bytesTrans;
-		if (srcBuff.head != ptr)
-			memcpy(srcBuff.head, ptr, bytesReceived);
-		srcBuff.curBytes = bytesReceived;
+		const DWORD bytesReceived = srcBuff.curBytes = initialBytesTrans - bytesTrans;
+		if (bytesToRecv <= buffOpts.GetMaxDatBuffSize())
+		{
+			//Concatenate remaining data to front of buffer
+			if (srcBuff.head != ptr)
+				memcpy(srcBuff.head, ptr, bytesReceived);
 
-		AppendToMap(header.index, srcBuff, buffOpts);
-		//srcBuff.buf = srcBuff.head + bytesReceived;
-		//ptr += bytesToRecv;
+			AppendToMap(header.index, srcBuff, true, buffOpts);
+			//srcBuff.buf = srcBuff.head + bytesReceived;
+			//ptr += bytesToRecv;
+		}
+		else
+		{
+			WSABufRecv buff;
+			char* buffer = alloc<char>(bytesToRecv);
+			memcpy(buffer, ptr, bytesReceived);
+			buff.Initialize(bytesToRecv, buffer, buffer);
+
+			AppendToMap(header.index, buff, false, buffOpts);
+		}
 
 		return ptr;
 	}
@@ -207,22 +215,24 @@ char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, std::unordered_map<UIN
 //	}
 //}
 
-bool RecvHandler::Process(char* ptr, WSABufRecv& buff, DWORD bytesToRecv, const DataHeader& header, const BufferOptions& buffOpts, void* obj)
+char* RecvHandler::Process(char* ptr, WSABufRecv& buff, DWORD bytesToRecv, const DataHeader& header, const BufferOptions& buffOpts, void* obj)
 {
 	//If data was compressed
 	if (header.size.up.nBytesComp)
 	{
 		//Max Data size because it sends decomp if > than maxDataSize
 		if (FileMisc::Decompress((BYTE*)decompData, header.size.up.nBytesDecomp, (const BYTE*)ptr, bytesToRecv) != UINT_MAX)	// Decompress data
+		{
 			observer->OnNotify(decompData, header.size.up.nBytesDecomp, obj);
-		else
-			return nullptr;  //return value of false is an unrecoverable error
+			return ptr + bytesToRecv;
+		}
+
+		return nullptr;  //return nullptr if compression failed
 	}
+
 	//If data was not compressed
-	else
-	{
-		observer->OnNotify(ptr, header.size.up.nBytesDecomp, obj);
-	}
+	observer->OnNotify(ptr, header.size.up.nBytesDecomp, obj);
+	return ptr + bytesToRecv;
 }
 
 DWORD RecvHandler::AppendBuffer(char* ptr, WSABufRecv& srcBuff, WSABufRecv& destBuff, DWORD bytesToRecv, DWORD bytesTrans)
@@ -234,26 +244,31 @@ DWORD RecvHandler::AppendBuffer(char* ptr, WSABufRecv& srcBuff, WSABufRecv& dest
 	return bytesTrans - temp;
 }
 
-void RecvHandler::EraseFromMap(std::unordered_map<UINT, WSABufRecv>::iterator it)
+void RecvHandler::EraseFromMap(std::unordered_map<short, WSABufRecv>::iterator it)
 {
 	buffMap.erase(it);
 	FreeBuffer(it->second);
 }
-void RecvHandler::AppendToMap(UINT index, WSABufRecv& buff, const BufferOptions& buffOpts)
+void RecvHandler::AppendToMap(short index, WSABufRecv& buff, bool newBuff, const BufferOptions& buffOpts)
 {
-	buffMap.emplace(std::make_pair(index, buff));
-	*curBuff = CreateBuffer(buffOpts);
+	buffMap.emplace(index, buff);
+
+	if (newBuff)
+		*curBuff = CreateBuffer(buffOpts);
 }
 
 WSABufRecv RecvHandler::CreateBuffer(const BufferOptions& buffOpts)
 {
 	char* temp = recvBuffPool.alloc<char>();
 	WSABufRecv buff;
-	buff.Initialize(buffOpts.GetMaxDataSize() + sizeof(MsgHeader), temp, temp);
+	buff.Initialize(buffOpts.GetMaxDatBuffSize(), temp, temp);
 	return buff;
 }
 
 void RecvHandler::FreeBuffer(WSABufRecv& buff)
 {
-	recvBuffPool.dealloc(buff.head);
+	if (recvBuffPool.InPool(buff.head))
+		recvBuffPool.dealloc(buff.head);
+	else
+		dealloc(buff.head);
 }
