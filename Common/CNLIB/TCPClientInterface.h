@@ -22,7 +22,7 @@ public:
 	virtual void Shutdown() = 0;
 	virtual void Disconnect() = 0;
 
-	virtual bool RecvServData() = 0;
+	virtual bool RecvServData(DWORD nThreads = 4, DWORD nConcThreads = 2) = 0;
 
 	virtual bool SendServData(const BuffSendInfo& buffSendInfo, DWORD nBytes, BuffAllocator* alloc = nullptr) = 0;
 	virtual bool SendServData(const MsgStreamWriter& streamWriter, BuffAllocator* alloc = nullptr) = 0;
@@ -43,5 +43,5 @@ public:
 	virtual void* GetObj() const = 0;
 };
 
-CAMSNETLIB TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, DWORD nThreads = 1, DWORD nConcThreads = 1, UINT maxSendOps = 5, UINT maxDataBuffSize = 4096, UINT olCount = 10, UINT sendBuffCount = 35, UINT sendCompBuffCount = 15, UINT sendMsgBuffCount = 10, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);
+CAMSNETLIB TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, UINT maxSendOps = 5, UINT maxDataBuffSize = 4096, UINT olCount = 10, UINT sendBuffCount = 35, UINT sendCompBuffCount = 15, UINT sendMsgBuffCount = 10, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);
 CAMSNETLIB void DestroyClient(TCPClientInterface*& client);

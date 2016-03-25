@@ -78,8 +78,6 @@ public:
 	void SetAddrInfo(sockaddr* addr, bool cleanup);
 	const SocketInfo& GetInfo();
 
-	//UINT GetRefCount() const;
-
 	static int GetHostName(LIB_TCHAR* dest, DWORD nameLen);
 	static char* Inet_ntot(in_addr inaddr, LIB_TCHAR* dest);
 	static std::tstring GetLocalIP(bool ipv6 = false);
@@ -88,6 +86,5 @@ public:
 
 private:
 	SOCKET pc = INVALID_SOCKET;
-	//UINT* refCount = nullptr;
 	SocketInfo info;
 };

@@ -5,9 +5,9 @@
 #include "CNLIB/Messages.h"
 #include "CNLIB/MsgHeader.h"
 
-TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads, DWORD nConcThreads, UINT maxPCSendOps, UINT maxDataBuffSize, UINT singleOlPCCount, UINT allOlCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, UINT maxCon, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
+TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, UINT maxPCSendOps, UINT maxDataBuffSize, UINT singleOlPCCount, UINT allOlCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, UINT maxCon, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
 {
-	return construct<TCPServ>(msgHandler, conFunc, disFunc, nThreads, nConcThreads, maxPCSendOps, maxDataBuffSize, singleOlPCCount, allOlCount, sendBuffCount, sendCompBuffCount, sendMsgBuffCount, maxCon, compression, compressionCO, keepAliveInterval, sockOpts, obj);
+	return construct<TCPServ>(msgHandler, conFunc, disFunc, maxPCSendOps, maxDataBuffSize, singleOlPCCount, allOlCount, sendBuffCount, sendCompBuffCount, sendMsgBuffCount, maxCon, compression, compressionCO, keepAliveInterval, sockOpts, obj);
 }
 void DestroyServer(TCPServInterface*& server)
 {
@@ -70,7 +70,7 @@ ClientDataEx::ClientDataEx(TCPServ& serv, Socket pc, sfunc func, UINT arrayIndex
 	arrayIndex(arrayIndex),
 	opCount(1), // for recv
 	olPool(sizeof(OverlappedSendSingle), serv.SingleOlPCCount()),
-	recvHandler(serv.GetBufferOptions(), 2, &serv),
+	recvHandler(serv.GetBufferOptions(), 3, &serv),
 	opsPending(),
 	state(running)
 {
@@ -131,10 +131,6 @@ void ClientDataEx::Cleanup()
 }
 void ClientDataEx::Reset(const Socket& pc, UINT arrayIndex)
 {
-	if (this->pc.GetSocket() != INVALID_SOCKET)
-	{
-		int a = 0;
-	}
 	this->pc = pc;
 	this->arrayIndex = arrayIndex;
 	if (opCount._My_val != 1)
@@ -712,13 +708,13 @@ void TCPServ::CleanupAcceptEx(HostSocket::AcceptData& acceptData)
 }
 
 
-TCPServ::TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads, DWORD nConcThreads, UINT maxPCSendOps, UINT maxDataBuffSize, UINT singleOlPCCount, UINT allOlCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, UINT maxCon, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
+TCPServ::TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, UINT maxPCSendOps, UINT maxDataBuffSize, UINT singleOlPCCount, UINT allOlCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, UINT maxCon, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
 	:
 	ipv4Host(*this),
 	ipv6Host(*this),
 	clients(nullptr),
 	nClients(0),
-	iocp(nThreads, nConcThreads, IOCPThread),
+	iocp(nullptr),
 	function(func),
 	conFunc(conFunc),
 	connectionCondition(nullptr),
@@ -732,7 +728,7 @@ TCPServ::TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads
 	clientPool(sizeof(ClientDataEx), maxCon),
 	sendOlInfoPool(sizeof(OverlappedSendInfo), allOlCount),
 	sendOlPoolAll(sizeof(OverlappedSend) * maxCon, allOlCount),
-	opCounter(),
+	opCounter(0),
 	shutdownEv(NULL),
 	sockOpts(sockOpts),
 	obj(obj)
@@ -809,6 +805,7 @@ TCPServ::~TCPServ()
 {
 	Shutdown();
 
+	//Free up resources used to create client array
 	for (UINT i = 0; i < maxCon; i++)
 		clientPool.destruct(clients[i]);
 
@@ -823,7 +820,7 @@ bool TCPServ::BindHost(HostSocket& host, const LIB_TCHAR* port, bool ipv6, UINT 
 	if (b = host.Bind(port, ipv6))
 	{
 		host.Initalize(nConcAccepts);
-		if (b = host.LinkIOCP(iocp))
+		if (b = host.LinkIOCP(*iocp))
 		{
 			host.QueueAccept();
 			if (b = (WSAGetLastError() == ERROR_IO_PENDING))
@@ -833,12 +830,17 @@ bool TCPServ::BindHost(HostSocket& host, const LIB_TCHAR* port, bool ipv6, UINT 
 
 	return b;
 }
-IPv TCPServ::AllowConnections(const LIB_TCHAR* port, ConCondition connectionCondition, IPv ipv, UINT nConcAccepts)
+IPv TCPServ::AllowConnections(const LIB_TCHAR* port, ConCondition connectionCondition, DWORD nThreads, DWORD nConcThreads, IPv ipv, UINT nConcAccepts)
 {
 	if(ipv4Host.GetListen().IsConnected() || ipv6Host.GetListen().IsConnected())
 		return ipvnone;
 
 	this->connectionCondition = connectionCondition;
+
+	if (iocp)
+		return ipvnone;
+
+	iocp = construct<IOCP>(nThreads, nConcThreads, IOCPThread);
 
 	if (ipv & ipv4 && !BindHost(ipv4Host, port, false, nConcAccepts))
 		ipv = (IPv)(ipv ^ ipv4);
@@ -882,7 +884,7 @@ void TCPServ::AddClient(Socket pc)
 	if (sockOpts.UseOwnBuf())
 		pc.SetTCPSendStack();
 
-	iocp.LinkHandle((HANDLE)pc.GetSocket(), cd);
+	iocp->LinkHandle((HANDLE)pc.GetSocket(), cd);
 
 	cd->recvHandler.StartRead(pc);
 
@@ -895,14 +897,12 @@ void TCPServ::RemoveClient(ClientDataEx* client, bool unexpected)
 
 	RunDisFunc(client, unexpected);
 
+	client->Cleanup();
+
 	EnterCriticalSection(&clientSect);
 
 	const UINT index = client->arrayIndex;
 	ClientDataEx*& data = clients[index];
-
-	//data->pc.Disconnect();
-	data->Cleanup();
-	//clientPool.destruct(data);
 
 	if(index != (nClients - 1))
 	{
@@ -966,10 +966,12 @@ void TCPServ::Shutdown()
 		WaitForSingleObject(shutdownEv, INFINITE);
 
 		//Post a close message to all iocp threads
-		iocp.Post(0, nullptr);
+		iocp->Post(0, nullptr);
 
 		//Wait for iocp threads to close, then cleanup iocp
-		iocp.WaitAndCleanup();
+		iocp->WaitAndCleanup();
+
+		destruct(iocp);
 
 		//Cleanup accept data
 		ipv4Host.Cleanup();
@@ -1068,5 +1070,5 @@ UINT TCPServ::GetMaxPcSendOps() const
 
 IOCP& TCPServ::GetIOCP()
 {
-	return iocp;
+	return *iocp;
 }

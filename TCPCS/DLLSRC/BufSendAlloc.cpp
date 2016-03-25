@@ -125,6 +125,10 @@ BufSendAlloc& BufSendAlloc::operator=(BufSendAlloc&& bufSendAlloc)
 	}
 	return *this;
 }
+BufSendAlloc::~BufSendAlloc()
+{
+	//no need to free objects from pool because they will die when pool dies
+}
 
 BuffSendInfo BufSendAlloc::GetSendBuffer(DWORD hiByteEstimate, CompressionType compType)
 {
@@ -199,7 +203,7 @@ WSABufSend BufSendAlloc::CreateBuff(const BuffSendInfo& buffSendInfo, DWORD nByt
 
 	if (buffSendInfo.compType == SETCOMPRESSION)
 	{
-		DWORD temp = FileMisc::Compress((BYTE*)(buffer + maxDataSize + sizeof(DataHeader)), bufferOptions.GetMaxDatCompSize(), (const BYTE*)(buffer + sizeof(DataHeader)), nBytesDecomp, bufferOptions.GetCompression());
+		DWORD temp = FileMisc::Compress((BYTE*)(buffer + maxDataSize + sizeof(DataHeader)), buffSendInfo.maxCompSize, (const BYTE*)(buffer + sizeof(DataHeader)), nBytesDecomp, bufferOptions.GetCompression());
 		if (nBytesComp < nBytesDecomp)
 		{
 			nBytesComp = temp;

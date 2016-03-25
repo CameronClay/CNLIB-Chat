@@ -16,7 +16,7 @@ class TCPClient : public TCPClientInterface, public KeepAliveHI, public RecvObse
 {
 public:
 	//cfunc is a message handler, compression 1-9
-	TCPClient(cfunc func, dcfunc disconFunc, DWORD nThreads = 4, DWORD nConcThreads = 2, UINT maxSendOps = 5, UINT maxDataBuffSize = 4096, UINT olCount = 10, UINT sendBuffCount = 35, UINT sendCompBuffCount = 15, UINT sendMsgBuffCount = 10, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);
+	TCPClient(cfunc func, dcfunc disconFunc, UINT maxSendOps = 5, UINT maxDataBuffSize = 4096, UINT olCount = 10, UINT sendBuffCount = 35, UINT sendCompBuffCount = 15, UINT sendMsgBuffCount = 10, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);
 	TCPClient(TCPClient&& client);
 	~TCPClient();
 
@@ -38,7 +38,7 @@ public:
 	bool SendServData(const MsgStreamWriter& streamWriter, BuffAllocator* alloc = nullptr) override;
 
 	//Should only be called once to intialy create receving thread
-	bool RecvServData() override;
+	bool RecvServData(DWORD nThreads = 4, DWORD nConcThreads = 2) override;
 
 	//send msg funtions used for requests, replies ect. they do not send data
 	void SendMsg(short type, short message) override;
@@ -82,7 +82,7 @@ private:
 	Socket host; //server/host you are connected to
 	cfunc function; //function/msgHandler
 	dcfunc disconFunc; //function called when disconnect occurs
-	IOCP iocp; //IO completion port
+	IOCP* iocp; //IO completion port
 	const UINT maxSendOps; //max send operations
 	bool unexpectedShutdown; //passed to disconnect handler
 	float keepAliveInterval; //interval at which client KeepAlives server

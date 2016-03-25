@@ -5,9 +5,9 @@
 #include "CNLIB/File.h"
 #include "CNLIB/MsgHeader.h"
 
-TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, DWORD nThreads, DWORD nConcThreads, UINT maxSendOps, UINT maxDataBuffSize, UINT olCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, UINT maxCon, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
+TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, UINT maxSendOps, UINT maxDataBuffSize, UINT olCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, UINT maxCon, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
 {
-	return construct<TCPClient>(msgHandler, disconFunc, nThreads, nConcThreads, maxSendOps, maxDataBuffSize, olCount, sendBuffCount, sendMsgBuffCount, sendMsgBuffCount, maxCon, compression, compressionCO, keepAliveInterval, sockOpts, obj);
+	return construct<TCPClient>(msgHandler, disconFunc, maxSendOps, maxDataBuffSize, olCount, sendBuffCount, sendMsgBuffCount, sendMsgBuffCount, maxCon, compression, compressionCO, keepAliveInterval, sockOpts, obj);
 }
 
 void DestroyClient(TCPClientInterface*& client)
@@ -115,11 +115,11 @@ void TCPClient::FreeSendOl(OverlappedSendSingle* ol)
 		SetEvent(shutdownEv);
 }
 
-TCPClient::TCPClient(cfunc func, dcfunc disconFunc, DWORD nThreads, DWORD nConcThreads, UINT maxSendOps, UINT maxDataBuffSize, UINT olCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, UINT maxCon, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
+TCPClient::TCPClient(cfunc func, dcfunc disconFunc, UINT maxSendOps, UINT maxDataBuffSize, UINT olCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, UINT maxCon, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
 	:
 	function(func),
 	disconFunc(disconFunc),
-	iocp(nThreads, nConcThreads, IOCPThread),
+	iocp(nullptr),
 	maxSendOps(maxSendOps),
 	unexpectedShutdown(true),
 	keepAliveInterval(keepAliveInterval),
@@ -127,6 +127,7 @@ TCPClient::TCPClient(cfunc func, dcfunc disconFunc, DWORD nThreads, DWORD nConcT
 	bufSendAlloc(maxDataBuffSize, sendBuffCount, sendCompBuffCount, sendMsgBuffCount, compression, compressionCO),
 	recvHandler(GetBufferOptions(), 2, this),
 	olPool(sizeof(OverlappedSendSingle), maxSendOps),
+	opCounter(0),
 	shutdownEv(NULL),
 	sockOpts(sockOpts),
 	obj(obj)
@@ -220,10 +221,12 @@ void TCPClient::Shutdown()
 		WaitForSingleObject(shutdownEv, INFINITE);
 
 		//Post a close message to all iocp threads
-		iocp.Post(0, nullptr);
+		iocp->Post(0, nullptr);
 
 		//Wait for iocp threads to close, then cleanup iocp
-		iocp.WaitAndCleanup();
+		iocp->WaitAndCleanup();
+
+		destruct(iocp);
 
 		////Free up client resources
 		//dealloc(recvBuff.head);
@@ -318,17 +321,21 @@ void TCPClient::SendMsg(const std::tstring& name, short type, short message)
 	SendServData(streamWriter);
 }
 
-bool TCPClient::RecvServData()
+bool TCPClient::RecvServData(DWORD nThreads, DWORD nConcThreads)
 {
 	if (!host.IsConnected())
 		return false;
+
+	//client can disconnect and iocp wont be cleaned up due to nonblocking disconnect
+	if (!iocp)
+		iocp = construct<IOCP>(nThreads, nConcThreads, IOCPThread);
 
 	if (sockOpts.NoDelay())
 		host.SetNoDelay(true);
 	if (sockOpts.UseOwnBuf())
 		host.SetTCPSendStack();
 
-	if (!iocp.LinkHandle((HANDLE)host.GetSocket(), this))
+	if (!iocp->LinkHandle((HANDLE)host.GetSocket(), this))
 		return false;
 
 	++opCounter; //For recv

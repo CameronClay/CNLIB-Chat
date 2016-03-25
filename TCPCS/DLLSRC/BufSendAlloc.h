@@ -54,6 +54,7 @@ public:
 	BufSendAlloc(const BufSendAlloc&) = delete;
 	BufSendAlloc(BufSendAlloc&& bufSendAlloc);
 	BufSendAlloc& operator=(BufSendAlloc&& bufSendAlloc);
+	~BufSendAlloc();
 
 	BuffSendInfo GetSendBuffer(DWORD hiByteEstimate, CompressionType compType = BESTFIT) override;
 	BuffSendInfo GetSendBuffer(BuffAllocator* alloc, DWORD nBytes, CompressionType compType = BESTFIT) override;
