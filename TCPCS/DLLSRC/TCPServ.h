@@ -37,6 +37,9 @@ public:
 		std::queue<OverlappedSendSingle*> opsPending;
 
 		bool DecRefCount();
+		void FreePendingOps();
+		void Cleanup();
+		void Reset(const Socket& pc, UINT arrayIndex);
 
 		//int for alignment
 		enum State : int

@@ -115,6 +115,32 @@ bool ClientDataEx::DecRefCount()
 {
 	return --opCount == 0;
 }
+void ClientDataEx::FreePendingOps()
+{
+	//Cleanup all pending operations
+	for (int i = 0, size = opsPending.size(); i < size; i++)
+	{
+		serv.SendDataSingleCR(*this, opsPending.front());
+		opsPending.pop();
+	}
+}
+void ClientDataEx::Cleanup()
+{
+	pc.Disconnect();
+	user.clear();
+}
+void ClientDataEx::Reset(const Socket& pc, UINT arrayIndex)
+{
+	if (this->pc.GetSocket() != INVALID_SOCKET)
+	{
+		int a = 0;
+	}
+	this->pc = pc;
+	this->arrayIndex = arrayIndex;
+	if (opCount._My_val != 1)
+		opCount = 1;
+	state = running;
+}
 
 
 HostSocket::HostSocket(TCPServ& serv)
@@ -710,7 +736,13 @@ TCPServ::TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, DWORD nThreads
 	shutdownEv(NULL),
 	sockOpts(sockOpts),
 	obj(obj)
-{}
+{
+	clients = alloc<ClientDataEx*>(maxCon);
+
+	for (UINT i = 0; i < maxCon; i++)
+		clients[i] = clientPool.construct<ClientDataEx>(*this, INVALID_SOCKET, function, 0);
+
+}
 TCPServ::TCPServ(TCPServ&& serv)
 	:
 	ipv4Host(std::move(serv.ipv4Host)),
@@ -776,6 +808,12 @@ TCPServ& TCPServ::operator=(TCPServ&& serv)
 TCPServ::~TCPServ()
 {
 	Shutdown();
+
+	for (UINT i = 0; i < maxCon; i++)
+		clientPool.destruct(clients[i]);
+
+	//Free up client array
+	dealloc(clients);
 }
 
 bool TCPServ::BindHost(HostSocket& host, const LIB_TCHAR* port, bool ipv6, UINT nConcAccepts)
@@ -799,9 +837,6 @@ IPv TCPServ::AllowConnections(const LIB_TCHAR* port, ConCondition connectionCond
 {
 	if(ipv4Host.GetListen().IsConnected() || ipv6Host.GetListen().IsConnected())
 		return ipvnone;
-
-	if(!clients)
-		clients = alloc<ClientDataEx*>(maxCon);
 
 	this->connectionCondition = connectionCondition;
 
@@ -834,8 +869,11 @@ void TCPServ::AddClient(Socket pc)
 
 	EnterCriticalSection(&clientSect);
 
-	ClientDataEx* cd = clients[nClients] = clientPool.construct<ClientDataEx>(*this, pc, function, nClients);
-	nClients += 1;
+	ClientDataEx* cd = clients[nClients];
+	cd->Reset(pc, nClients++);
+
+	//ClientDataEx* cd = clients[nClients] = clientPool.construct<ClientDataEx>(*this, pc, function, nClients);
+	//nClients += 1;
 
 	LeaveCriticalSection(&clientSect);
 
@@ -853,11 +891,7 @@ void TCPServ::AddClient(Socket pc)
 void TCPServ::RemoveClient(ClientDataEx* client, bool unexpected)
 {
 	//Cleanup all pending operations
-	for (int i = 0, size = client->opsPending.size(); i < size; i++)
-	{
-		SendDataSingleCR(*client, client->opsPending.front());
-		client->opsPending.pop();
-	}
+	client->FreePendingOps();
 
 	RunDisFunc(client, unexpected);
 
@@ -866,12 +900,13 @@ void TCPServ::RemoveClient(ClientDataEx* client, bool unexpected)
 	const UINT index = client->arrayIndex;
 	ClientDataEx*& data = clients[index];
 
-	data->pc.Disconnect();
-	clientPool.destruct(data);
+	//data->pc.Disconnect();
+	data->Cleanup();
+	//clientPool.destruct(data);
 
 	if(index != (nClients - 1))
 	{
-		data = clients[nClients - 1];
+		std::swap(clients[nClients - 1], data);
 		data->arrayIndex = index;
 	}
 
@@ -935,9 +970,6 @@ void TCPServ::Shutdown()
 
 		//Wait for iocp threads to close, then cleanup iocp
 		iocp.WaitAndCleanup();
-
-		//Free up client array
-		dealloc(clients);
 
 		//Cleanup accept data
 		ipv4Host.Cleanup();

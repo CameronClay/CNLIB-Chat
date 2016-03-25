@@ -31,7 +31,7 @@ public:
 	Socket(Socket&& pc);
 	Socket(const LIB_TCHAR* port, bool ipv6 = false);
 	Socket(SOCKET pc);
-	~Socket();
+	//~Socket();
 
 	struct Hash
 	{
@@ -78,7 +78,7 @@ public:
 	void SetAddrInfo(sockaddr* addr, bool cleanup);
 	const SocketInfo& GetInfo();
 
-	UINT GetRefCount() const;
+	//UINT GetRefCount() const;
 
 	static int GetHostName(LIB_TCHAR* dest, DWORD nameLen);
 	static char* Inet_ntot(in_addr inaddr, LIB_TCHAR* dest);
@@ -88,6 +88,6 @@ public:
 
 private:
 	SOCKET pc = INVALID_SOCKET;
-	UINT* refCount = nullptr;
+	//UINT* refCount = nullptr;
 	SocketInfo info;
 };

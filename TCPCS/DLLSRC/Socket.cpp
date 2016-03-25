@@ -27,14 +27,14 @@ Socket::Socket()
 
 Socket::Socket(SOCKET pc)
 	:
-	pc(pc),
-	refCount(pc != INVALID_SOCKET ? construct<UINT>(1) : nullptr)
+	pc(pc)/*,*/
+	//refCount(pc != INVALID_SOCKET ? construct<UINT>(1) : nullptr)
 {}
 
 Socket::Socket(Socket&& pc)
 	:
 	pc(pc.pc),
-	refCount(pc.refCount),
+	//refCount(pc.refCount),
 	info(std::move(pc.info))
 {
 	ZeroMemory(&pc, sizeof(Socket));
@@ -43,18 +43,18 @@ Socket::Socket(Socket&& pc)
 Socket::Socket(const Socket& pc)
 	:
 	pc(pc.pc),
-	refCount(pc.refCount),
+	//refCount(pc.refCount),
 	info(pc.info)
 {
-	if (refCount)
-		++(*refCount);
+	/*if (refCount)
+		++(*refCount);*/
 }
 
-Socket::~Socket()
-{
-	if (refCount && --(*refCount) == 0)
-		Disconnect();
-}
+//Socket::~Socket()
+//{
+//	/*if (refCount && --(*refCount) == 0)*/
+//		Disconnect();
+//}
 
 Socket& Socket::operator= (const Socket& pc)
 {
@@ -63,9 +63,9 @@ Socket& Socket::operator= (const Socket& pc)
 		this->~Socket();
 		this->pc = pc.pc;
 		this->info = pc.info;
-		refCount = pc.refCount;
-		if (refCount)
-			++(*refCount);
+		/*refCount = pc.refCount;*/
+		/*if (refCount)
+			++(*refCount);*/
 	}
 	return *this;
 }
@@ -76,7 +76,7 @@ Socket& Socket::operator= (Socket&& pc)
 		this->~Socket();
 		this->pc = pc.pc;
 		this->info = std::move(pc.info);
-		refCount = pc.refCount;
+		//refCount = pc.refCount;
 		ZeroMemory(&pc, sizeof(Socket));
 	}
 	return *this;
@@ -103,7 +103,7 @@ void Socket::SetSocket(SOCKET pc)
 {
 	if (!IsConnected())
 	{
-		refCount = (pc != INVALID_SOCKET) ? construct<UINT>(1) : nullptr;
+		/*refCount = (pc != INVALID_SOCKET) ? construct<UINT>(1) : nullptr;*/
 		this->pc = pc;
 	}
 	else
@@ -224,8 +224,9 @@ void Socket::Disconnect()
 		Shutdown();
 		closesocket(pc);
 		info.Cleanup();
+		pc = INVALID_SOCKET;
 	}
-	destruct(refCount);
+	/*destruct(refCount);*/
 }
 
 
@@ -274,7 +275,8 @@ long Socket::SendDataOl(WSABUF* buffer, OVERLAPPED* ol, DWORD flags, UINT buffer
 
 bool Socket::IsConnected() const
 {
-	return refCount;
+	/*return refCount;*/
+	return pc != INVALID_SOCKET;
 }
 
 bool Socket::SetTCPRecvStack(int size)
@@ -314,10 +316,10 @@ void Socket::SetAddrInfo(sockaddr* addr, bool cleanup)
 	info.SetAddr(addr, cleanup);
 }
 
-UINT Socket::GetRefCount() const
-{
-	return refCount ? *refCount : 0;
-}
+//UINT Socket::GetRefCount() const
+//{
+//	return refCount ? *refCount : 0;
+//}
 
 std::tstring Socket::GetLocalIP(bool ipv6)
 {
