@@ -44,7 +44,7 @@ public:
 		ClientData** const clients;
 	};
 
-	virtual IPv AllowConnections(const LIB_TCHAR* port, ConCondition connectionCondition, DWORD nThreads = 4, DWORD nConcThreads = 2, IPv ipv = ipboth, UINT nConcAccepts = 1) = 0;
+	virtual IPv AllowConnections(const LIB_TCHAR* port, ConCondition connectionCondition, DWORD nThreads = 4, DWORD nConcThreads = 2, IPv ipv = ipv4, UINT nConcAccepts = 4) = 0;
 
 	virtual bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientData* exClient, bool single, BuffAllocator* alloc = nullptr) = 0;
 	virtual bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientData** clients, UINT nClients, BuffAllocator* alloc = nullptr) = 0;

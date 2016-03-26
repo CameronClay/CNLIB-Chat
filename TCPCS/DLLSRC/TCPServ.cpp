@@ -200,10 +200,8 @@ bool HostSocket::QueueAccept()
 }
 bool HostSocket::LinkIOCP(IOCP& iocp)
 {
-	bool b = true;
-	for (UINT i = 0; i < nConcAccepts; i++)
-		b &= iocp.LinkHandle((HANDLE)listen.GetSocket(), &acceptData[i]);
-	return b;
+	//for (UINT i = 0; i < nConcAccepts; i++)
+	return iocp.LinkHandle((HANDLE)listen.GetSocket(), this);
 }
 void HostSocket::Disconnect()
 {
@@ -225,7 +223,7 @@ HostSocket::AcceptData::AcceptData()
 	hostSocket(nullptr),
 	accept(NULL),
 	buffer(nullptr),
-	ol(OpType::accept)
+	ol(this)
 {}
 HostSocket::AcceptData::AcceptData(AcceptData&& host)
 	:
@@ -253,6 +251,7 @@ HostSocket::AcceptData& HostSocket::AcceptData::operator=(AcceptData&& host)
 void HostSocket::AcceptData::Initalize(HostSocket* hostSocket)
 {
 	ol.opType = OpType::accept;
+	ol.acceptData = this;
 	ol.Reset();
 
 	this->hostSocket = hostSocket;
@@ -281,6 +280,10 @@ void HostSocket::AcceptData::AcceptConCR()
 SOCKET HostSocket::AcceptData::GetAccept() const
 {
 	return accept;
+}
+TCPServ::OverlappedAccept* HostSocket::AcceptData::GetOl()
+{
+	return &ol;
 }
 HostSocket* HostSocket::AcceptData::GetHostSocket() const
 {
@@ -336,10 +339,7 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 				break;
 				case OpType::accept:
 				{
-					HostSocket::AcceptData& acceptData = *(HostSocket::AcceptData*)key;
-					acceptData.AcceptConCR();
-					/*HostSocket& hostSocket = *(HostSocket*)key;
-					hostSocket.serv.AcceptConCR(hostSocket, ol);*/
+					((TCPServ::OverlappedAccept*)ol)->acceptData->AcceptConCR();
 				}
 				break;
 			}
@@ -368,8 +368,9 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 				}
 				else
 				{
-					HostSocket::AcceptData& acceptData = *(HostSocket::AcceptData*)key;
-					acceptData.GetHostSocket()->GetServ().CleanupAcceptEx(acceptData);
+					HostSocket& hostSocket = *(HostSocket*)key;
+					HostSocket::AcceptData::OverlappedAccept* olAccept = (HostSocket::AcceptData::OverlappedAccept*)ol;
+					hostSocket.GetServ().CleanupAcceptEx(*(olAccept->acceptData));
 					/*HostSocket& hostSocket = *(HostSocket*)key;
 					hostSocket.serv.CleanupAcceptEx(hostSocket);*/
 				}

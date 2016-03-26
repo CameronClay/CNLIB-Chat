@@ -66,13 +66,7 @@
     <ClInclude Include="..\Common\CNLIB\IOCP.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\OverlappedExt.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\CNLIB\MemPool.h">
-      <Filter>Header Files\CNLIB</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\KeepAlive.h">
       <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
     <ClInclude Include="StdAfx.h">
@@ -96,9 +90,6 @@
     <ClInclude Include="DLLSRC\RecvObserverI.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\BuffAllocator.h">
-      <Filter>Header Files\CNLIB</Filter>
-    </ClInclude>
     <ClInclude Include="DLLSRC\WSABufExt.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -109,6 +100,15 @@
       <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\CNLIB\BuffSendInfo.h">
+      <Filter>Header Files\CNLIB</Filter>
+    </ClInclude>
+    <ClInclude Include="DLLSRC\OverlappedExt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DLLSRC\KeepAlive.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CNLIB\BuffAllocator.h">
       <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
   </ItemGroup>

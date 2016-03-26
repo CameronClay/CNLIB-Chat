@@ -4,9 +4,9 @@
 #include "CNLIB/TCPServInterface.h"
 #include "CNLIB/IOCP.h"
 #include "CNLIB/MemPool.h"
-#include "CNLIB/KeepAlive.h"
+#include "KeepAlive.h"
 #include "WSABufExt.h"
-#include "CNLIB/OverlappedExt.h"
+#include "OverlappedExt.h"
 #include "CNLIB/HeapAlloc.h"
 #include "BufSendAlloc.h"
 #include "RecvHandler.h"
@@ -54,6 +54,17 @@ public:
 		class AcceptData
 		{
 		public:
+			struct OverlappedAccept : OverlappedExt
+			{
+				OverlappedAccept(AcceptData* acceptData)
+					:
+					OverlappedExt(OpType::accept),
+					acceptData(nullptr)
+				{}
+
+				AcceptData* acceptData;
+			};
+
 			AcceptData();
 			AcceptData(AcceptData&& host);
 			AcceptData& operator=(AcceptData&& data);
@@ -67,12 +78,13 @@ public:
 
 			SOCKET GetAccept() const;
 			HostSocket* GetHostSocket() const;
+			OverlappedAccept* GetOl();
 			void GetAcceptExAddrs(sockaddr** local, int* localLen, sockaddr** remote, int* remoteLen);
 		private:
 			HostSocket* hostSocket;
 			SOCKET accept;
 			char* buffer;
-			OverlappedExt ol;
+			OverlappedAccept ol;
 		};
 
 		HostSocket(TCPServ& serv);
@@ -100,12 +112,12 @@ public:
 		UINT nConcAccepts;
 	};
 
-	typedef HostSocket::AcceptData AcceptData;
+	typedef HostSocket::AcceptData::OverlappedAccept OverlappedAccept;
 
 	TCPServ& operator=(TCPServ&& serv);
 
 	//Allows connections to the server; should only be called once
-	IPv AllowConnections(const LIB_TCHAR* port, ConCondition connectionCondition, DWORD nThreads = 4, DWORD nConcThreads = 2, IPv ipv = ipboth, UINT nConcAccepts = 1) override;
+	IPv AllowConnections(const LIB_TCHAR* port, ConCondition connectionCondition, DWORD nThreads = 4, DWORD nConcThreads = 2, IPv ipv = ipv4, UINT nConcAccepts = 4) override;
 
 	BuffSendInfo GetSendBuffer(DWORD hiByteEstimate, CompressionType compType = BESTFIT) override;
 	BuffSendInfo GetSendBuffer(BuffAllocator* alloc, DWORD nBytes, CompressionType compType = BESTFIT) override;

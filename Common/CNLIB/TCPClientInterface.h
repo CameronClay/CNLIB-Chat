@@ -2,7 +2,6 @@
 
 #pragma once
 #include "Typedefs.h"
-#include "KeepAlive.h"
 #include "CompressionTypes.h"
 #include "Socket.h"
 #include "MsgStream.h"

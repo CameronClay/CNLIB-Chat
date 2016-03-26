@@ -1,5 +1,5 @@
 #include "StdAfx.h"
-#include "CNLIB/KeepAlive.h"
+#include "KeepAlive.h"
 #include "CNLIB/HeapAlloc.h"
 
 DWORD CALLBACK KeepAliveThread(LPVOID info)

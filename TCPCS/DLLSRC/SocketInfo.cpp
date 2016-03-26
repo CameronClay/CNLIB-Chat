@@ -4,7 +4,8 @@
 
 SocketInfo::SocketInfo()
 	:
-	addr()
+	addr(),
+	cleanup(true)
 {}
 
 SocketInfo::SocketInfo(const SocketInfo& socketInfo)
@@ -44,6 +45,7 @@ SocketInfo& SocketInfo::operator=(SocketInfo&& rhs)
 
 void SocketInfo::SetAddr(sockaddr* addr, bool dealloc)
 {
+	cleanup = dealloc;
 	if (!this->addr.addr)
 		this->addr.addr = addr;
 }
