@@ -1,5 +1,6 @@
 #pragma once
 #include "CNLIB\TCPServInterface.h"
+#include "CNLIB\BuffAllocator.h"
 #include "WhiteboardClientData.h"
 #include "Palette.h"
 
@@ -56,6 +57,7 @@ private:
 	TCPServInterface &serv;
 	Palette palette;
 	std::tstring creator;
+	BuffHeapAllocator allocator;
 
 	const float interval;
 	HANDLE timer, thread;

@@ -11,6 +11,7 @@
 #include "BufSendAlloc.h"
 #include "RecvHandler.h"
 #include "RecvObserverI.h"
+#include "CNLIB/CritLock.h"
 
 class TCPServ : public TCPServInterface, public KeepAliveHI, public RecvObserverI
 {
@@ -34,6 +35,7 @@ public:
 		std::atomic<UINT> opCount;
 		MemPoolSync<HeapAllocator> olPool;
 		RecvHandler recvHandler;
+		CritLock lock;
 		std::queue<OverlappedSendSingle*> opsPending;
 
 		bool DecRefCount();
@@ -208,7 +210,7 @@ private:
 	ConFunc conFunc; //function called when connect
 	ConCondition connectionCondition; //condition for accepting connections
 	DisconFunc disFunc; //function called when disconnect occurs
-	CRITICAL_SECTION clientSect; //used for synchonization
+	CritLock clientLock; //used for synchronization
 	const UINT singleOlPCCount, maxPCSendOps; //number of preallocated per client ol structs, max per client concurent send operations
 	const UINT maxCon; //max clients
 	float keepAliveInterval; //interval at which server keepalives clients

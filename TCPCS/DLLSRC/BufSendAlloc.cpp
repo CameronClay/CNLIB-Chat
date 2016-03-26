@@ -165,11 +165,10 @@ MsgStreamWriter BufSendAlloc::CreateOutStream(BuffAllocator* alloc, DWORD nBytes
 
 WSABufSend BufSendAlloc::CreateBuff(const BuffSendInfo& buffSendInfo, DWORD nBytesDecomp, bool msg, short index, BuffAllocator* alloc)
 {
+	WSABufSend buf;
 	DWORD nBytesComp = 0, nBytesSend = nBytesDecomp + sizeof(DataHeader);
 	DWORD maxDataSize = bufferOptions.GetMaxDataSize();
-	WSABufSend buf;
-	char* buffer = buffSendInfo.buffer;
-	char* dest;
+	char *buffer = buffSendInfo.buffer, *dest = nullptr;
 
 	if (msg)
 	{
@@ -212,17 +211,27 @@ WSABufSend BufSendAlloc::CreateBuff(const BuffSendInfo& buffSendInfo, DWORD nByt
 		}
 	}
 
+
 	DataHeader& header = *(DataHeader*)dest;
 	header.size.up.nBytesComp = nBytesComp;
 	header.size.up.nBytesDecomp = nBytesDecomp;
 	header.index = (index == -1) ? ++bufIndex : index;
 
 	buf.Initialize(nBytesSend, dest, buffer);
+	buf.curBytes = buf.totalLen = buf.len;
 	return buf;
 }
+
+WSABufSend BufSendAlloc::CreateBuff(WSABufSend buff)
+{
+	buff.buf += buff.curBytes += buff.len = min(buff.totalLen - buff.curBytes, bufferOptions.GetMaxDataSize());
+	return buff;
+}
+
 void BufSendAlloc::FreeBuff(WSABufSend& buff)
 {
-	buff.alloc->dealloc(buff.head, buff.len);
+	if (buff.curBytes == buff.totalLen)
+		buff.alloc->dealloc(buff.head, buff.len);
 }
 
 const BufferOptions BufSendAlloc::GetBufferOptions() const

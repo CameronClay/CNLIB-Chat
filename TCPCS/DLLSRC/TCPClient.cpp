@@ -111,6 +111,14 @@ void TCPClient::FreeSendOl(OverlappedSendSingle* ol)
 	bufSendAlloc.FreeBuff(ol->sendBuff);
 	olPool.dealloc(ol);
 
+	//If there are per client operations pending then attempt to complete them
+	if (!opsPending.empty())
+	{
+		queueLock.Lock();
+		SendServData(opsPending.front(), true);
+		queueLock.Unlock();
+	}
+
 	if (--opCounter == 0)
 		SetEvent(shutdownEv);
 }
@@ -149,6 +157,7 @@ TCPClient::TCPClient(TCPClient&& client)
 	recvHandler(std::move(client.recvHandler)),
 	olPool(std::move(client.olPool)),
 	opsPending(std::move(client.opsPending)),
+	queueLock(std::move(client.queueLock)),
 	opCounter(client.opCounter.load()),
 	shutdownEv(client.shutdownEv),
 	sockOpts(client.sockOpts),
@@ -175,6 +184,7 @@ TCPClient& TCPClient::operator=(TCPClient&& client)
 		recvHandler = std::move(client.recvHandler);
 		olPool = std::move(client.olPool);
 		opsPending = std::move(client.opsPending);
+		queueLock = std::move(client.queueLock);
 		opCounter = client.opCounter.load();
 		shutdownEv = client.shutdownEv;
 		sockOpts = client.sockOpts;
@@ -271,7 +281,32 @@ bool TCPClient::SendServData(const MsgStreamWriter& streamWriter, BuffAllocator*
 
 bool TCPClient::SendServData(const BuffSendInfo& buffSendInfo, DWORD nBytes, bool msg, BuffAllocator* alloc)
 {
-	return SendServData(olPool.construct<OverlappedSendSingle>(bufSendAlloc.CreateBuff(buffSendInfo, nBytes, msg, -1, alloc)), false);
+	int i = 0;
+	bool res = true;
+	WSABufSend buff = bufSendAlloc.CreateBuff(buffSendInfo, nBytes, msg, -1, alloc);
+	if (res = SendServData(buff) && (nBytes > bufSendAlloc.GetBufferOptions().GetMaxDataSize()))
+	{
+		do
+		{
+			buff = bufSendAlloc.CreateBuff(buff);
+			if (buff.curBytes = buff.totalLen)
+				return true;
+
+			res = SendServData(bufSendAlloc.CreateBuff(buff));
+			//++i;
+		} while (res/* && (i < 2)*/);
+	}
+
+	//if (res)
+	//	bufSendAlloc.QueuePush(buff);
+
+	return res;
+
+	//return SendServData(bufSendAlloc.CreateBuff(buffSendInfo, nBytes, msg, -1, alloc), false);
+}
+bool TCPClient::SendServData(const WSABufSend& sendBuff, bool popQueue)
+{
+	return SendServData(olPool.construct<OverlappedSendSingle>(sendBuff), false);
 }
 bool TCPClient::SendServData(OverlappedSendSingle* ol, bool popQueue)
 {
@@ -292,10 +327,15 @@ bool TCPClient::SendServData(OverlappedSendSingle* ol, bool popQueue)
 				opsPending.pop();
 			}
 		}
-		else
+		else if (!popQueue)
 		{
+			//okay to lock and unlock here
+			queueLock.Lock();
+
 			//queue the send for later
 			opsPending.emplace(ol);
+
+			queueLock.Unlock();
 		}
 	}
 	else

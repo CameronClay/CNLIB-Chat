@@ -11,6 +11,7 @@
 #include "BufSendAlloc.h"
 #include "RecvHandler.h"
 #include "RecvObserverI.h"
+#include "CNLIB/CritLock.h"
 
 class TCPClient : public TCPClientInterface, public KeepAliveHI, public RecvObserverI
 {
@@ -77,6 +78,7 @@ private:
 	void OnNotify(char* data, DWORD nBytes, void*) override;
 
 	bool SendServData(const BuffSendInfo& buffSendInfo, DWORD nBytes, bool msg, BuffAllocator* alloc = nullptr);
+	bool SendServData(const WSABufSend& sendBuff, bool popQueue = false);
 	bool SendServData(OverlappedSendSingle* ol, bool popQueue = false);
 
 	Socket host; //server/host you are connected to
@@ -91,6 +93,7 @@ private:
 	RecvHandler recvHandler;
 	MemPoolSync<HeapAllocator> olPool; //Used to help speed up allocation of overlapped structures
 	std::queue<OverlappedSendSingle*> opsPending; //Used to store pending ops
+	CritLock queueLock;
 	std::atomic<UINT> opCounter; //Used to keep track of number of asynchronous operations
 	HANDLE shutdownEv; //Set when opCounter reaches 0, to notify shutdown it is okay to close iocp
 	SocketOptions sockOpts;

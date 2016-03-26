@@ -53,7 +53,8 @@ struct WSABufSend : public WSABufExt
 	WSABufSend()
 		:
 		WSABufExt(),
-		alloc(nullptr)
+		alloc(nullptr),
+		totalLen(0)
 	{}
 
 	WSABufSend& operator=(const WSABufSend& b)
@@ -65,10 +66,11 @@ struct WSABufSend : public WSABufExt
 			head = b.head;
 			curBytes = b.curBytes;
 			alloc = b.alloc;
+			totalLen = b.totalLen;
 		}
 		return *this;
 	}
-
+	DWORD totalLen;
 	BuffAllocator* alloc;
 };
 

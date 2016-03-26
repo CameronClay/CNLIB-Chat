@@ -71,5 +71,7 @@ private:
 	HANDLE timer, thread;
 	DWORD threadID;
 
+	BuffHeapAllocator allocator;
+
 	Palette& palette;
 };

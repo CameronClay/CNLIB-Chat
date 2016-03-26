@@ -65,6 +65,7 @@ public:
 	const BufferOptions GetBufferOptions() const override;
 
 	WSABufSend CreateBuff(const BuffSendInfo& buffSendInfo, DWORD nBytesDecomp, bool msg, short index = -1, BuffAllocator* alloc = nullptr);
+	WSABufSend CreateBuff(WSABufSend buff);
 	void FreeBuff(WSABufSend& buff);
 private:
 	const BufferOptions bufferOptions;
@@ -72,4 +73,5 @@ private:
 	DataPoolAllocator dataPool;
 	DataCompPoolAllocator dataCompPool;
 	MsgPoolAllocator msgPool;
+	CRITICAL_SECTION queueSect;
 };

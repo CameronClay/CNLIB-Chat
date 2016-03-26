@@ -108,8 +108,7 @@ ClientDataEx& TCPServ::ClientDataEx::operator=(ClientDataEx&& data)
 
 	return *this;
 }
-ClientDataEx::~ClientDataEx()
-{}
+ClientDataEx::~ClientDataEx(){}
 
 bool ClientDataEx::DecRefCount()
 {
@@ -118,10 +117,17 @@ bool ClientDataEx::DecRefCount()
 void ClientDataEx::FreePendingOps()
 {
 	//Cleanup all pending operations
-	for (int i = 0, size = opsPending.size(); i < size; i++)
+	if (!opsPending.empty())
 	{
-		serv.SendDataSingleCR(*this, opsPending.front());
-		opsPending.pop();
+		lock.Lock();
+
+		for (int i = 0, size = opsPending.size(); i < size; i++)
+		{
+			serv.SendDataSingleCR(*this, opsPending.front());
+			opsPending.pop();
+		}
+
+		lock.Unlock();
 	}
 }
 void ClientDataEx::Cleanup()
@@ -454,11 +460,53 @@ bool TCPServ::SendClientData(const MsgStreamWriter& streamWriter, std::vector<Cl
 
 bool TCPServ::SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientDataEx* exClient, bool single, bool msg, BuffAllocator* alloc)
 {
-	return SendClientData(bufSendAlloc.CreateBuff(buffSendInfo, nBytes, msg, -1, alloc), exClient, single);
+	int i = 0;
+	bool res = true;
+	WSABufSend buff = bufSendAlloc.CreateBuff(buffSendInfo, nBytes, msg, -1, alloc);
+	if (res = SendClientData(buff, exClient, single) && (nBytes > bufSendAlloc.GetBufferOptions().GetMaxDataSize()))
+	{
+		do
+		{
+			buff = bufSendAlloc.CreateBuff(buff);
+			if (buff.curBytes = buff.totalLen)
+				return true;
+
+			res = SendClientData(bufSendAlloc.CreateBuff(buff), exClient, single);
+			//++i;
+		} while (res/* && (i < 2)*/);
+	}
+
+	//if (res)
+	//	bufSendAlloc.QueuePush(buff);
+
+	return res;
+	
+	///*return SendClientData(bufSendAlloc.CreateBuff(buffSendInfo, nBytes, msg, -1, alloc), exClient, single);*/
 }
 bool TCPServ::SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientDataEx** clients, UINT nClients, bool msg, BuffAllocator* alloc)
 {
-	return SendClientData(bufSendAlloc.CreateBuff(buffSendInfo, nBytes, msg, -1, alloc), clients, nClients);
+	//int i = 0;
+	bool res = true;
+	WSABufSend buff = bufSendAlloc.CreateBuff(buffSendInfo, nBytes, msg, -1, alloc);
+	if (res = SendClientData(buff, clients, nClients) && (nBytes > bufSendAlloc.GetBufferOptions().GetMaxDataSize()))
+	{
+		do
+		{
+			buff = bufSendAlloc.CreateBuff(buff);
+			if (buff.curBytes = buff.totalLen)
+				return true;
+
+			res = SendClientData(bufSendAlloc.CreateBuff(buff), clients, nClients);
+			//++i;
+		} while (res/* && (i < 2)*/);
+	}
+
+	//if (res)
+	//	bufSendAlloc.QueuePush(buff);
+
+	return res;
+
+	//return SendClientData(bufSendAlloc.CreateBuff(buffSendInfo, nBytes, msg, -1, alloc), clients, nClients);
 }
 
 bool TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSendSingle* ol, bool popQueue)
@@ -489,10 +537,16 @@ bool TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSendSingle* ol, bo
 			}
 			else if (popQueue)
 			{
+				//okay to lock and unlock here
+				clint.lock.Lock();
+
+				//queue the send for later
 				clint.opsPending.pop();
+
+				clint.lock.Unlock();
 			}
 		}
-		else
+		else if (!popQueue)
 		{
 			//queue the send for later
 			clint.opsPending.emplace(ol);
@@ -692,7 +746,11 @@ void TCPServ::SendDataSingleCR(ClientDataEx& cd, OverlappedSendSingle* ol)
 
 	//If there are per client operations pending then attempt to complete them
 	if (!cd.opsPending.empty() && cd.state != cd.closing)
+	{
+		cd.lock.Lock();
 		SendClientSingle(cd, cd.opsPending.front(), true);
+		cd.lock.Unlock();
+	}
 
 	if (cd.DecRefCount())
 		RemoveClient(&cd, cd.state != ClientDataEx::closing);
@@ -751,7 +809,7 @@ TCPServ::TCPServ(TCPServ&& serv)
 	conFunc(serv.conFunc),
 	connectionCondition(serv.connectionCondition),
 	disFunc(serv.disFunc),
-	clientSect(serv.clientSect),
+	clientLock(std::move(serv.clientLock)),
 	singleOlPCCount(serv.singleOlPCCount),
 	maxPCSendOps(serv.maxPCSendOps),
 	maxCon(serv.maxCon),
@@ -783,7 +841,7 @@ TCPServ& TCPServ::operator=(TCPServ&& serv)
 		const_cast<std::remove_const_t<ConFunc>&>(conFunc) = serv.conFunc;
 		connectionCondition = serv.connectionCondition;
 		const_cast<std::remove_const_t<DisconFunc>&>(disFunc) = serv.disFunc;
-		clientSect = serv.clientSect;
+		clientLock = std::move(serv.clientLock);
 		const_cast<UINT&>(singleOlPCCount) = serv.singleOlPCCount;
 		const_cast<UINT&>(maxPCSendOps) = serv.maxPCSendOps;
 		const_cast<UINT&>(maxCon) = serv.maxCon;
@@ -859,8 +917,6 @@ IPv TCPServ::AllowConnections(const LIB_TCHAR* port, ConCondition connectionCond
 
 	keepAliveHandler->SetKeepAliveTimer(keepAliveInterval);
 
-	InitializeCriticalSection(&clientSect);
-
 	shutdownEv = CreateEvent(NULL, TRUE, FALSE, NULL);
 
 	return ipv;
@@ -870,7 +926,7 @@ void TCPServ::AddClient(Socket pc)
 {
 	++opCounter; //For recv
 
-	EnterCriticalSection(&clientSect);
+	clientLock.Lock();
 
 	ClientDataEx* cd = clients[nClients];
 	cd->Reset(pc, nClients++);
@@ -878,7 +934,7 @@ void TCPServ::AddClient(Socket pc)
 	//ClientDataEx* cd = clients[nClients] = clientPool.construct<ClientDataEx>(*this, pc, function, nClients);
 	//nClients += 1;
 
-	LeaveCriticalSection(&clientSect);
+	clientLock.Unlock();
 
 	if (sockOpts.NoDelay())
 		pc.SetNoDelay(true);
@@ -900,7 +956,7 @@ void TCPServ::RemoveClient(ClientDataEx* client, bool unexpected)
 
 	client->Cleanup();
 
-	EnterCriticalSection(&clientSect);
+	clientLock.Lock();
 
 	const UINT index = client->arrayIndex;
 	ClientDataEx*& data = clients[index];
@@ -913,7 +969,7 @@ void TCPServ::RemoveClient(ClientDataEx* client, bool unexpected)
 
 	nClients -= 1;
 
-	LeaveCriticalSection(&clientSect);
+	clientLock.Unlock();
 
 	if (--opCounter == 0)
 		SetEvent(shutdownEv);
@@ -977,8 +1033,6 @@ void TCPServ::Shutdown()
 		//Cleanup accept data
 		ipv4Host.Cleanup();
 		ipv6Host.Cleanup();
-
-		DeleteCriticalSection(&clientSect);
 
 		CloseHandle(shutdownEv);
 		shutdownEv = NULL;
