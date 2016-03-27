@@ -352,6 +352,16 @@ public:
 			dealloc(p);
 		}
 	}
+
+	void lock()
+	{
+		EnterCriticalSection(&sect);
+	}
+
+	void unlock()
+	{
+		LeaveCriticalSection(&sect);
+	}
 private:
 	CRITICAL_SECTION sect;
 };

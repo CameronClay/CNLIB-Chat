@@ -704,6 +704,8 @@ void TCPServ::SendMsg(const std::tstring& user, short type, short message)
 {
 	SendMsg((ClientDataEx*)FindClient(user), true, type, message);
 }
+
+
 void TCPServ::AcceptConCR(HostSocket::AcceptData& acceptData)
 {
 	sockaddr *localAddr, *remoteAddr;
