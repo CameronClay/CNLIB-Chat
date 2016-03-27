@@ -13,7 +13,7 @@ BuffSendInfo::BuffSendInfo(CompressionType compType, DWORD nBytesDecomp, int com
 	:
 	buffer(nullptr),
 	compType(CalcCompType(compType, nBytesDecomp, compressionCO)),
-	maxCompSize((compType == SETCOMPRESSION) ? maxCompSize ? maxCompSize : FileMisc::GetCompressedBufferSize(nBytesDecomp) : 0)
+	maxCompSize((this->compType == SETCOMPRESSION) ? (maxCompSize ? maxCompSize : FileMisc::GetCompressedBufferSize(nBytesDecomp)) : 0)
 {}
 
 BuffSendInfo::BuffSendInfo(char* buffer, CompressionType compType, DWORD nBytesDecomp, int compressionCO, DWORD maxCompSize)

@@ -113,6 +113,14 @@ void D3D::Draw(const RectU &rect, const BYTE *pixelData, const Palette& palette)
 void D3D::BeginFrame()
 {
 	HRESULT hr = pBackBuffer->LockRect(&lockRect, nullptr, NULL);
+	if (hr == D3DERR_WASSTILLDRAWING)
+	{
+		int a = 0;
+	}
+	else if (hr == D3DERR_INVALIDCALL)
+	{
+		int a = 0;
+	}
 	assert(SUCCEEDED(hr));
 }
 void D3D::EndFrame()

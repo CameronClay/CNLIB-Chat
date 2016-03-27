@@ -884,8 +884,7 @@ bool TCPServ::BindHost(HostSocket& host, const LIB_TCHAR* port, bool ipv6, UINT 
 		if (b = host.LinkIOCP(*iocp))
 		{
 			host.QueueAccept();
-			if (b = (WSAGetLastError() == ERROR_IO_PENDING))
-				opCounter += nConcAccepts;
+			opCounter += nConcAccepts;
 		}
 	}
 

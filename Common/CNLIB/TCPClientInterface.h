@@ -21,7 +21,7 @@ public:
 	virtual void Shutdown() = 0;
 	virtual void Disconnect() = 0;
 
-	virtual bool RecvServData(DWORD nThreads = 4, DWORD nConcThreads = 2) = 0;
+	virtual bool RecvServData(DWORD nThreads = 1, DWORD nConcThreads = 1) = 0;
 
 	virtual bool SendServData(const BuffSendInfo& buffSendInfo, DWORD nBytes, BuffAllocator* alloc = nullptr) = 0;
 	virtual bool SendServData(const MsgStreamWriter& streamWriter, BuffAllocator* alloc = nullptr) = 0;
