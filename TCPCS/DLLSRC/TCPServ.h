@@ -132,13 +132,13 @@ public:
 	//Used to send data to clients
 	//addr parameter functions as both the excluded address, and as a single address, 
 	//depending on the value of single
-	bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientData* exClient, bool single, BuffAllocator* alloc = nullptr) override;
-	bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientData** clients, UINT nClients, BuffAllocator* alloc = nullptr) override;
-	bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, std::vector<ClientData*>& pcs, BuffAllocator* alloc = nullptr) override;
+	bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientData* exClient, bool single) override;
+	bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientData** clients, UINT nClients) override;
+	bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, std::vector<ClientData*>& pcs) override;
 
-	bool SendClientData(const MsgStreamWriter& streamWriter, ClientData* exClient, bool single, BuffAllocator* alloc = nullptr) override;
-	bool SendClientData(const MsgStreamWriter& streamWriter, ClientData** clients, UINT nClients, BuffAllocator* alloc = nullptr) override;
-	bool SendClientData(const MsgStreamWriter& streamWriter, std::vector<ClientData*>& pcs, BuffAllocator* alloc = nullptr) override;
+	bool SendClientData(const MsgStreamWriter& streamWriter, ClientData* exClient, bool single) override;
+	bool SendClientData(const MsgStreamWriter& streamWriter, ClientData** clients, UINT nClients) override;
+	bool SendClientData(const MsgStreamWriter& streamWriter, std::vector<ClientData*>& pcs) override;
 
 	//Send msg funtions used for requests, replies ect. they do not send data
 	void SendMsg(ClientData* exClient, bool single, short type, short message) override;
@@ -171,6 +171,7 @@ public:
 
 	bool MaxClients() const override;
 	bool IsConnected() const override;
+	bool ShuttingDown() const override;
 
 	const SocketOptions GetSockOpts() const override;
 
@@ -195,8 +196,8 @@ private:
 	void OnNotify(char* data, DWORD nBytes, void* cd) override;
 
 	bool BindHost(HostSocket& host, const LIB_TCHAR* port, bool ipv6, UINT nConcAccepts);
-	bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientDataEx* exClient, bool single, bool msg, BuffAllocator* alloc = nullptr);
-	bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientDataEx** clients, UINT nClients, bool msg, BuffAllocator* alloc = nullptr);
+	bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientDataEx* exClient, bool single, bool msg);
+	bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientDataEx** clients, UINT nClients, bool msg);
 
 	bool SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient, bool single);
 	bool SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients, UINT nClients);
@@ -222,6 +223,7 @@ private:
 	HANDLE shutdownEv; //Set when opCounter reaches 0, to notify shutdown it is okay to close iocp
 	void* obj; //passed to function/msgHandler for oop programming
 	SocketOptions sockOpts;
+	std::atomic<bool> shuttingDown;
 };
 
 typedef TCPServ::ClientDataEx ClientDataEx;

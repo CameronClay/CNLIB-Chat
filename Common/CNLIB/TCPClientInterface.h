@@ -23,8 +23,8 @@ public:
 
 	virtual bool RecvServData(DWORD nThreads = 1, DWORD nConcThreads = 1) = 0;
 
-	virtual bool SendServData(const BuffSendInfo& buffSendInfo, DWORD nBytes, BuffAllocator* alloc = nullptr) = 0;
-	virtual bool SendServData(const MsgStreamWriter& streamWriter, BuffAllocator* alloc = nullptr) = 0;
+	virtual bool SendServData(const BuffSendInfo& buffSendInfo, DWORD nBytes) = 0;
+	virtual bool SendServData(const MsgStreamWriter& streamWriter) = 0;
 
 	virtual void SendMsg(short type, short message) = 0;
 	virtual void SendMsg(const std::tstring& user, short type, short message) = 0;
@@ -35,6 +35,7 @@ public:
 
 	virtual UINT GetOpCount() const = 0;
 	virtual UINT GetMaxSendOps() const = 0;
+	virtual bool ShuttingDown() const = 0;
 
 	virtual const SocketOptions GetSockOpts() const = 0;
 

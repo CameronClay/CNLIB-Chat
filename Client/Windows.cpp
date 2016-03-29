@@ -250,6 +250,9 @@ void Flash()
 //returns index if found, -1 if not found
 int FindClient(const std::tstring& name)
 {
+	if (client->ShuttingDown())
+		return -1;
+
 	const USHORT count = (USHORT)SendMessage(listClients, LB_GETCOUNT, 0, 0);
 	LIB_TCHAR* buffer = alloc<LIB_TCHAR>(maxUserLen + 1);
 	int found = -1;
@@ -329,16 +332,18 @@ void MsgHandler(TCPClientInterface&, MsgStreamReader streamReader)
 				if ((item = FindClient(name)) != -1)
 					SendMessage(listClients, LB_DELETESTRING, item, 0);
 
-				LIB_TCHAR buffer[128];
-				_stprintf(buffer, _T("Server: %s has disconnected!"), name.c_str());
+				if (!client->ShuttingDown())
+				{
+					LIB_TCHAR buffer[128];
+					_stprintf(buffer, _T("Server: %s has disconnected!"), name.c_str());
 
+					std::tstring str;
+					Format::FormatText(buffer, str, opts->TimeStamps());
+					textBuffer.WriteLine(str);
+					opts->WriteLine(str);
 
-				std::tstring str;
-				Format::FormatText(buffer, str, opts->TimeStamps());
-				textBuffer.WriteLine(str);
-				opts->WriteLine(str);
-
-				Flash();
+					Flash();
+				}
 				break;
 			}
 			}

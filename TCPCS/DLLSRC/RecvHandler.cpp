@@ -162,68 +162,20 @@ char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, std::unordered_map<sho
 	}
 }
 
-
-//char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, DataHeader header, std::unordered_map<UINT, WSABufRecv>::iterator it, const BufferOptions& buffOpts, void* obj)
-//{
-//	const DWORD bytesToRecv = ((header.size.up.nBytesComp) ? header.size.up.nBytesComp : header.size.up.nBytesDecomp);
-//	WSABufRecv& buff = *curBuff;
-//	bytesTrans += buff.curBytes;
-//	buff.curBytes = 0;
-//
-//	if (bytesTrans - sizeof(DataHeader) >= bytesToRecv)
-//	{
-//		const DWORD temp = bytesToRecv + sizeof(DataHeader);
-//		//buff.curBytes += temp;
-//		bytesTrans -= temp;
-//		ptr += sizeof(DataHeader);
-//	
-//		if (!Process(ptr, buff, bytesToRecv, header, buffOpts, obj))
-//			return nullptr;
-//
-//		//If appended partial block
-//		if (it != buffMap.end())
-//		{
-//			EraseFromMap(it);
-//		}
-//
-//		////If no partial blocks to copy to start of buffer
-//		//else if (!bytesTrans)
-//		//{
-//		//	buff.buf = buff.head;
-//		//	buff.curBytes = 0;
-//		//}
-//
-//		return ptr + bytesToRecv;
-//	}
-//	//If the next block of data has not been fully received
-//	else if (bytesToRecv <= buffOpts.GetMaxDataSize())
-//	{
-//		//Concatenate remaining data to buffer
-//		const DWORD bytesReceived = bytesTrans - buff.curBytes;
-//		//if (buff.head != ptr)
-//		//	memcpy(buff.head, ptr, bytesReceived);
-//		buff.curBytes = bytesReceived;
-//		buff.buf = buff.head + bytesReceived;
-//
-//		if (it == buffMap.end())
-//		{
-//			AppendToMap(buff, header.index, buffOpts);
-//		}
-//
-//		bytesTrans = 0;
-//		return ptr;
-//	}
-//}
-
 char* RecvHandler::Process(char* ptr, WSABufRecv& buff, DWORD bytesToRecv, const DataHeader& header, const BufferOptions& buffOpts, void* obj)
 {
 	//If data was compressed
 	if (header.size.up.nBytesComp)
 	{
+		char* dest = (header.size.up.nBytesDecomp > buffOpts.GetMaxDataSize()) ? alloc<char>(header.size.up.nBytesDecomp) : decompData;
+
 		//Max Data size because it sends decomp if > than maxDataSize
-		if (FileMisc::Decompress((BYTE*)decompData, header.size.up.nBytesDecomp, (const BYTE*)ptr, bytesToRecv) != UINT_MAX)	// Decompress data
+		if (FileMisc::Decompress((BYTE*)dest, header.size.up.nBytesDecomp, (const BYTE*)ptr, bytesToRecv) != UINT_MAX)	// Decompress data
 		{
-			observer->OnNotify(decompData, header.size.up.nBytesDecomp, obj);
+			observer->OnNotify(dest, header.size.up.nBytesDecomp, obj);
+			if (dest != decompData)
+				dealloc(dest);
+
 			return ptr + bytesToRecv;
 		}
 

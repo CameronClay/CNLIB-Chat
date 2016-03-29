@@ -35,8 +35,8 @@ public:
 
 	const BufferOptions GetBufferOptions() const override;
 
-	bool SendServData(const BuffSendInfo& buffSendInfo, DWORD nBytes, BuffAllocator* alloc = nullptr) override;
-	bool SendServData(const MsgStreamWriter& streamWriter, BuffAllocator* alloc = nullptr) override;
+	bool SendServData(const BuffSendInfo& buffSendInfo, DWORD nBytes) override;
+	bool SendServData(const MsgStreamWriter& streamWriter) override;
 
 	//Should only be called once to intialy create receving thread
 	bool RecvServData(DWORD nThreads = 4, DWORD nConcThreads = 2) override;
@@ -62,6 +62,7 @@ public:
 
 	UINT GetOpCount() const override;
 	UINT GetMaxSendOps() const override;
+	bool ShuttingDown() const override;
 
 	const SocketOptions GetSockOpts() const override;
 
@@ -77,7 +78,7 @@ public:
 private:
 	void OnNotify(char* data, DWORD nBytes, void*) override;
 
-	bool SendServData(const BuffSendInfo& buffSendInfo, DWORD nBytes, bool msg, BuffAllocator* alloc = nullptr);
+	bool SendServData(const BuffSendInfo& buffSendInfo, DWORD nBytes, bool msg);
 	bool SendServData(const WSABufSend& sendBuff, bool popQueue = false);
 	bool SendServData(OverlappedSendSingle* ol, bool popQueue = false);
 
@@ -98,4 +99,5 @@ private:
 	HANDLE shutdownEv; //Set when opCounter reaches 0, to notify shutdown it is okay to close iocp
 	SocketOptions sockOpts;
 	void* obj; //passed to function/msgHandler for oop programming
+	std::atomic<bool> shuttingDown;
 };

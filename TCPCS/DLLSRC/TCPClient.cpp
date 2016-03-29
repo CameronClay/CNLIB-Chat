@@ -128,7 +128,7 @@ TCPClient::TCPClient(cfunc func, dcfunc disconFunc, UINT maxSendOps, UINT maxDat
 	function(func),
 	disconFunc(disconFunc),
 	iocp(nullptr),
-	maxSendOps(maxSendOps),
+	maxSendOps(maxSendOps + 1),//+1 for recv
 	unexpectedShutdown(true),
 	keepAliveInterval(keepAliveInterval),
 	keepAliveHandler(nullptr),
@@ -138,7 +138,8 @@ TCPClient::TCPClient(cfunc func, dcfunc disconFunc, UINT maxSendOps, UINT maxDat
 	opCounter(0),
 	shutdownEv(NULL),
 	sockOpts(sockOpts),
-	obj(obj)
+	obj(obj),
+	shuttingDown(false)
 {
 
 }
@@ -161,7 +162,8 @@ TCPClient::TCPClient(TCPClient&& client)
 	opCounter(client.opCounter.load()),
 	shutdownEv(client.shutdownEv),
 	sockOpts(client.sockOpts),
-	obj(client.obj)
+	obj(client.obj),
+	shuttingDown(client.shuttingDown.load())
 {
 	ZeroMemory(&client, sizeof(TCPClient));
 }
@@ -189,6 +191,7 @@ TCPClient& TCPClient::operator=(TCPClient&& client)
 		shutdownEv = client.shutdownEv;
 		sockOpts = client.sockOpts;
 		obj = client.obj;
+		shuttingDown = client.shuttingDown.load();
 
 		ZeroMemory(&client, sizeof(TCPClient));
 	}
@@ -221,6 +224,8 @@ void TCPClient::Shutdown()
 {
 	if (shutdownEv)
 	{
+		shuttingDown = true;
+
 		//Stop sending keepalive packets
 		destruct(keepAliveHandler);
 
@@ -243,6 +248,8 @@ void TCPClient::Shutdown()
 
 		CloseHandle(shutdownEv);
 		shutdownEv = NULL;
+
+		shuttingDown = false;
 	}
 }
 
@@ -270,31 +277,23 @@ const BufferOptions TCPClient::GetBufferOptions() const
 	return bufSendAlloc.GetBufferOptions();
 }
 
-bool TCPClient::SendServData(const BuffSendInfo& buffSendInfo, DWORD nBytes, BuffAllocator* alloc)
+bool TCPClient::SendServData(const BuffSendInfo& buffSendInfo, DWORD nBytes)
 {
-	return SendServData(buffSendInfo, nBytes, false, alloc);
+	return SendServData(buffSendInfo, nBytes, false);
 }
-bool TCPClient::SendServData(const MsgStreamWriter& streamWriter, BuffAllocator* alloc)
+bool TCPClient::SendServData(const MsgStreamWriter& streamWriter)
 {
-	return SendServData(streamWriter.GetBuffSendInfo(), streamWriter.GetSize(), false, alloc);
+	return SendServData(streamWriter.GetBuffSendInfo(), streamWriter.GetSize(), false);
 }
 
-bool TCPClient::SendServData(const BuffSendInfo& buffSendInfo, DWORD nBytes, bool msg, BuffAllocator* alloc)
+bool TCPClient::SendServData(const BuffSendInfo& buffSendInfo, DWORD nBytes, bool msg)
 {
-	int i = 0;
 	bool res = true;
-	WSABufSend buff = bufSendAlloc.CreateBuff(buffSendInfo, nBytes, msg, -1, alloc);
-	if (res = SendServData(buff) && (nBytes > bufSendAlloc.GetBufferOptions().GetMaxDataSize()))
+	WSABufSend buff = bufSendAlloc.CreateBuff(buffSendInfo, nBytes, msg, -1);
+	if (res = SendServData(buff))
 	{
-		do
-		{
-			buff = bufSendAlloc.CreateBuff(buff);
-			if (buff.curBytes = buff.totalLen)
-				return true;
-
+		while (res && (buff.curBytes != buff.totalLen))
 			res = SendServData(bufSendAlloc.CreateBuff(buff));
-			//++i;
-		} while (res/* && (i < 2)*/);
 	}
 
 	//if (res)
@@ -312,7 +311,7 @@ bool TCPClient::SendServData(OverlappedSendSingle* ol, bool popQueue)
 {
 	if (host.IsConnected())
 	{
-		if (opCounter.load() - 1 < maxSendOps)
+		if (opCounter.load() < maxSendOps)
 		{
 			++opCounter;
 
@@ -456,6 +455,10 @@ UINT TCPClient::GetOpCount() const
 UINT TCPClient::GetMaxSendOps() const
 {
 	return maxSendOps;
+}
+bool TCPClient::ShuttingDown() const
+{
+	return shuttingDown.load();
 }
 
 const SocketOptions TCPClient::GetSockOpts() const

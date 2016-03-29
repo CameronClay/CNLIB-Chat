@@ -64,14 +64,16 @@ public:
 
 	const BufferOptions GetBufferOptions() const override;
 
-	WSABufSend CreateBuff(const BuffSendInfo& buffSendInfo, DWORD nBytesDecomp, bool msg, short index = -1, BuffAllocator* alloc = nullptr);
+	WSABufSend CreateBuff(const BuffSendInfo& buffSendInfo, DWORD nBytesDecomp, bool msg, short index = -1);
 	WSABufSend CreateBuff(WSABufSend buff);
 	void FreeBuff(WSABufSend& buff);
 private:
+	DWORD CompressBuffer(char*& dest, DWORD& nBytesSend, DWORD destStart, DWORD maxCompSize, int compression);
+
 	const BufferOptions bufferOptions;
 	std::atomic<short> bufIndex;
 	DataPoolAllocator dataPool;
 	DataCompPoolAllocator dataCompPool;
 	MsgPoolAllocator msgPool;
-	CRITICAL_SECTION queueSect;
+	BuffHeapAllocator defAlloc;
 };

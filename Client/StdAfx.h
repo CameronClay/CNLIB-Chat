@@ -7,6 +7,10 @@
 #include <Shlwapi.h>
 #include <Shlobj.h>
 //#include <ShObjIdl.h>
+
+#ifdef _DEBUG
+#define D3D_DEBUG_INFO 1
+#endif
 #include <d3d9.h>
 //
 //#include <Natupnp.h>

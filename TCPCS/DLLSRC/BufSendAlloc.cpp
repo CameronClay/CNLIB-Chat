@@ -132,43 +132,56 @@ BufSendAlloc::~BufSendAlloc()
 
 BuffSendInfo BufSendAlloc::GetSendBuffer(DWORD hiByteEstimate, CompressionType compType)
 {
-	if (hiByteEstimate > bufferOptions.GetMaxDataSize())
-		return{};
-
 	BuffSendInfo si(compType, hiByteEstimate, bufferOptions.GetCompressionCO());
-	si.buffer = (si.compType == SETCOMPRESSION) ? dataCompPool.alloc() + sizeof(DataHeader) : dataPool.alloc() + sizeof(DataHeader);
+	hiByteEstimate += si.maxCompSize;
+	si.alloc = (hiByteEstimate > bufferOptions.GetMaxDataSize()) ? (BuffAllocator*)&defAlloc : (si.maxCompSize ? (BuffAllocator*)&dataCompPool : (BuffAllocator*)&dataPool);
+	si.buffer = si.maxCompSize ? si.alloc->alloc(hiByteEstimate + sizeof(DataHeader)) : si.alloc->alloc(hiByteEstimate + sizeof(DataHeader)) + sizeof(DataHeader);
 
 	return si;
 
 }
 BuffSendInfo BufSendAlloc::GetSendBuffer(BuffAllocator* alloc, DWORD nBytes, CompressionType compType)
 {
-	nBytes += sizeof(DataHeader);
 	BuffSendInfo si(compType, nBytes, bufferOptions.GetCompressionCO());
-	si.buffer = alloc->alloc(nBytes + si.maxCompSize) + sizeof(DataHeader);
+	nBytes += si.maxCompSize;
+	si.alloc = alloc;
+	si.buffer = si.maxCompSize ? alloc->alloc(nBytes + sizeof(DataHeader)) : alloc->alloc(nBytes + sizeof(DataHeader)) + sizeof(DataHeader);
 	return si;
 }
 
 MsgStreamWriter BufSendAlloc::CreateOutStream(DWORD hiByteEstimate, short type, short msg, CompressionType compType)
 {
-	return{ GetSendBuffer(hiByteEstimate + sizeof(DataHeader)), bufferOptions.GetMaxDataSize(), type, msg };
+	return{ GetSendBuffer(hiByteEstimate), hiByteEstimate + MSG_OFFSET, type, msg };
 }
 MsgStreamWriter BufSendAlloc::CreateOutStream(BuffAllocator* alloc, DWORD nBytes, short type, short msg, CompressionType compType)
 {
-	nBytes += sizeof(DataHeader);
-	BuffSendInfo si(compType, nBytes, bufferOptions.GetCompressionCO());
+/*	BuffSendInfo si(compType, nBytes, bufferOptions.GetCompressionCO());
 	nBytes += si.maxCompSize;
-	si.buffer = alloc->alloc(nBytes) + sizeof(DataHeader);
-
-	return{ si, nBytes, type, msg };
+	si.alloc = alloc;
+	si.buffer = alloc->alloc(nBytes + sizeof(DataHeader)) + sizeof(DataHeader);*/
+	return{ GetSendBuffer(alloc, nBytes, compType), nBytes + MSG_OFFSET, type, msg };
 }
 
-WSABufSend BufSendAlloc::CreateBuff(const BuffSendInfo& buffSendInfo, DWORD nBytesDecomp, bool msg, short index, BuffAllocator* alloc)
+
+DWORD BufSendAlloc::CompressBuffer(char*& dest, DWORD& nBytesSend, DWORD destStart, DWORD maxCompSize, int compression)
 {
-	WSABufSend buf;
-	DWORD nBytesComp = 0, nBytesSend = nBytesDecomp + sizeof(DataHeader);
+	const DWORD temp = FileMisc::Compress((BYTE*)(dest + destStart + sizeof(DataHeader)), maxCompSize, (const BYTE*)dest, nBytesSend, compression);
+	if (temp < nBytesSend)
+	{
+		dest += destStart;
+		return nBytesSend = temp;
+	}
+	return 0;
+}
+
+WSABufSend BufSendAlloc::CreateBuff(const BuffSendInfo& buffSendInfo, DWORD nBytesDecomp, bool msg, short index)
+{
+	DWORD nBytesComp = 0, nBytesSend = nBytesDecomp;
 	DWORD maxDataSize = bufferOptions.GetMaxDataSize();
-	char *buffer = buffSendInfo.buffer, *dest = nullptr;
+	char *buffer = buffSendInfo.buffer, *dest = buffer;
+	char* tempDest = dest;
+	WSABufSend buf;
+	buf.alloc = buffSendInfo.alloc;
 
 	if (msg)
 	{
@@ -180,61 +193,59 @@ WSABufSend BufSendAlloc::CreateBuff(const BuffSendInfo& buffSendInfo, DWORD nByt
 	}
 	else
 	{
-		dest = buffer -= sizeof(DataHeader);
-		if (!alloc)
+		if ((buf.alloc == &dataPool) || (buf.alloc == &dataCompPool))
 		{
 			if (buffSendInfo.compType == SETCOMPRESSION)
 			{
-				buf.alloc = &dataCompPool;
-				DWORD temp = FileMisc::Compress((BYTE*)(buffer + maxDataSize + sizeof(DataHeader)), buffSendInfo.maxCompSize, (const BYTE*)(buffer + sizeof(DataHeader)), nBytesDecomp, bufferOptions.GetCompression());
+				/*DWORD temp = FileMisc::Compress((BYTE*)(dest + maxDataSize + sizeof(DataHeader)), buffSendInfo.maxCompSize, (const BYTE*)(dest), nBytesDecomp, bufferOptions.GetCompression());
 				if (nBytesComp < nBytesDecomp)
 				{
 					nBytesComp = temp;
 					nBytesSend = nBytesComp;
 					dest = buffer + maxDataSize;
-				}
+				}*/
+				nBytesComp = CompressBuffer(dest, nBytesSend, maxDataSize, buffSendInfo.maxCompSize, bufferOptions.GetCompression());
 			}
 			else
 			{
-				buf.alloc = &dataPool;
-			}
-
-			if (nBytesDecomp > maxDataSize)
-			{
-				buf.alloc->dealloc(buffer);
-				return{};
+				dest = buffer -= sizeof(DataHeader);
 			}
 		}
 		else
 		{
-			buf.alloc = alloc;
 			if (buffSendInfo.compType == SETCOMPRESSION)
 			{
-				DWORD temp = FileMisc::Compress((BYTE*)(buffer + nBytesDecomp + sizeof(DataHeader)), buffSendInfo.maxCompSize, (const BYTE*)(buffer + sizeof(DataHeader)), nBytesDecomp, bufferOptions.GetCompression());
+				/*DWORD temp = FileMisc::Compress((BYTE*)(dest + nBytesDecomp + sizeof(DataHeader)), buffSendInfo.maxCompSize, (const BYTE*)(dest), nBytesDecomp, bufferOptions.GetCompression());
 				if (nBytesComp < nBytesDecomp)
 				{
 					nBytesComp = temp;
 					nBytesSend = nBytesComp;
 					dest = buffer + nBytesDecomp;
-				}
+				}*/
+				nBytesComp = CompressBuffer(dest, nBytesSend, nBytesDecomp, buffSendInfo.maxCompSize, bufferOptions.GetCompression());
+			}
+			else
+			{
+				dest = buffer -= sizeof(DataHeader);
 			}
 		}
 	}
-
 
 	DataHeader& header = *(DataHeader*)dest;
 	header.size.up.nBytesComp = nBytesComp;
 	header.size.up.nBytesDecomp = nBytesDecomp;
 	header.index = (index == -1) ? ++bufIndex : index;
 
-	buf.Initialize(nBytesSend, dest, buffer);
-	buf.curBytes = buf.totalLen = buf.len;
+	buf.totalLen = nBytesSend + sizeof(DataHeader);
+	buf.curBytes = buf.len = min(nBytesSend + sizeof(DataHeader), bufferOptions.GetMaxDatBuffSize());
+	buf.buf = dest;
+	buf.head = buffer;
 	return buf;
 }
 
 WSABufSend BufSendAlloc::CreateBuff(WSABufSend buff)
 {
-	buff.buf += buff.curBytes += buff.len = min(buff.totalLen - buff.curBytes, bufferOptions.GetMaxDataSize());
+	buff.buf += buff.curBytes += buff.len = min(buff.totalLen - buff.curBytes, bufferOptions.GetMaxDatBuffSize());
 	return buff;
 }
 

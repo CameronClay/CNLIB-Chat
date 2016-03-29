@@ -1,6 +1,7 @@
 #pragma once
 #include "Typedefs.h"
 #include "CNLIB/CompressionTypes.h"
+#include "CNLIB/BuffAllocator.h"
 
 struct CAMSNETLIB BuffSendInfo
 {
@@ -13,4 +14,5 @@ struct CAMSNETLIB BuffSendInfo
 	char* buffer;
 	const CompressionType compType;
 	const DWORD maxCompSize;
+	BuffAllocator* alloc;
 };
