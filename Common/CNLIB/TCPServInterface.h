@@ -44,7 +44,7 @@ public:
 		ClientData** const clients;
 	};
 
-	virtual IPv AllowConnections(const LIB_TCHAR* port, ConCondition connectionCondition, DWORD nThreads = 1, DWORD nConcThreads = 1, IPv ipv = ipv4, UINT nConcAccepts = 4) = 0;
+	virtual IPv AllowConnections(const LIB_TCHAR* port, ConCondition connectionCondition, DWORD nThreads = 8, DWORD nConcThreads = 4, IPv ipv = ipv4, UINT nConcAccepts = 4) = 0;
 
 	virtual bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientData* exClient, bool single) = 0;
 	virtual bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientData** clients, UINT nClients) = 0;
@@ -92,8 +92,8 @@ typedef TCPServInterface::ClientData ClientData;
 typedef TCPServInterface::sfunc sfunc;
 typedef TCPServInterface::sfuncP sfuncP;
 
-typedef void(*const ConFunc)(ClientData* data);
-typedef void(*const DisconFunc)(ClientData* data, bool unexpected);
+typedef void(*const ConFunc)(TCPServInterface& serv, ClientData* data);
+typedef void(*const DisconFunc)(TCPServInterface& serv, ClientData* data, bool unexpected);
 
 
 CAMSNETLIB TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, UINT maxPCSendOps = 5, UINT maxDataBuffSize = 4096, UINT singleOlPCCount = 30, UINT allOlCount = 30, UINT sendBuffCount = 35, UINT sendCompBuffCount = 15, UINT sendMsgBuffCount = 10, UINT maxCon = 20, int compression = 9, int compressionCO = 2048, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);

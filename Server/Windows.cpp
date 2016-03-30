@@ -165,19 +165,19 @@ void DispIPMsg(Socket& pc, const LIB_TCHAR* str)
 		textBuffer.WriteLine(pc.GetInfo().GetIp() + str);
 }
 
-void DisconnectHandler(ClientData* data, bool unexpected)
+void DisconnectHandler(TCPServInterface& serv, ClientData* data, bool unexpected)
 {
-	auto& streamWriter = serv->CreateOutStream(StreamWriter::SizeType(data->user), TYPE_CHANGE, MSG_CHANGE_DISCONNECT);
+	auto& streamWriter = serv.CreateOutStream(StreamWriter::SizeType(data->user), TYPE_CHANGE, MSG_CHANGE_DISCONNECT);
 	streamWriter.Write(data->user);
 	
-	serv->SendClientData(streamWriter, data, false);
+	serv.SendClientData(streamWriter, data, false);
 
 	LIB_TCHAR buffer[128] = {};
 	_stprintf(buffer, _T("(%s) has disconnected!"), (!data->user.empty()) ? data->user.c_str() : _T("unknown"));
 	DispIPMsg(data->pc, buffer);
 }
 
-void ConnectHandler(ClientData* data)
+void ConnectHandler(TCPServInterface& serv, ClientData* data)
 {
 	DispIPMsg(data->pc, _T(" has connected!"));
 }

@@ -1049,11 +1049,11 @@ float TCPServ::GetKeepAliveInterval() const
 
 void TCPServ::RunConFunc(ClientData* client)
 {
-	conFunc(client);
+	conFunc(*this, client);
 }
 void TCPServ::RunDisFunc(ClientData* client, bool unexpected)
 {
-	disFunc(client, unexpected);
+	disFunc(*this, client, unexpected);
 }
 
 void* TCPServ::GetObj() const
