@@ -202,9 +202,9 @@ void Socket::Disconnect()
 {
 	if (IsConnected())
 	{
+		info.Cleanup();
 		Shutdown();
 		closesocket(pc);
-		info.Cleanup();
 		pc = INVALID_SOCKET;
 	}
 }

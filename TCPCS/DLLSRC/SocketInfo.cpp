@@ -5,7 +5,7 @@
 SocketInfo::SocketInfo()
 	:
 	addr(),
-	cleanup(true)
+	cleanup(false)
 {}
 
 SocketInfo::SocketInfo(const SocketInfo& socketInfo)
