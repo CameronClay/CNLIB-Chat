@@ -322,7 +322,9 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 					ClientDataEx& cd = *(ClientDataEx*)key;
 					if (bytesTrans == 0)
 					{
-						cd.serv.RemoveClient(&cd, cd.state != ClientDataEx::closing);
+						if (cd.DecRefCount())
+							cd.serv.RemoveClient(&cd, cd.state != ClientDataEx::closing);
+
 						continue;
 					}
 
@@ -926,10 +928,10 @@ void TCPServ::RemoveClient(ClientDataEx* client, bool unexpected)
 	}
 
 	nClients -= 1;
+	RunDisFunc(client, unexpected);
 
 	clientLock.Unlock();
 
-	RunDisFunc(client, unexpected);
 	client->Cleanup();
 
 	if (--opCounter == 0)
@@ -974,13 +976,15 @@ void TCPServ::Shutdown()
 		ipv4Host.Disconnect();
 		ipv6Host.Disconnect();
 
+		clientLock.Lock();
+
 		//Cancel all outstanding operations
 		for (ClientDataEx **ptr = clients, **end = clients + nClients; ptr != end; ptr++)
 		{
-			ClientDataEx* cd = *ptr;
-			if (cd)
-				cd->pc.Disconnect();
+			(*ptr)->pc.Disconnect();
 		}
+
+		clientLock.Unlock();
 
 		//Wait for all operations to cease
 		WaitForSingleObject(shutdownEv, INFINITE);

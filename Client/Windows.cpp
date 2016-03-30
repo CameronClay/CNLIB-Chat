@@ -625,7 +625,7 @@ void MsgHandler(TCPClientInterface&, MsgStreamReader streamReader)
 	/*CoUninitialize();*/
 }
 
-void DisconnectHandler(bool unexpected) // for disconnection
+void DisconnectHandler(TCPClientInterface& client, bool unexpected) // for disconnection
 {
 	if(unexpected)
 	{

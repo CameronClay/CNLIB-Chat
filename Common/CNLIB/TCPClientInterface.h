@@ -9,7 +9,7 @@
 #include "SocketOptions.h"
 
 class TCPClientInterface;
-typedef void(*const dcfunc)(bool unexpected);
+typedef void(*const dcfunc)(TCPClientInterface& client, bool unexpected);
 typedef void(*cfunc)(TCPClientInterface& client, MsgStreamReader streamReader);
 typedef void(**const cfuncP)(TCPClientInterface& client, MsgStreamReader streamReader);
 
