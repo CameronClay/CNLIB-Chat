@@ -13,9 +13,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Header Files\CNLIB">
-      <UniqueIdentifier>{1b365957-8444-4a13-83d2-9b8e62795bc8}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Windows.cpp">
@@ -86,44 +83,8 @@
     <ClInclude Include="..\Common\TextDisplay.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\File.h">
-      <Filter>Header Files\CNLIB</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\HeapAlloc.h">
-      <Filter>Header Files\CNLIB</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\Messages.h">
-      <Filter>Header Files\CNLIB</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\MsgStream.h">
-      <Filter>Header Files\CNLIB</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\Socket.h">
-      <Filter>Header Files\CNLIB</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\StreamExt.h">
-      <Filter>Header Files\CNLIB</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\SocketListen.h">
-      <Filter>Header Files\CNLIB</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\TCPClientInterface.h">
-      <Filter>Header Files\CNLIB</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\IPV.h">
-      <Filter>Header Files\CNLIB</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\CompressionTypes.h">
-      <Filter>Header Files\CNLIB</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\Typedefs.h">
-      <Filter>Header Files\CNLIB</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\MessagesExt.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CNLIB\SocketInfo.h">
-      <Filter>Header Files\CNLIB</Filter>
     </ClInclude>
     <ClInclude Include="StdAfx.h">
       <Filter>Header Files</Filter>
