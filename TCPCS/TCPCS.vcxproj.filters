@@ -164,13 +164,13 @@
     <ClCompile Include="DLLSRC\RecvHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Common\CNLIB\BuffSendInfo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="DLLSRC\CritLock.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="BuffAllocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DLLSRC\BuffSendInfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -168,7 +168,6 @@
     <ClInclude Include="..\Common\CNLIB\TCPServInterface.h" />
     <ClInclude Include="..\Common\CNLIB\Typedefs.h" />
     <ClInclude Include="..\Common\CNLIB\UPNP.h" />
-    <ClCompile Include="..\Common\CNLIB\BuffSendInfo.cpp" />
     <ClCompile Include="BuffAllocator.cpp" />
     <ClCompile Include="DLLSRC\BufferOptions.cpp" />
     <ClInclude Include="DLLSRC\BufSendAlloc.h" />
@@ -183,6 +182,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Common\WinFirewall.cpp" />
+    <ClCompile Include="DLLSRC\BuffSendInfo.cpp" />
     <ClCompile Include="DLLSRC\CritLock.cpp" />
     <ClCompile Include="DLLSRC\File.cpp" />
     <ClCompile Include="DLLSRC\HeapAlloc.cpp" />

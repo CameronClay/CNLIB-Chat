@@ -1,7 +1,7 @@
 #pragma once
 #include "Stdafx.h"
-#include "BuffSendInfo.h"
-#include "File.h"
+#include "CNLIB/BuffSendInfo.h"
+#include "CNLIB/File.h"
 
 BuffSendInfo::BuffSendInfo()
 	:
