@@ -914,10 +914,6 @@ void TCPServ::RemoveClient(ClientDataEx* client, bool unexpected)
 	//Cleanup all pending operations
 	client->FreePendingOps();
 
-	RunDisFunc(client, unexpected);
-
-	client->Cleanup();
-
 	clientLock.Lock();
 
 	const UINT index = client->arrayIndex;
@@ -932,6 +928,9 @@ void TCPServ::RemoveClient(ClientDataEx* client, bool unexpected)
 	nClients -= 1;
 
 	clientLock.Unlock();
+
+	RunDisFunc(client, unexpected);
+	client->Cleanup();
 
 	if (--opCounter == 0)
 		SetEvent(shutdownEv);
