@@ -18,7 +18,7 @@ class TCPServ : public TCPServInterface, public KeepAliveHI, public RecvObserver
 public:
 	//sfunc is a message handler, compression is 1-9
 	//a value of 0.0f of ping interval means dont keepalive at all
-	TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, UINT maxPCSendOps = 5, UINT maxDataBuffSize = 4096, UINT singleOlPCCount = 5, UINT allOlCount = 30, UINT sendBuffCount = 35, UINT sendCompBuffCount = 15, UINT sendMsgBuffCount = 10, UINT maxCon = 20, int compression = 9, int compressionCO = 512, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);
+	TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, UINT maxPCSendOps, UINT maxDataBuffSize, UINT singleOlPCCount, UINT allOlCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, UINT maxCon, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj);
 	TCPServ(TCPServ&& serv);
 	~TCPServ();
 
