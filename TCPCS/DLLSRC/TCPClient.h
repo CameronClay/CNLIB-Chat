@@ -99,5 +99,5 @@ private:
 	HANDLE shutdownEv; //Set when opCounter reaches 0, to notify shutdown it is okay to close iocp
 	SocketOptions sockOpts;
 	void* obj; //passed to function/msgHandler for oop programming
-	std::atomic<bool> shuttingDown;
+	bool shuttingDown;
 };

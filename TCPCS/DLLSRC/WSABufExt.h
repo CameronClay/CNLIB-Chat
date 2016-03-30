@@ -6,18 +6,19 @@ struct WSABufExt : public WSABUF
 {
 	WSABufExt()
 		:
-		head(nullptr)
+		head(nullptr),
+		curBytes(0)
 	{
 		len = 0;
 		buf = nullptr;
 	}
 
-	void Initialize(DWORD len, char* buf, char* head)
+	void Initialize(DWORD len, char* buf, char* head, DWORD curBytes = 0)
 	{
 		this->len = len;
 		this->buf = buf;
 		this->head = head;
-		curBytes = 0;
+		this->curBytes = curBytes;
 	}
 	
 	char* head;
@@ -53,8 +54,7 @@ struct WSABufSend : public WSABufExt
 	WSABufSend()
 		:
 		WSABufExt(),
-		alloc(nullptr),
-		totalLen(0)
+		alloc(nullptr)
 	{}
 
 	WSABufSend& operator=(const WSABufSend& b)
@@ -66,11 +66,9 @@ struct WSABufSend : public WSABufExt
 			head = b.head;
 			curBytes = b.curBytes;
 			alloc = b.alloc;
-			totalLen = b.totalLen;
 		}
 		return *this;
 	}
-	DWORD totalLen;
 	BuffAllocator* alloc;
 };
 

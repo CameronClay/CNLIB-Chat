@@ -15,21 +15,20 @@ RecvHandler::RecvHandler(const BufferOptions& buffOpts, UINT initialCap, RecvObs
 	secondaryBuff(CreateBuffer(buffOpts)),
 	curBuff(&primaryBuff),
 	nextBuff(&secondaryBuff),
+	savedBuff(),
 	observer(observer)
-{
-	buffMap.reserve(initialCap);
-}
+{}
 
 RecvHandler::RecvHandler(RecvHandler&& recvHandler)
 	:
 	recvBuffPool(std::move(recvHandler.recvBuffPool)),
 	decompData(recvHandler.decompData),
-	buffMap(std::move(recvHandler.buffMap)),
 	ol(recvHandler.ol),
 	primaryBuff(recvHandler.primaryBuff),
 	secondaryBuff(recvHandler.secondaryBuff),
 	curBuff(recvHandler.curBuff),
 	nextBuff(recvHandler.nextBuff),
+	savedBuff(recvHandler.savedBuff),
 	observer(recvHandler.observer)
 {
 	memset(&recvHandler, 0, sizeof(RecvHandler));
@@ -48,7 +47,6 @@ RecvHandler& RecvHandler::operator=(RecvHandler&& recvHandler)
 
 		recvBuffPool = std::move(recvHandler.recvBuffPool);
 		decompData = recvHandler.decompData;
-		buffMap = std::move(recvHandler.buffMap);
 		ol = recvHandler.ol;
 		primaryBuff = recvHandler.primaryBuff;
 		secondaryBuff = recvHandler.secondaryBuff;
@@ -83,10 +81,7 @@ bool RecvHandler::RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& 
 
 	do
 	{
-		DataHeader& header = *(DataHeader*)ptr;
-		
-		auto& it = buffMap.find(header.index); //Find if there is already a partial buffer with matching index
-		if (!(ptr = RecvData(bytesTrans, ptr, it, header, buffOpts, obj)))
+		if (!(ptr = RecvData(bytesTrans, ptr, buffOpts, obj)))
 		{
 			curBuff->used = false;
 			return false;
@@ -100,32 +95,47 @@ bool RecvHandler::RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& 
 	return true;
 }
 
-char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, std::unordered_map<short, WSABufRecv>::iterator it, const DataHeader& header, const BufferOptions& buffOpts, void* obj)
+char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& buffOpts, void* obj)
 {
-	const DWORD bytesToRecv = ((header.size.up.nBytesComp) ? header.size.up.nBytesComp : header.size.up.nBytesDecomp);
 	WSABufRecv& srcBuff = *curBuff;
 
-	if (it != buffMap.end())
+	if (savedBuff.curBytes)
 	{
-		WSABufRecv& destBuff = it->second;
-		bytesTrans = AppendBuffer(ptr, srcBuff, it->second, bytesToRecv, bytesTrans);
+		DataHeader& header = *(DataHeader*)savedBuff.head;
+		const DWORD bytesToRecv = ((header.size.up.nBytesComp) ? header.size.up.nBytesComp : header.size.up.nBytesDecomp);
+		bytesTrans = AppendBuffer(ptr, srcBuff, savedBuff, bytesToRecv, bytesTrans);
 
-		if (destBuff.curBytes - sizeof(DataHeader) >= bytesToRecv)
+		if (savedBuff.curBytes >= bytesToRecv)
 		{
-			char* newPtr = Process(ptr, destBuff, destBuff.curBytes, header, buffOpts, obj);
+			ptr += sizeof(DataHeader);
+			Process(savedBuff.head + sizeof(DataHeader), savedBuff, bytesToRecv, header, buffOpts, obj);
 
-			EraseFromMap(it);
+			FreeBuffer(savedBuff);
 			srcBuff.curBytes = 0;
+			bytesTrans = 0;
 
-			return newPtr;
+			return ptr + bytesToRecv;
 		}
 
-		bytesTrans = 0;
 		return ptr;
 	}
 	else
 	{
-		const DWORD initialBytesTrans = bytesTrans;
+		if (bytesTrans < sizeof(DataHeader))
+		{
+			if (srcBuff.head != ptr)
+				memcpy(srcBuff.head, ptr, bytesTrans);
+
+			srcBuff.curBytes = bytesTrans;
+			SaveBuff(srcBuff, true, buffOpts);
+
+			bytesTrans = 0;
+			return ptr;		
+		}
+
+		DataHeader& header = *(DataHeader*)ptr;
+		const DWORD bytesToRecv = ((header.size.up.nBytesComp) ? header.size.up.nBytesComp : header.size.up.nBytesDecomp);
+
 		//If there is a full data block ready for processing
 		if (bytesTrans - sizeof(DataHeader) >= bytesToRecv)
 		{
@@ -137,27 +147,27 @@ char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, std::unordered_map<sho
 			return Process(ptr, srcBuff, bytesToRecv, header, buffOpts, obj);
 		}
 
-		const DWORD bytesReceived = srcBuff.curBytes = initialBytesTrans - bytesTrans;
 		if (bytesToRecv <= buffOpts.GetMaxDatBuffSize())
 		{
 			//Concatenate remaining data to front of buffer
 			if (srcBuff.head != ptr)
-				memcpy(srcBuff.head, ptr, bytesReceived);
+				memcpy(srcBuff.head, ptr, bytesTrans);
 
-			AppendToMap(header.index, srcBuff, true, buffOpts);
-			//srcBuff.buf = srcBuff.head + bytesReceived;
-			//ptr += bytesToRecv;
+			srcBuff.curBytes = bytesTrans;
+			SaveBuff(srcBuff, true, buffOpts);
 		}
 		else
 		{
-			WSABufRecv buff;
-			char* buffer = alloc<char>(bytesToRecv);
-			memcpy(buffer, ptr, bytesReceived);
-			buff.Initialize(bytesToRecv, buffer, buffer);
+			char* buffer = alloc<char>(bytesToRecv + sizeof(DataHeader));
+			memcpy(buffer, ptr, bytesTrans);
 
-			AppendToMap(header.index, buff, false, buffOpts);
+			WSABufRecv buff;
+			buff.Initialize(bytesToRecv, buffer, buffer, bytesTrans - sizeof(DataHeader));
+
+			SaveBuff(buff, false, buffOpts);
 		}
 
+		bytesTrans = 0;
 		return ptr;
 	}
 }
@@ -189,25 +199,21 @@ char* RecvHandler::Process(char* ptr, WSABufRecv& buff, DWORD bytesToRecv, const
 
 DWORD RecvHandler::AppendBuffer(char* ptr, WSABufRecv& srcBuff, WSABufRecv& destBuff, DWORD bytesToRecv, DWORD bytesTrans)
 {
-	DWORD temp = min(bytesToRecv - destBuff.curBytes, bytesTrans);
-	memcpy(destBuff.buf, ptr, temp);
+	const DWORD temp = min(bytesToRecv - destBuff.curBytes, bytesTrans);
+	memcpy(destBuff.head + destBuff.curBytes + sizeof(DataHeader), ptr, temp);
 	destBuff.curBytes += temp;
 
 	return bytesTrans - temp;
 }
 
-void RecvHandler::EraseFromMap(std::unordered_map<short, WSABufRecv>::iterator it)
+void RecvHandler::SaveBuff(const WSABufRecv& buff, bool newBuff, const BufferOptions& buffOpts)
 {
-	buffMap.erase(it);
-	FreeBuffer(it->second);
-}
-void RecvHandler::AppendToMap(short index, WSABufRecv& buff, bool newBuff, const BufferOptions& buffOpts)
-{
-	buffMap.emplace(index, buff);
-
 	if (newBuff)
 		*curBuff = CreateBuffer(buffOpts);
+
+	savedBuff = buff;
 }
+
 
 WSABufRecv RecvHandler::CreateBuffer(const BufferOptions& buffOpts)
 {
@@ -223,4 +229,6 @@ void RecvHandler::FreeBuffer(WSABufRecv& buff)
 		recvBuffPool.dealloc(buff.head);
 	else
 		dealloc(buff.head);
+
+	savedBuff.curBytes = 0;
 }

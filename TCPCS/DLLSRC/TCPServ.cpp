@@ -460,34 +460,11 @@ bool TCPServ::SendClientData(const MsgStreamWriter& streamWriter, std::vector<Cl
 
 bool TCPServ::SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientDataEx* exClient, bool single, bool msg)
 {
-	bool res = true;
-	WSABufSend buff = bufSendAlloc.CreateBuff(buffSendInfo, nBytes, msg, -1);
-	if (res = SendClientData(buff, exClient, single))
-	{
-		while (res && (buff.curBytes != buff.totalLen))
-			res = SendClientData(bufSendAlloc.CreateBuff(buff), exClient, single);
-	}
-
-	return res;
-	
-	///*return SendClientData(bufSendAlloc.CreateBuff(buffSendInfo, nBytes, msg, -1, alloc), exClient, single);*/
+	return SendClientData(bufSendAlloc.CreateBuff(buffSendInfo, nBytes, msg), exClient, single);
 }
 bool TCPServ::SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientDataEx** clients, UINT nClients, bool msg)
 {
-	bool res = true;
-	WSABufSend buff = bufSendAlloc.CreateBuff(buffSendInfo, nBytes, msg, -1);
-	if (res = SendClientData(buff, clients, nClients))
-	{
-		while (res && (buff.curBytes != buff.totalLen))
-			res = SendClientData(bufSendAlloc.CreateBuff(buff), clients, nClients);
-	}
-
-	//if (res)
-	//	bufSendAlloc.QueuePush(buff);
-
-	return res;
-
-	//return SendClientData(bufSendAlloc.CreateBuff(buffSendInfo, nBytes, msg, -1, alloc), clients, nClients);
+	return SendClientData(bufSendAlloc.CreateBuff(buffSendInfo, nBytes, msg), clients, nClients);
 }
 
 bool TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSendSingle* ol, bool popQueue)
@@ -806,7 +783,7 @@ TCPServ::TCPServ(TCPServ&& serv)
 	shutdownEv(serv.shutdownEv),
 	sockOpts(serv.sockOpts),
 	obj(serv.obj),
-	shuttingDown(serv.shuttingDown.load())
+	shuttingDown(serv.shuttingDown)
 {
 	ZeroMemory(&serv, sizeof(TCPServ));
 }
@@ -838,7 +815,7 @@ TCPServ& TCPServ::operator=(TCPServ&& serv)
 		shutdownEv = serv.shutdownEv;
 		sockOpts = serv.sockOpts;
 		obj = serv.obj;
-		shuttingDown = serv.shuttingDown.load();
+		shuttingDown = serv.shuttingDown;
 
 		ZeroMemory(&serv, sizeof(TCPServ));
 	}
@@ -1093,7 +1070,7 @@ bool TCPServ::IsConnected() const
 }
 bool TCPServ::ShuttingDown() const
 {
-	return shuttingDown.load();
+	return shuttingDown;
 }
 
 const SocketOptions TCPServ::GetSockOpts() const

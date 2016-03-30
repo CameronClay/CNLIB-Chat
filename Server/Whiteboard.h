@@ -57,7 +57,6 @@ private:
 	TCPServInterface &serv;
 	Palette palette;
 	std::tstring creator;
-	BuffHeapAllocator allocator;
 
 	const float interval;
 	HANDLE timer, thread;

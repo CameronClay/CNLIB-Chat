@@ -163,7 +163,7 @@ TCPClient::TCPClient(TCPClient&& client)
 	shutdownEv(client.shutdownEv),
 	sockOpts(client.sockOpts),
 	obj(client.obj),
-	shuttingDown(client.shuttingDown.load())
+	shuttingDown(client.shuttingDown)
 {
 	ZeroMemory(&client, sizeof(TCPClient));
 }
@@ -191,7 +191,7 @@ TCPClient& TCPClient::operator=(TCPClient&& client)
 		shutdownEv = client.shutdownEv;
 		sockOpts = client.sockOpts;
 		obj = client.obj;
-		shuttingDown = client.shuttingDown.load();
+		shuttingDown = client.shuttingDown;
 
 		ZeroMemory(&client, sizeof(TCPClient));
 	}
@@ -288,20 +288,7 @@ bool TCPClient::SendServData(const MsgStreamWriter& streamWriter)
 
 bool TCPClient::SendServData(const BuffSendInfo& buffSendInfo, DWORD nBytes, bool msg)
 {
-	bool res = true;
-	WSABufSend buff = bufSendAlloc.CreateBuff(buffSendInfo, nBytes, msg, -1);
-	if (res = SendServData(buff))
-	{
-		while (res && (buff.curBytes != buff.totalLen))
-			res = SendServData(bufSendAlloc.CreateBuff(buff));
-	}
-
-	//if (res)
-	//	bufSendAlloc.QueuePush(buff);
-
-	return res;
-
-	//return SendServData(bufSendAlloc.CreateBuff(buffSendInfo, nBytes, msg, -1, alloc), false);
+	return SendServData(bufSendAlloc.CreateBuff(buffSendInfo, nBytes, msg), false);
 }
 bool TCPClient::SendServData(const WSABufSend& sendBuff, bool popQueue)
 {
@@ -458,7 +445,7 @@ UINT TCPClient::GetMaxSendOps() const
 }
 bool TCPClient::ShuttingDown() const
 {
-	return shuttingDown.load();
+	return shuttingDown;
 }
 
 const SocketOptions TCPClient::GetSockOpts() const

@@ -75,28 +75,28 @@ void Whiteboard::SendBitmap(RectU& rect)
 {
 	const DWORD nBytes = GetBufferLen(rect) + MSG_OFFSET;
 	//BuffSendInfo sendInfo = serv.GetSendBuffer(nBytes);
-	BuffSendInfo sendInfo = serv.GetSendBuffer(&allocator, nBytes);
+	BuffSendInfo sendInfo = serv.GetSendBuffer(nBytes);
 
 	((short*)sendInfo.buffer)[0] = TYPE_DATA;
 	((short*)sendInfo.buffer)[1] = MSG_DATA_BITMAP;
 
 	MakeRectPixels(rect, &sendInfo.buffer[MSG_OFFSET]);
 
-	serv.SendClientData(sendInfo, nBytes, sendPcs, &allocator);
+	serv.SendClientData(sendInfo, nBytes, sendPcs);
 }
 
 void Whiteboard::SendBitmap(RectU& rect, ClientData* clint, bool single)
 {
 	const DWORD nBytes = GetBufferLen(rect) + MSG_OFFSET;
 	//BuffSendInfo sendInfo = serv.GetSendBuffer(nBytes);
-	BuffSendInfo sendInfo = serv.GetSendBuffer(&allocator, nBytes);
+	BuffSendInfo sendInfo = serv.GetSendBuffer(nBytes);
 
 	((short*)sendInfo.buffer)[0] = TYPE_DATA;
 	((short*)sendInfo.buffer)[1] = MSG_DATA_BITMAP;
 
 	MakeRectPixels(rect, &sendInfo.buffer[MSG_OFFSET]);
 
-	serv.SendClientData(sendInfo, nBytes, clint, single, &allocator);
+	serv.SendClientData(sendInfo, nBytes, clint, single);
 }
 
 void Whiteboard::StartThread()

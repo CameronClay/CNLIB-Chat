@@ -223,7 +223,7 @@ private:
 	HANDLE shutdownEv; //Set when opCounter reaches 0, to notify shutdown it is okay to close iocp
 	void* obj; //passed to function/msgHandler for oop programming
 	SocketOptions sockOpts;
-	std::atomic<bool> shuttingDown;
+	bool shuttingDown;
 };
 
 typedef TCPServ::ClientDataEx ClientDataEx;
