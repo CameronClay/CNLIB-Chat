@@ -143,7 +143,6 @@ TCPClient::TCPClient(cfunc func, dcfunc disconFunc, UINT maxSendOps, UINT maxDat
 {
 
 }
-
 TCPClient::TCPClient(TCPClient&& client)
 	:
 	host(client.host),
@@ -167,7 +166,6 @@ TCPClient::TCPClient(TCPClient&& client)
 {
 	ZeroMemory(&client, sizeof(TCPClient));
 }
-
 TCPClient& TCPClient::operator=(TCPClient&& client)
 {
 	if(this != &client)
@@ -358,8 +356,10 @@ bool TCPClient::RecvServData(DWORD nThreads, DWORD nConcThreads)
 
 	if (sockOpts.NoDelay())
 		host.SetNoDelay(true);
-	if (sockOpts.UseOwnBuf())
+	if (sockOpts.UseOwnSBuf())
 		host.SetTCPSendStack();
+	if (sockOpts.UseOwnRBuf())
+		host.SetTCPRecvStack();
 
 	if (!iocp->LinkHandle((HANDLE)host.GetSocket(), this))
 		return false;
@@ -385,11 +385,6 @@ void TCPClient::KeepAlive()
 	host.SendData(nullptr, 0);
 }
 
-void TCPClient::SetFunction(cfunc function)
-{
-	this->function = function;
-}
-
 void TCPClient::RunDisconFunc()
 {
 	disconFunc(unexpectedShutdown);
@@ -400,6 +395,10 @@ void TCPClient::SetShutdownReason(bool unexpected)
 	unexpectedShutdown = unexpected;
 }
 
+void TCPClient::SetFunction(cfunc function)
+{
+	this->function = function;
+}
 cfuncP TCPClient::GetFunction()
 {
 	return &function;
@@ -409,12 +408,10 @@ Socket TCPClient::GetHost() const
 {
 	return host;
 }
-
 void* TCPClient::GetObj() const
 {
 	return obj;
 }
-
 dcfunc TCPClient::GetDisfunc() const
 {
 	return disconFunc;

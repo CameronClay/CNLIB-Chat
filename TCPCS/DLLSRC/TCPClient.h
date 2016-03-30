@@ -50,14 +50,13 @@ public:
 	void SetKeepAliveInterval(float interval) override;
 	float GetKeepAliveInterval() const override;
 
-	void SetFunction(cfunc function) override;
-
 	void RunDisconFunc();
 	void SetShutdownReason(bool unexpected);
 
-	void* GetObj() const override;
+	void SetFunction(cfunc function) override;
 	cfuncP GetFunction();
 
+	void* GetObj() const override;
 	Socket GetHost() const override;
 
 	UINT GetOpCount() const override;
@@ -90,14 +89,14 @@ private:
 	bool unexpectedShutdown; //passed to disconnect handler
 	float keepAliveInterval; //interval at which client KeepAlives server
 	KeepAliveHandler* keepAliveHandler; //handles all KeepAlives(technically is a keep alive message that sends data) to server, to prevent timeout
-	BufSendAlloc bufSendAlloc;
-	RecvHandler recvHandler;
+	BufSendAlloc bufSendAlloc; //handles send buffer allocation
+	RecvHandler recvHandler; //handles receiving packets
 	MemPoolSync<HeapAllocator> olPool; //Used to help speed up allocation of overlapped structures
 	std::queue<OverlappedSendSingle*> opsPending; //Used to store pending ops
-	CritLock queueLock;
+	CritLock queueLock; //lock for queue
 	std::atomic<UINT> opCounter; //Used to keep track of number of asynchronous operations
 	HANDLE shutdownEv; //Set when opCounter reaches 0, to notify shutdown it is okay to close iocp
-	SocketOptions sockOpts;
+	SocketOptions sockOpts; //socket options
 	void* obj; //passed to function/msgHandler for oop programming
-	bool shuttingDown;
+	bool shuttingDown; //shutting down?
 };

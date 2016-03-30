@@ -4,10 +4,11 @@
 class CAMSNETLIB SocketOptions
 {
 public:
-	SocketOptions(bool useOwnBuf = true, bool noDelay = false);
+	SocketOptions(bool useOwnSBuf = true, bool useOwnRBuf = false, bool noDelay = false);
 	SocketOptions& operator=(const SocketOptions& sockOpts);
-	bool UseOwnBuf() const;
+	bool UseOwnSBuf() const;
+	bool UseOwnRBuf() const;
 	bool NoDelay() const;
 private:
-	bool useOwnBuf, noDelay;
+	bool useOwnSBuf, useOwnRBuf, noDelay;
 };

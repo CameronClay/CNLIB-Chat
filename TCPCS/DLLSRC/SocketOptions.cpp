@@ -1,23 +1,29 @@
 #include "stdafx.h"
 #include "CNLIB/SocketOptions.h"
 
-SocketOptions::SocketOptions(bool useOwnBuf, bool noDelay)
+SocketOptions::SocketOptions(bool useOwnSBuf, bool useOwnRBuf, bool noDelay)
 	:
-	useOwnBuf(useOwnBuf),
+	useOwnSBuf(useOwnSBuf),
+	useOwnRBuf(useOwnRBuf),
 	noDelay(noDelay)
 {}
 SocketOptions& SocketOptions::operator=(const SocketOptions& sockOpts)
 {
 	if (this != &sockOpts)
 	{
-		useOwnBuf = sockOpts.useOwnBuf;
+		useOwnSBuf = sockOpts.useOwnSBuf;
+		useOwnRBuf = sockOpts.useOwnRBuf;
 		noDelay = sockOpts.noDelay;
 	}
 	return *this;
 }
-bool SocketOptions::UseOwnBuf() const
+bool SocketOptions::UseOwnSBuf() const
 {
-	return useOwnBuf;
+	return useOwnSBuf;
+}
+bool SocketOptions::UseOwnRBuf() const
+{
+	return useOwnRBuf;
 }
 bool SocketOptions::NoDelay() const
 {

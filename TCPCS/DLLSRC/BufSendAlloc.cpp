@@ -144,7 +144,7 @@ BuffSendInfo BufSendAlloc::GetSendBuffer(BuffAllocator* alloc, DWORD nBytes, Com
 	BuffSendInfo si(compType, nBytes, bufferOptions.GetCompressionCO());
 	nBytes += si.maxCompSize;
 	si.alloc = alloc;
-	si.buffer = si.maxCompSize ? alloc->alloc(nBytes + sizeof(DataHeader)) : alloc->alloc(nBytes + sizeof(DataHeader)) + sizeof(DataHeader);
+	si.buffer = si.maxCompSize ? alloc->alloc(nBytes + sizeof(DataHeader)) : (alloc->alloc(nBytes + sizeof(DataHeader)) + sizeof(DataHeader));
 	return si;
 }
 
@@ -211,7 +211,6 @@ WSABufSend BufSendAlloc::CreateBuff(const BuffSendInfo& buffSendInfo, DWORD nByt
 	buf.Initialize(nBytesSend + sizeof(DataHeader), dest, buffer);
 	return buf;
 }
-
 void BufSendAlloc::FreeBuff(WSABufSend& buff)
 {
 	buff.alloc->dealloc(buff.head, buff.len);

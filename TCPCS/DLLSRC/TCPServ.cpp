@@ -300,7 +300,6 @@ void HostSocket::AcceptData::GetAcceptExAddrs(sockaddr** local, int* localLen, s
 	Socket::GetAcceptExAddrs(buffer, localAddrLen, remoteAddrLen, local, localLen, remote, remoteLen);
 }
 
-
 static DWORD CALLBACK IOCPThread(LPVOID info)
 {
 	IOCP& iocp = *(IOCP*)info;
@@ -899,8 +898,10 @@ void TCPServ::AddClient(Socket pc)
 
 	if (sockOpts.NoDelay())
 		pc.SetNoDelay(true);
-	if (sockOpts.UseOwnBuf())
+	if (sockOpts.UseOwnSBuf())
 		pc.SetTCPSendStack();
+	if (sockOpts.UseOwnRBuf())
+		pc.SetTCPRecvStack();
 
 	iocp->LinkHandle((HANDLE)pc.GetSocket(), cd);
 

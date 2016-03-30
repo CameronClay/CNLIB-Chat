@@ -4,7 +4,6 @@
 #include "CNLIB/MsgStream.h"
 #include "CNLIB/File.h"
 
-
 //To do: have only one compressed buffer
 RecvHandler::RecvHandler(const BufferOptions& buffOpts, UINT initialCap, RecvObserverI* observer)
 	:
@@ -18,7 +17,6 @@ RecvHandler::RecvHandler(const BufferOptions& buffOpts, UINT initialCap, RecvObs
 	savedBuff(),
 	observer(observer)
 {}
-
 RecvHandler::RecvHandler(RecvHandler&& recvHandler)
 	:
 	recvBuffPool(std::move(recvHandler.recvBuffPool)),
@@ -94,7 +92,6 @@ bool RecvHandler::RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& 
 	
 	return true;
 }
-
 char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& buffOpts, void* obj)
 {
 	WSABufRecv& srcBuff = *curBuff;
@@ -196,7 +193,6 @@ char* RecvHandler::Process(char* ptr, WSABufRecv& buff, DWORD bytesToRecv, const
 	observer->OnNotify(ptr, header.size.up.nBytesDecomp, obj);
 	return ptr + bytesToRecv;
 }
-
 DWORD RecvHandler::AppendBuffer(char* ptr, WSABufRecv& srcBuff, WSABufRecv& destBuff, DWORD bytesToRecv, DWORD bytesTrans)
 {
 	const DWORD temp = min(bytesToRecv - destBuff.curBytes, bytesTrans);
@@ -214,7 +210,6 @@ void RecvHandler::SaveBuff(const WSABufRecv& buff, bool newBuff, const BufferOpt
 	savedBuff = buff;
 }
 
-
 WSABufRecv RecvHandler::CreateBuffer(const BufferOptions& buffOpts)
 {
 	char* temp = recvBuffPool.alloc<char>();
@@ -222,7 +217,6 @@ WSABufRecv RecvHandler::CreateBuffer(const BufferOptions& buffOpts)
 	buff.Initialize(buffOpts.GetMaxDatBuffSize(), temp, temp);
 	return buff;
 }
-
 void RecvHandler::FreeBuffer(WSABufRecv& buff)
 {
 	if (recvBuffPool.InPool(buff.head))

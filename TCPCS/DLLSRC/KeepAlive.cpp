@@ -35,7 +35,6 @@ KeepAliveHandler::KeepAliveData::KeepAliveData(KeepAliveHI* keepAliveHI, KeepAli
 	keepAliveHI(keepAliveHI),
 	keepAliveHandler(keepAliveHandler)
 {}
-
 KeepAliveHandler::KeepAliveData::KeepAliveData(KeepAliveData&& keepAliveData)
 	:
 	keepAliveHI(keepAliveData.keepAliveHI),
@@ -43,8 +42,6 @@ KeepAliveHandler::KeepAliveData::KeepAliveData(KeepAliveData&& keepAliveData)
 {
 	ZeroMemory(&keepAliveData, sizeof(KeepAliveData));
 }
-
-
 auto KeepAliveHandler::KeepAliveData::operator=(KeepAliveData&& data) -> KeepAliveData&
 {
 	if(this != &data)
@@ -65,7 +62,6 @@ KeepAliveHandler::KeepAliveHandler(KeepAliveHI* keepAliveHI)
 	keepAliveID(NULL),
 	keepAliveData(construct<KeepAliveData>(keepAliveHI, this))
 {}
-
 KeepAliveHandler::KeepAliveHandler(KeepAliveHandler&& keepAlive)
 	:
 	keepAliveTimer(keepAlive.keepAliveTimer),
@@ -92,7 +88,6 @@ KeepAliveHandler& KeepAliveHandler::operator=(KeepAliveHandler&& data)
 	}
 	return *this;
 }
-
 KeepAliveHandler& KeepAliveHandler::operator=(const KeepAliveHandler& data)
 {
 	if(this != &data)
@@ -135,7 +130,6 @@ void KeepAliveHandler::SetKeepAliveTimer(float interval)
 	if(!keepAliveThread)
 		keepAliveThread = CreateThread(NULL, 0, KeepAliveThread, keepAliveData, NULL, &keepAliveID);
 }
-
 HANDLE KeepAliveHandler::GetKeepAliveTimer() const
 {
 	return keepAliveTimer;

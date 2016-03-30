@@ -216,14 +216,14 @@ private:
 	const UINT maxCon; //max clients
 	float keepAliveInterval; //interval at which server keepalives clients
 	KeepAliveHandler* keepAliveHandler; //handles all KeepAlives to client, to prevent timeout
-	BufSendAlloc bufSendAlloc;
-	MemPool<HeapAllocator> clientPool;
+	BufSendAlloc bufSendAlloc; //handles send buffer allocation
+	MemPool<HeapAllocator> clientPool; //handles allocation of clients
 	MemPoolSync<PageAllignAllocator> sendOlInfoPool, sendOlPoolAll; //Used to help speed up allocation of structures needed to send Ol data, single pool is backup for per client pool
 	std::atomic<UINT> opCounter; //Used to keep track of number of asynchronous operations
 	HANDLE shutdownEv; //Set when opCounter reaches 0, to notify shutdown it is okay to close iocp
 	void* obj; //passed to function/msgHandler for oop programming
-	SocketOptions sockOpts;
-	bool shuttingDown;
+	SocketOptions sockOpts; //sockets options
+	bool shuttingDown; //shutting down?
 };
 
 typedef TCPServ::ClientDataEx ClientDataEx;
