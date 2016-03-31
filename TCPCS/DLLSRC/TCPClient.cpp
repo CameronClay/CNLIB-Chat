@@ -5,9 +5,9 @@
 #include "CNLIB/File.h"
 #include "CNLIB/MsgHeader.h"
 
-TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, UINT maxSendOps, UINT maxDataBuffSize, UINT olCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, UINT maxCon, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
+TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, UINT maxSendOps, UINT maxDataBuffSize, UINT olCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
 {
-	return construct<TCPClient>(msgHandler, disconFunc, maxSendOps, maxDataBuffSize, olCount, sendBuffCount, sendMsgBuffCount, sendMsgBuffCount, maxCon, compression, compressionCO, keepAliveInterval, sockOpts, obj);
+	return construct<TCPClient>(msgHandler, disconFunc, maxSendOps, maxDataBuffSize, olCount, sendBuffCount, sendMsgBuffCount, sendMsgBuffCount, compression, compressionCO, keepAliveInterval, sockOpts, obj);
 }
 
 void DestroyClient(TCPClientInterface*& client)
@@ -123,7 +123,7 @@ void TCPClient::FreeSendOl(OverlappedSendSingle* ol)
 		SetEvent(shutdownEv);
 }
 
-TCPClient::TCPClient(cfunc func, dcfunc disconFunc, UINT maxSendOps, UINT maxDataBuffSize, UINT olCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, UINT maxCon, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
+TCPClient::TCPClient(cfunc func, dcfunc disconFunc, UINT maxSendOps, UINT maxDataBuffSize, UINT olCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
 	:
 	function(func),
 	disconFunc(disconFunc),
@@ -140,9 +140,7 @@ TCPClient::TCPClient(cfunc func, dcfunc disconFunc, UINT maxSendOps, UINT maxDat
 	sockOpts(sockOpts),
 	obj(obj),
 	shuttingDown(false)
-{
-
-}
+{}
 TCPClient::TCPClient(TCPClient&& client)
 	:
 	host(client.host),

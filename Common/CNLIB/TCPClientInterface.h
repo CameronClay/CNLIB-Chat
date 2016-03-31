@@ -43,5 +43,5 @@ public:
 	virtual void* GetObj() const = 0;
 };
 
-CAMSNETLIB TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, UINT maxSendOps = 5, UINT maxDataBuffSize = 4096, UINT olCount = 10, UINT sendBuffCount = 8, UINT sendCompBuffCount = 2, UINT sendMsgBuffCount = 2, UINT maxCon = 20, int compression = 9, int compressionCO = 2048, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);
+CAMSNETLIB TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, UINT maxSendOps = 5, UINT maxDataBuffSize = 4096, UINT olCount = 10, UINT sendBuffCount = 8, UINT sendCompBuffCount = 2, UINT sendMsgBuffCount = 2, int compression = 9, int compressionCO = 2048, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);
 CAMSNETLIB void DestroyClient(TCPClientInterface*& client);
