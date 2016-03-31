@@ -412,7 +412,7 @@ void TCPServ::FreeSendOlSingle(ClientDataEx& client, OverlappedSendSingle* ol)
 
 BuffSendInfo TCPServ::GetSendBuffer(DWORD hiByteEstimate, CompressionType compType)
 {
-	return bufSendAlloc.GetSendBuffer(hiByteEstimate);
+	return bufSendAlloc.GetSendBuffer(hiByteEstimate, compType);
 }
 BuffSendInfo TCPServ::GetSendBuffer(BuffAllocator* alloc, DWORD nBytes, CompressionType compType)
 {

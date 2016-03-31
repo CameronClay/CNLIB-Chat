@@ -105,11 +105,7 @@ KeepAliveHandler& KeepAliveHandler::operator=(const KeepAliveHandler& data)
 KeepAliveHandler::~KeepAliveHandler()
 {
 	if(keepAliveTimer)
-	{
 		CancelWaitableTimer(keepAliveTimer);
-		CloseHandle(keepAliveTimer);
-		keepAliveTimer = NULL;
-	}
 
 	if(keepAliveThread)
 	{
@@ -117,6 +113,12 @@ KeepAliveHandler::~KeepAliveHandler()
 		WaitForSingleObject(keepAliveThread, INFINITE);
 		CloseHandle(keepAliveThread);
 		keepAliveThread = NULL;
+	}
+
+	if (keepAliveTimer)
+	{
+		CloseHandle(keepAliveTimer);
+		keepAliveTimer = NULL;
 	}
 
 	destruct(keepAliveData);

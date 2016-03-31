@@ -251,7 +251,7 @@ void TCPClient::Shutdown()
 
 BuffSendInfo TCPClient::GetSendBuffer(DWORD hiByteEstimate, CompressionType compType)
 {
-	return bufSendAlloc.GetSendBuffer(hiByteEstimate);
+	return bufSendAlloc.GetSendBuffer(hiByteEstimate, compType);
 }
 BuffSendInfo TCPClient::GetSendBuffer(BuffAllocator* alloc, DWORD nBytes, CompressionType compType)
 {

@@ -150,7 +150,7 @@ BuffSendInfo BufSendAlloc::GetSendBuffer(BuffAllocator* alloc, DWORD nBytes, Com
 
 MsgStreamWriter BufSendAlloc::CreateOutStream(DWORD hiByteEstimate, short type, short msg, CompressionType compType)
 {
-	return{ GetSendBuffer(hiByteEstimate + MSG_OFFSET), hiByteEstimate, type, msg };
+	return{ GetSendBuffer(hiByteEstimate + MSG_OFFSET, compType), hiByteEstimate, type, msg };
 }
 MsgStreamWriter BufSendAlloc::CreateOutStream(BuffAllocator* alloc, DWORD nBytes, short type, short msg, CompressionType compType)
 {
