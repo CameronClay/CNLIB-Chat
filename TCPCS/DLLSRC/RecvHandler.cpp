@@ -84,10 +84,6 @@ bool RecvHandler::RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& 
 			curBuff->used = false;
 			return false;
 		}
-		if (bytesTrans)
-		{
-			int a = 0;
-		}
 	} while (bytesTrans);
 
 	std::swap(curBuff, nextBuff);
@@ -108,7 +104,7 @@ char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& b
 			const DWORD temp = min(sizeof(DataHeader) - savedBuff.curBytes, bytesTrans);
 			memcpy(savedBuff.head + savedBuff.curBytes, ptr, temp);
 
-			savedBuff.curBytes += temp;
+			//savedBuff.curBytes += temp;
 			bytesTrans -= temp;
 			if (savedBuff.curBytes < sizeof(DataHeader))
 			{
@@ -116,7 +112,8 @@ char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& b
 				return ptr + temp;
 			}
 
-			savedBuff.curBytes -= sizeof(DataHeader);
+			//savedBuff.curBytes -= sizeof(DataHeader);
+			savedBuff.curBytes = 0;
 		}
 
 		DataHeader& header = *(DataHeader*)savedBuff.head;
