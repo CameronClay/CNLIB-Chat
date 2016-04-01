@@ -93,7 +93,12 @@ void TCPClient::SendDataCR(OverlappedSendSingle* ol)
 
 	//If there are per client operations pending then attempt to complete them
 	if (!opsPending.empty())
-		SendServData(opsPending.front(), true);
+	{
+		queueLock.Lock();
+		if (!opsPending.empty())
+			SendServData(opsPending.front(), true);
+		queueLock.Unlock();
+	}
 }
 
 void TCPClient::CleanupRecvData()
@@ -110,14 +115,6 @@ void TCPClient::FreeSendOl(OverlappedSendSingle* ol)
 {
 	bufSendAlloc.FreeBuff(ol->sendBuff);
 	olPool.dealloc(ol);
-
-	//If there are per client operations pending then attempt to complete them
-	if (!opsPending.empty())
-	{
-		queueLock.Lock();
-		SendServData(opsPending.front(), true);
-		queueLock.Unlock();
-	}
 
 	if (--opCounter == 0)
 		SetEvent(shutdownEv);
@@ -292,6 +289,9 @@ bool TCPClient::SendServData(const WSABufSend& sendBuff, bool popQueue)
 }
 bool TCPClient::SendServData(OverlappedSendSingle* ol, bool popQueue)
 {
+	if (shuttingDown)
+		return false;
+
 	if (host.IsConnected())
 	{
 		if (opCounter.load() < maxSendOps)

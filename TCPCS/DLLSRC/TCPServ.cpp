@@ -470,6 +470,9 @@ bool TCPServ::SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, Cli
 
 bool TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSendSingle* ol, bool popQueue)
 {
+	if (shuttingDown)
+		return false;
+
 	if (clint.pc.IsConnected())
 	{
 		if (clint.opCount.load() < maxPCSendOps)
@@ -511,7 +514,7 @@ bool TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSendSingle* ol, bo
 			clint.opsPending.emplace(ol);
 		}
 	}
-	else
+	else if (!popQueue)
 	{
 		FreeSendOlSingle(clint, ol);
 
@@ -524,7 +527,7 @@ bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient,
 {
 	long res = 0, err = 0;
 
-	if (!sendBuff.head)
+	if (shuttingDown || !sendBuff.head)
 		return false;
 
 	if (single)
@@ -591,7 +594,7 @@ bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients,
 {
 	long res = 0, err = 0;
 
-	if (!sendBuff.head)
+	if (shuttingDown || !sendBuff.head)
 		return false;
 
 	if (!(clients && nClients))
@@ -706,10 +709,11 @@ void TCPServ::SendDataSingleCR(ClientDataEx& cd, OverlappedSendSingle* ol)
 	FreeSendOlSingle(cd, ol);
 
 	//If there are per client operations pending then attempt to complete them
-	if (!cd.opsPending.empty() && cd.state != cd.closing)
+	if (cd.state != ClientDataEx::closing && !cd.opsPending.empty())
 	{
 		cd.lock.Lock();
-		SendClientSingle(cd, cd.opsPending.front(), true);
+		if (!cd.opsPending.empty())
+			SendClientSingle(cd, cd.opsPending.front(), true);
 		cd.lock.Unlock();
 	}
 
@@ -980,9 +984,7 @@ void TCPServ::Shutdown()
 
 		//Cancel all outstanding operations
 		for (ClientDataEx **ptr = clients, **end = clients + nClients; ptr != end; ptr++)
-		{
-			(*ptr)->pc.Disconnect();
-		}
+			DisconnectClient(*ptr);
 
 		clientLock.Unlock();
 

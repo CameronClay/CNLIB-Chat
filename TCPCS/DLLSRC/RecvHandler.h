@@ -24,7 +24,7 @@ private:
 	char* RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& buffOpts, void* obj);
 	char* Process(char* ptr, WSABufRecv& buff, DWORD bytesToRecv, const DataHeader& header, const BufferOptions& buffOpts, void* obj);
 
-	DWORD AppendBuffer(char* ptr, WSABufRecv& srcBuff, WSABufRecv& destBuff, DWORD bytesToRecv, DWORD bytesTrans);
+	DWORD AppendBuffer(char* ptr, WSABufRecv& srcBuff, WSABufRecv& destBuff, DWORD& amountAppended, DWORD bytesToRecv, DWORD bytesTrans);
 
 	WSABufRecv CreateBuffer(const BufferOptions& buffOpts);
 	void SaveBuff(const WSABufRecv& buff, bool newBuff, const BufferOptions& buffOpts);
