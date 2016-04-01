@@ -10,8 +10,8 @@ RecvHandler::RecvHandler(const BufferOptions& buffOpts, UINT initialCap, RecvObs
 	recvBuffPool(buffOpts.GetMaxDatBuffSize(), initialCap + 1, buffOpts.GetPageSize()),  //only need maxDataSize, because compData buffer takes care of decompression
 	decompData(recvBuffPool.alloc<char>()),
 	ol(OpType::recv),
-	primaryBuff(CreateBuffer(buffOpts)),
-	secondaryBuff(CreateBuffer(buffOpts)),
+	primaryBuff(CreateBuffer(buffOpts, false)),
+	secondaryBuff(CreateBuffer(buffOpts, false)),
 	curBuff(&primaryBuff),
 	nextBuff(&secondaryBuff),
 	savedBuff(),
@@ -227,14 +227,15 @@ void RecvHandler::SaveBuff(const WSABufRecv& buff, bool newBuff, const BufferOpt
 	savedBuff = buff;
 
 	if (newBuff)
-		*curBuff = CreateBuffer(buffOpts);
+		*curBuff = CreateBuffer(buffOpts, true);
 }
 
-WSABufRecv RecvHandler::CreateBuffer(const BufferOptions& buffOpts)
+WSABufRecv RecvHandler::CreateBuffer(const BufferOptions& buffOpts, bool used)
 {
 	char* temp = recvBuffPool.alloc<char>();
 	WSABufRecv buff;
 	buff.Initialize(buffOpts.GetMaxDatBuffSize(), temp, temp);
+	buff.used = used;
 	return buff;
 }
 void RecvHandler::FreeBuffer(WSABufRecv& buff)

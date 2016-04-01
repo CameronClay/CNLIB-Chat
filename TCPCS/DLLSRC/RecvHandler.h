@@ -26,7 +26,7 @@ private:
 
 	DWORD AppendBuffer(char* ptr, WSABufRecv& srcBuff, WSABufRecv& destBuff, DWORD& amountAppended, DWORD bytesToRecv, DWORD bytesTrans);
 
-	WSABufRecv CreateBuffer(const BufferOptions& buffOpts);
+	WSABufRecv CreateBuffer(const BufferOptions& buffOpts, bool used);
 	void SaveBuff(const WSABufRecv& buff, bool newBuff, const BufferOptions& buffOpts);
 	void FreeBuffer(WSABufRecv& buff);
 
