@@ -114,8 +114,6 @@ void ClientDataEx::DecOpCount()
 {
 	if (--opCount == 0)
 		serv.RemoveClient(this, state != closing);
-	else if (serv.ShuttingDown())
-		DebugBreak();
 }
 void ClientDataEx::FreePendingOps()
 {
@@ -355,9 +353,6 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 					((TCPServ::OverlappedAccept*)ol)->acceptData->AcceptConCR();
 				}
 				break;
-				default:
-					DebugBreak();
-					break;
 			}
 		}
 		else
@@ -389,15 +384,6 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 					/*HostSocket& hostSocket = *(HostSocket*)key;
 					hostSocket.serv.CleanupAcceptEx(hostSocket);*/
 				}
-				else
-				{
-					DebugBreak();
-				}
-			}
-			else
-			{
-				//Error
-				DebugBreak();
 			}
 		}
 	} while (res);
