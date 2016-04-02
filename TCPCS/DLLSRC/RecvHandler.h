@@ -7,6 +7,7 @@
 #include "OverlappedExt.h"
 #include "CNLIB/MsgHeader.h"
 #include "RecvObserverI.h"
+#include "CNLIB/CritLock.h"
 
 class RecvHandler
 {
@@ -22,9 +23,9 @@ public:
 	bool RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& buffOpts, void* obj = nullptr);
 private:
 	char* RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& buffOpts, void* obj);
-	char* Process(char* ptr, WSABufRecv& buff, DWORD bytesToRecv, const DataHeader& header, const BufferOptions& buffOpts, void* obj);
+	char* Process(char* ptr, DWORD bytesToRecv, const DataHeader& header, const BufferOptions& buffOpts, void* obj);
 
-	DWORD AppendBuffer(char* ptr, WSABufRecv& srcBuff, WSABufRecv& destBuff, DWORD& amountAppended, DWORD bytesToRecv, DWORD bytesTrans);
+	DWORD AppendBuffer(char* ptr, WSABufRecv& destBuff, DWORD& amountAppended, DWORD bytesToRecv, DWORD bytesTrans);
 
 	WSABufRecv CreateBuffer(const BufferOptions& buffOpts, bool used);
 	void SaveBuff(const WSABufRecv& buff, bool newBuff, const BufferOptions& buffOpts);

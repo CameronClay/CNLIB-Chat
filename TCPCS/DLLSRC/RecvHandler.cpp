@@ -104,31 +104,34 @@ char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& b
 			const DWORD temp = min(sizeof(DataHeader) - savedBuff.curBytes, bytesTrans);
 			memcpy(savedBuff.head + savedBuff.curBytes, ptr, temp);
 
-			//savedBuff.curBytes += temp;
 			bytesTrans -= temp;
+			ptr += temp;
+			savedBuff.curBytes += temp;
+
 			if (savedBuff.curBytes < sizeof(DataHeader))
 			{
 				bytesTrans = 0;
-				return ptr + temp;
+				return ptr;
 			}
 
 			//savedBuff.curBytes -= sizeof(DataHeader);
 			savedBuff.curBytes = 0;
 		}
 
+		DWORD amountAppended = 0;
 		DataHeader& header = *(DataHeader*)savedBuff.head;
 		const DWORD bytesToRecv = ((header.size.up.nBytesComp) ? header.size.up.nBytesComp : header.size.up.nBytesDecomp);
-		DWORD amountAppended = 0;
-		bytesTrans = AppendBuffer(ptr, srcBuff, savedBuff, amountAppended, bytesToRecv, bytesTrans);
+		bytesTrans = AppendBuffer(ptr, savedBuff, amountAppended, bytesToRecv, bytesTrans);
+		ptr += amountAppended;
 
 		if (savedBuff.curBytes >= bytesToRecv)
 		{
-			Process(savedBuff.head + sizeof(DataHeader), savedBuff, bytesToRecv, header, buffOpts, obj);
+			Process(savedBuff.head + sizeof(DataHeader), bytesToRecv, header, buffOpts, obj);
 
 			FreeBuffer(savedBuff);
 			srcBuff.curBytes = 0;
 
-			return ptr + amountAppended;
+			return ptr;
 		}
 
 		return ptr;
@@ -158,7 +161,7 @@ char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& b
 
 			srcBuff.curBytes = 0;
 	
-			return Process(ptr, srcBuff, bytesToRecv, header, buffOpts, obj);
+			return Process(ptr, bytesToRecv, header, buffOpts, obj);
 		}
 
 		if (bytesToRecv <= buffOpts.GetMaxDatBuffSize())
@@ -186,7 +189,7 @@ char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& b
 	}
 }
 
-char* RecvHandler::Process(char* ptr, WSABufRecv& buff, DWORD bytesToRecv, const DataHeader& header, const BufferOptions& buffOpts, void* obj)
+char* RecvHandler::Process(char* ptr, DWORD bytesToRecv, const DataHeader& header, const BufferOptions& buffOpts, void* obj)
 {
 	//If data was compressed
 	if (header.size.up.nBytesComp)
@@ -210,7 +213,7 @@ char* RecvHandler::Process(char* ptr, WSABufRecv& buff, DWORD bytesToRecv, const
 	observer->OnNotify(ptr, header.size.up.nBytesDecomp, obj);
 	return ptr + bytesToRecv;
 }
-DWORD RecvHandler::AppendBuffer(char* ptr, WSABufRecv& srcBuff, WSABufRecv& destBuff, DWORD& amountAppended, DWORD bytesToRecv, DWORD bytesTrans)
+DWORD RecvHandler::AppendBuffer(char* ptr, WSABufRecv& destBuff, DWORD& amountAppended, DWORD bytesToRecv, DWORD bytesTrans)
 {
 	const DWORD temp = amountAppended = min(bytesToRecv - destBuff.curBytes, bytesTrans);
 	memcpy(destBuff.head + destBuff.curBytes + sizeof(DataHeader), ptr, temp);
