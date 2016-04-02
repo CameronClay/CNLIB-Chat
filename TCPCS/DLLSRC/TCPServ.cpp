@@ -884,7 +884,7 @@ void TCPServ::AddClient(Socket pc)
 
 	iocp->LinkHandle((HANDLE)pc.GetSocket(), cd);
 
-	if (!cd->recvHandler.StartRead(pc))
+	if (!cd->recvHandler.StartRecv(pc))
 		cd->DecOpCount();
 
 	RunConFunc(cd);

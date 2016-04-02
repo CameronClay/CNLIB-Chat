@@ -59,11 +59,11 @@ public:
 	void Shutdown();
 	void Disconnect();
 
-	long ReadData(void* dest, DWORD nBytes);
+	long RecvData(void* dest, DWORD nBytes);
 	long SendData(const void* data, DWORD nBytes);
 
 	bool AcceptOl(SOCKET acceptSocket, void* infoBuffer, DWORD localAddrLen, DWORD remoteAddrLen, OVERLAPPED* ol);
-	long ReadDataOl(WSABUF* buffer, OVERLAPPED* ol, DWORD flags = 0, UINT bufferCount = 1, LPWSAOVERLAPPED_COMPLETION_ROUTINE cr = NULL);
+	long RecvDataOl(WSABUF* buffer, OVERLAPPED* ol, DWORD flags = 0, UINT bufferCount = 1, LPWSAOVERLAPPED_COMPLETION_ROUTINE cr = NULL);
 	long SendDataOl(WSABUF* buffer, OVERLAPPED* ol, DWORD flags = 0, UINT bufferCount = 1, LPWSAOVERLAPPED_COMPLETION_ROUTINE cr = NULL);
 
 	bool IsConnected() const;

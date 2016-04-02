@@ -58,11 +58,16 @@ RecvHandler& RecvHandler::operator=(RecvHandler&& recvHandler)
 	return *this;
 }
 
-bool RecvHandler::StartRead(Socket& pc)
+bool RecvHandler::StartRecv(Socket& pc, WSABufRecv* buff)
 {
-	long res = pc.ReadDataOl(curBuff, &ol);
+	long res = pc.RecvDataOl(buff, &ol);
 	int err = WSAGetLastError();
 	return !((res == SOCKET_ERROR) && (err != WSA_IO_PENDING));
+}
+
+bool RecvHandler::StartRecv(Socket& pc)
+{
+	return StartRecv(pc, curBuff);
 }
 
 bool RecvHandler::RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& buffOpts, void* obj)
@@ -75,9 +80,12 @@ bool RecvHandler::RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& 
 
 	curBuff->used = true;
 
-	long res = pc.ReadDataOl(nextBuff, &ol);
+	/*long res = pc.ReadDataOl(nextBuff, &ol);
 	int err = WSAGetLastError();
 	if ((res == SOCKET_ERROR) && (err != WSA_IO_PENDING))
+		return false;*/
+
+	if (!StartRecv(pc, nextBuff))
 		return false;
 
 	char* ptr = curBuff->head;

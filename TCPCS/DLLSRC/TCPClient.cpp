@@ -368,7 +368,7 @@ bool TCPClient::RecvServData(DWORD nThreads, DWORD nConcThreads)
 
 	++opCounter; //For recv
 
-	recvHandler.StartRead(host);
+	recvHandler.StartRecv(host);
 
 	shutdownEv = CreateEvent(NULL, TRUE, FALSE, NULL);
 

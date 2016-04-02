@@ -210,7 +210,7 @@ void Socket::Disconnect()
 }
 
 
-long Socket::ReadData(void* dest, DWORD nBytes)
+long Socket::RecvData(void* dest, DWORD nBytes)
 {
 #if NTDDI_VERSION >= NTDDI_VISTA
 	return recv(pc, (char*)dest, nBytes, MSG_WAITALL);
@@ -243,7 +243,7 @@ bool Socket::AcceptOl(SOCKET acceptSocket, void* infoBuffer, DWORD localAddrLen,
 	return AcceptEx(pc, acceptSocket, infoBuffer, 0, localAddrLen, remoteAddrLen, NULL, ol);
 }
 
-long Socket::ReadDataOl(WSABUF* buffer, OVERLAPPED* ol, DWORD flags, UINT bufferCount, LPWSAOVERLAPPED_COMPLETION_ROUTINE cr)
+long Socket::RecvDataOl(WSABUF* buffer, OVERLAPPED* ol, DWORD flags, UINT bufferCount, LPWSAOVERLAPPED_COMPLETION_ROUTINE cr)
 {
 	return WSARecv(pc, buffer, bufferCount, NULL, &flags, ol, cr);
 }

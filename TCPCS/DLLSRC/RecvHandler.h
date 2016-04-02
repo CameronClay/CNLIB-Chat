@@ -17,12 +17,13 @@ public:
 
 	RecvHandler& operator=(RecvHandler&& recvHandler);
 
-	bool StartRead(Socket& pc);
+	bool StartRecv(Socket& pc);
 
 	bool RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& buffOpts, void* obj = nullptr);
 
 	void Reset();
 private:
+	bool StartRecv(Socket& pc, WSABufRecv* buff);
 	char* RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& buffOpts, void* obj);
 	char* Process(char* ptr, DWORD bytesToRecv, const DataHeader& header, const BufferOptions& buffOpts, void* obj);
 
