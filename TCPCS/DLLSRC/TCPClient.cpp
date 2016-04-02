@@ -107,8 +107,7 @@ void TCPClient::CleanupRecvData()
 
 	RunDisconFunc();
 
-	if (--opCounter == 0)
-		SetEvent(shutdownEv);
+	DecOpCount();
 }
 
 void TCPClient::FreeSendOl(OverlappedSendSingle* ol)
@@ -116,8 +115,7 @@ void TCPClient::FreeSendOl(OverlappedSendSingle* ol)
 	bufSendAlloc.FreeBuff(ol->sendBuff);
 	olPool.dealloc(ol);
 
-	if (--opCounter == 0)
-		SetEvent(shutdownEv);
+	DecOpCount();
 }
 
 TCPClient::TCPClient(cfunc func, dcfunc disconFunc, UINT maxSendOps, UINT maxDataBuffSize, UINT olCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
@@ -328,6 +326,12 @@ bool TCPClient::SendServData(OverlappedSendSingle* ol, bool popQueue)
 	}
 
 	return true;
+}
+
+void TCPClient::DecOpCount()
+{
+	if (--opCounter == 0)
+		SetEvent(shutdownEv);
 }
 
 void TCPClient::SendMsg(short type, short message)

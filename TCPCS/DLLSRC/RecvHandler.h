@@ -21,6 +21,8 @@ public:
 	void StartRead(Socket& pc);
 
 	bool RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& buffOpts, void* obj = nullptr);
+
+	void Reset();
 private:
 	char* RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& buffOpts, void* obj);
 	char* Process(char* ptr, DWORD bytesToRecv, const DataHeader& header, const BufferOptions& buffOpts, void* obj);

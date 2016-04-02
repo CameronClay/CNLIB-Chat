@@ -93,6 +93,7 @@ bool RecvHandler::RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& 
 	
 	return true;
 }
+
 char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& buffOpts, void* obj)
 {
 	WSABufRecv& srcBuff = *curBuff;
@@ -113,25 +114,23 @@ char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& b
 				bytesTrans = 0;
 				return ptr;
 			}
-
-			//savedBuff.curBytes -= sizeof(DataHeader);
-			savedBuff.curBytes = 0;
 		}
 
-		DWORD amountAppended = 0;
 		DataHeader& header = *(DataHeader*)savedBuff.head;
 		const DWORD bytesToRecv = ((header.size.up.nBytesComp) ? header.size.up.nBytesComp : header.size.up.nBytesDecomp);
+		if ((bytesToRecv == MAXDWORD) || (bytesToRecv == 0)) //unrecoverable error
+			return nullptr;
+
+		DWORD amountAppended = 0;
 		bytesTrans = AppendBuffer(ptr, savedBuff, amountAppended, bytesToRecv, bytesTrans);
 		ptr += amountAppended;
 
-		if (savedBuff.curBytes >= bytesToRecv)
+		if (savedBuff.curBytes - sizeof(DataHeader) >= bytesToRecv)
 		{
 			Process(savedBuff.head + sizeof(DataHeader), bytesToRecv, header, buffOpts, obj);
 
 			FreeBuffer(savedBuff);
 			srcBuff.curBytes = 0;
-
-			return ptr;
 		}
 
 		return ptr;
@@ -147,11 +146,13 @@ char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& b
 			SaveBuff(srcBuff, true, buffOpts);
 
 			bytesTrans = 0;
-			return ptr;		
+			return ptr;
 		}
 
 		DataHeader& header = *(DataHeader*)ptr;
 		const DWORD bytesToRecv = ((header.size.up.nBytesComp) ? header.size.up.nBytesComp : header.size.up.nBytesDecomp);
+		if ((bytesToRecv == MAXDWORD) || (bytesToRecv == 0)) //unrecoverable error
+			return nullptr;
 
 		//If there is a full data block ready for processing
 		if (bytesTrans - sizeof(DataHeader) >= bytesToRecv)
@@ -160,7 +161,7 @@ char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& b
 			ptr += sizeof(DataHeader);
 
 			srcBuff.curBytes = 0;
-	
+
 			return Process(ptr, bytesToRecv, header, buffOpts, obj);
 		}
 
@@ -170,7 +171,7 @@ char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& b
 			if (srcBuff.head != ptr)
 				memcpy(srcBuff.head, ptr, bytesTrans);
 
-			srcBuff.curBytes = bytesTrans - sizeof(DataHeader);
+			srcBuff.curBytes = bytesTrans;
 			SaveBuff(srcBuff, true, buffOpts);
 		}
 		else
@@ -179,7 +180,7 @@ char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& b
 			memcpy(buffer, ptr, bytesTrans);
 
 			WSABufRecv buff;
-			buff.Initialize(bytesToRecv, buffer, buffer, bytesTrans - sizeof(DataHeader));
+			buff.Initialize(bytesToRecv, buffer, buffer, bytesTrans);
 
 			SaveBuff(buff, false, buffOpts);
 		}
@@ -187,6 +188,18 @@ char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& b
 		bytesTrans = 0;
 		return ptr;
 	}
+}
+
+void RecvHandler::Reset()
+{
+	curBuff->curBytes = 0;
+	curBuff->used = false;
+
+	nextBuff->curBytes = 0;
+	nextBuff->used = false;
+
+	if (savedBuff.head)
+		FreeBuffer(savedBuff);
 }
 
 char* RecvHandler::Process(char* ptr, DWORD bytesToRecv, const DataHeader& header, const BufferOptions& buffOpts, void* obj)
@@ -209,14 +222,19 @@ char* RecvHandler::Process(char* ptr, DWORD bytesToRecv, const DataHeader& heade
 		return nullptr;  //return nullptr if compression failed
 	}
 
+	if (*(short*)ptr != -1)
+	{
+		int a = 0;
+	}
+
 	//If data was not compressed
 	observer->OnNotify(ptr, header.size.up.nBytesDecomp, obj);
 	return ptr + bytesToRecv;
 }
 DWORD RecvHandler::AppendBuffer(char* ptr, WSABufRecv& destBuff, DWORD& amountAppended, DWORD bytesToRecv, DWORD bytesTrans)
 {
-	const DWORD temp = amountAppended = min(bytesToRecv - destBuff.curBytes, bytesTrans);
-	memcpy(destBuff.head + destBuff.curBytes + sizeof(DataHeader), ptr, temp);
+	const DWORD temp = amountAppended = min(bytesToRecv + sizeof(DataHeader) - destBuff.curBytes, bytesTrans);
+	memcpy(destBuff.head + destBuff.curBytes, ptr, temp);
 	destBuff.curBytes += temp;
 
 	return bytesTrans - temp;

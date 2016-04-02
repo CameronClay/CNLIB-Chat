@@ -38,7 +38,7 @@ public:
 		CritLock lock;
 		std::queue<OverlappedSendSingle*> opsPending;
 
-		bool DecRefCount();
+		void DecOpCount();
 		void FreePendingOps();
 		void Cleanup();
 		void Reset(const Socket& pc, UINT arrayIndex);
@@ -202,6 +202,8 @@ private:
 	bool SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient, bool single);
 	bool SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients, UINT nClients);
 	bool SendClientSingle(ClientDataEx& clint, OverlappedSendSingle* ol, bool popQueue = false);
+
+	void DecOpCount();
 
 	HostSocket ipv4Host, ipv6Host; //host/listener sockets
 	ClientDataEx** clients; //array of clients

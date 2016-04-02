@@ -81,6 +81,8 @@ private:
 	bool SendServData(const WSABufSend& sendBuff, bool popQueue = false);
 	bool SendServData(OverlappedSendSingle* ol, bool popQueue = false);
 
+	void DecOpCount();
+
 	Socket host; //server/host you are connected to
 	cfunc function; //function/msgHandler
 	dcfunc disconFunc; //function called when disconnect occurs
