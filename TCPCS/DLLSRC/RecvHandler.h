@@ -39,4 +39,5 @@ private:
 	WSABufRecv primaryBuff, secondaryBuff, savedBuff;
 	WSABufRecv *curBuff, *nextBuff;
 	RecvObserverI* observer;
+	CritLock lock;
 };

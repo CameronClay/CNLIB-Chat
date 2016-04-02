@@ -65,6 +65,7 @@ void RecvHandler::StartRead(Socket& pc)
 
 bool RecvHandler::RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& buffOpts, void* obj)
 {
+	lock.Lock();
 	//spin for a bit if buffer is still being used
 	//or I guess could wrap entire thing in crit sect
 	//guess a sleep would be acceptable because it would wake another iocp thread
@@ -90,6 +91,8 @@ bool RecvHandler::RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& 
 
 	//nextBuff because of swap
 	nextBuff->used = false;
+
+	lock.Unlock();
 	
 	return true;
 }
@@ -220,11 +223,6 @@ char* RecvHandler::Process(char* ptr, DWORD bytesToRecv, const DataHeader& heade
 		}
 
 		return nullptr;  //return nullptr if compression failed
-	}
-
-	if (*(short*)ptr != -1)
-	{
-		int a = 0;
 	}
 
 	//If data was not compressed
