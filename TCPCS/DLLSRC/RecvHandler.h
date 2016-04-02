@@ -7,7 +7,6 @@
 #include "OverlappedExt.h"
 #include "CNLIB/MsgHeader.h"
 #include "RecvObserverI.h"
-#include "CNLIB/CritLock.h"
 
 class RecvHandler
 {
@@ -39,5 +38,4 @@ private:
 	WSABufRecv primaryBuff, secondaryBuff, savedBuff;
 	WSABufRecv *curBuff, *nextBuff;
 	RecvObserverI* observer;
-	CritLock lock;
 };
