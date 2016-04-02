@@ -17,7 +17,7 @@ public:
 
 	RecvHandler& operator=(RecvHandler&& recvHandler);
 
-	void StartRead(Socket& pc);
+	bool StartRead(Socket& pc);
 
 	bool RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& buffOpts, void* obj = nullptr);
 

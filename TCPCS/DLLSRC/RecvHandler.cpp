@@ -7,7 +7,7 @@
 //To do: have only one compressed buffer
 RecvHandler::RecvHandler(const BufferOptions& buffOpts, UINT initialCap, RecvObserverI* observer)
 	:
-	recvBuffPool(buffOpts.GetMaxDatBuffSize(), initialCap + 1, buffOpts.GetPageSize()),  //only need maxDataSize, because compData buffer takes care of decompression
+	recvBuffPool(buffOpts.GetMaxDataBuffSize(), initialCap + 1, buffOpts.GetPageSize()),  //only need maxDataSize, because compData buffer takes care of decompression
 	decompData(recvBuffPool.alloc<char>()),
 	ol(OpType::recv),
 	primaryBuff(CreateBuffer(buffOpts, false)),
@@ -58,9 +58,11 @@ RecvHandler& RecvHandler::operator=(RecvHandler&& recvHandler)
 	return *this;
 }
 
-void RecvHandler::StartRead(Socket& pc)
+bool RecvHandler::StartRead(Socket& pc)
 {
-	pc.ReadDataOl(curBuff, &ol);
+	long res = pc.ReadDataOl(curBuff, &ol);
+	int err = WSAGetLastError();
+	return !((res == SOCKET_ERROR) && (err != WSA_IO_PENDING));
 }
 
 bool RecvHandler::RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& buffOpts, void* obj)
@@ -73,17 +75,17 @@ bool RecvHandler::RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& 
 
 	curBuff->used = true;
 
-	pc.ReadDataOl(nextBuff, &ol);
+	long res = pc.ReadDataOl(nextBuff, &ol);
+	int err = WSAGetLastError();
+	if ((res == SOCKET_ERROR) && (err != WSA_IO_PENDING))
+		return false;
 
 	char* ptr = curBuff->head;
 
 	do
 	{
 		if (!(ptr = RecvData(bytesTrans, ptr, buffOpts, obj)))
-		{
-			curBuff->used = false;
 			return false;
-		}
 	} while (bytesTrans);
 
 	//set next buff used to true so other recv doesnt enter yet
@@ -167,7 +169,7 @@ char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& b
 			return Process(ptr, bytesToRecv, header, buffOpts, obj);
 		}
 
-		if (bytesToRecv <= buffOpts.GetMaxDatBuffSize())
+		if (bytesToRecv <= buffOpts.GetMaxDataSize())
 		{
 			//Concatenate remaining data to front of buffer
 			if (srcBuff.head != ptr)
@@ -249,7 +251,7 @@ WSABufRecv RecvHandler::CreateBuffer(const BufferOptions& buffOpts, bool used)
 {
 	char* temp = recvBuffPool.alloc<char>();
 	WSABufRecv buff;
-	buff.Initialize(buffOpts.GetMaxDatBuffSize(), temp, temp);
+	buff.Initialize(buffOpts.GetMaxDataBuffSize(), temp, temp);
 	buff.used = used;
 	return buff;
 }

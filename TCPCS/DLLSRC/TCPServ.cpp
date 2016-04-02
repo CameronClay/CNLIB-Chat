@@ -114,6 +114,8 @@ void ClientDataEx::DecOpCount()
 {
 	if (--opCount == 0)
 		serv.RemoveClient(this, state != closing);
+	else if (serv.ShuttingDown())
+		DebugBreak();
 }
 void ClientDataEx::FreePendingOps()
 {
@@ -326,12 +328,14 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 					if (bytesTrans == 0)
 					{
 						cd.DecOpCount();
-
 						break;
 					}
 
 					if (!cd.recvHandler.RecvDataCR(cd.pc, bytesTrans, cd.serv.GetBufferOptions(), (void*)key))
+					{
 						cd.serv.DisconnectClient(&cd); //if error with receiving data disconnect client to cause operations to cease
+						cd.DecOpCount();
+					}
 				}
 				break;
 				case OpType::send:
@@ -351,6 +355,9 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 					((TCPServ::OverlappedAccept*)ol)->acceptData->AcceptConCR();
 				}
 				break;
+				default:
+					DebugBreak();
+					break;
 			}
 		}
 		else
@@ -374,7 +381,7 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 					ClientDataEx* cd = (ClientDataEx*)key;
 					cd->DecOpCount();
 				}
-				else
+				else if (ol->opType == OpType::accept)
 				{
 					HostSocket& hostSocket = *(HostSocket*)key;
 					HostSocket::AcceptData::OverlappedAccept* olAccept = (HostSocket::AcceptData::OverlappedAccept*)ol;
@@ -382,11 +389,16 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 					/*HostSocket& hostSocket = *(HostSocket*)key;
 					hostSocket.serv.CleanupAcceptEx(hostSocket);*/
 				}
+				else
+				{
+					DebugBreak();
+				}
 			}
-			//else
-			//{
-			//	//Error
-			//}
+			else
+			{
+				//Error
+				DebugBreak();
+			}
 		}
 	} while (res);
 
@@ -886,7 +898,8 @@ void TCPServ::AddClient(Socket pc)
 
 	iocp->LinkHandle((HANDLE)pc.GetSocket(), cd);
 
-	cd->recvHandler.StartRead(pc);
+	if (!cd->recvHandler.StartRead(pc))
+		cd->DecOpCount();
 
 	RunConFunc(cd);
 }

@@ -6,7 +6,7 @@
 
 DataPoolAllocator::DataPoolAllocator(const BufferOptions& bufferOptions, UINT sendBuffCount)
 	:
-	sendDataPool(bufferOptions.GetMaxDatBuffSize(), sendBuffCount, bufferOptions.GetPageSize())
+	sendDataPool(bufferOptions.GetMaxDataBuffSize(), sendBuffCount, bufferOptions.GetPageSize())
 {}
 DataPoolAllocator::DataPoolAllocator(DataPoolAllocator&& dataPoolObs)
 	:
@@ -36,7 +36,7 @@ char* DataPoolAllocator::alloc(DWORD)
 
 DataCompPoolAllocator::DataCompPoolAllocator(const BufferOptions& bufferOptions, UINT sendCompBuffCount)
 	:
-	sendDataCompPool(bufferOptions.GetMaxDatBuffSize() + bufferOptions.GetMaxDatCompSize(), sendCompBuffCount, bufferOptions.GetPageSize())
+	sendDataCompPool(bufferOptions.GetMaxDataBuffSize() + bufferOptions.GetMaxDataCompSize(), sendCompBuffCount, bufferOptions.GetPageSize())
 {}
 DataCompPoolAllocator::DataCompPoolAllocator(DataCompPoolAllocator&& dataPoolObs)
 	:

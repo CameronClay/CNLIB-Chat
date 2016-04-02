@@ -27,11 +27,11 @@ BufferOptions& BufferOptions::operator=(const BufferOptions& bufferOptions)
 	return *this;
 }
 
-UINT BufferOptions::GetMaxDatBuffSize() const
+UINT BufferOptions::GetMaxDataBuffSize() const
 {
 	return maxDatBuffSize;
 }
-UINT BufferOptions::GetMaxDatCompSize() const
+UINT BufferOptions::GetMaxDataCompSize() const
 {
 	return maxDatCompSize;
 }
