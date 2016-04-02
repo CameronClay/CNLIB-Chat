@@ -73,9 +73,7 @@ ClientDataEx::ClientDataEx(TCPServ& serv, Socket pc, sfunc func, UINT arrayIndex
 	recvHandler(serv.GetBufferOptions(), 3, &serv),
 	opsPending(),
 	state(running)
-{
-	const UINT maxDataSize = serv.GetBufferOptions().GetMaxDataSize() + sizeof(MsgHeader);
-}
+{}
 ClientDataEx::ClientDataEx(ClientDataEx&& clint)
 	:
 	ClientData(std::forward<ClientData>(*this)),
