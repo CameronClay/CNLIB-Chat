@@ -83,7 +83,6 @@ public:
 	static std::tstring GetLocalIP(bool ipv6 = false);
 	static std::tstring HostNameToIP(const LIB_TCHAR* host, bool ipv6 = false);
 	static void GetAcceptExAddrs(void* buffer, DWORD localAddrLen, DWORD remoteAddrLen, sockaddr** local, int* localLen, sockaddr** remote, int* remoteLen);
-
 private:
 	SOCKET pc = INVALID_SOCKET;
 	SocketInfo info;

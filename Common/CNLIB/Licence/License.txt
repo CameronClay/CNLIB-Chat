@@ -1,4 +1,4 @@
-Note: This library uses the library zlib, and I am not, nor do I claim to the writer of it.
+Note: This library uses the library zlib, and I am not, nor do I claim to be the writer of it.
 
 The MIT License (MIT)
 

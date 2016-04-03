@@ -925,7 +925,7 @@ TCPServ::ClientData* TCPServ::FindClient(const std::tstring& user) const
 	for (ClientDataEx **ptr = clients, **end = clients + nClients; ptr != end; ptr++)
 	{
 		ClientDataEx* cd = *ptr;
-		if (cd && cd->user.compare(user) == 0)
+		if (cd->user.compare(user) == 0)
 			return *ptr;
 	}
 	return nullptr;
@@ -985,9 +985,7 @@ void TCPServ::KeepAlive()
 {
 	for (ClientDataEx **ptr = clients, **end = clients + nClients; ptr != end; ptr++)
 	{
-		ClientDataEx* cd = *ptr;
-		if (cd)
-			cd->pc.SendData(nullptr, 0);
+		(*ptr)->pc.SendData(nullptr, 0);
 	}
 }
 
