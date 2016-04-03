@@ -372,12 +372,15 @@ bool TCPClient::RecvServData(DWORD nThreads, DWORD nConcThreads)
 
 	shutdownEv = CreateEvent(NULL, TRUE, FALSE, NULL);
 
-	keepAliveHandler = construct<KeepAliveHandler>(this);
+	if (keepAliveInterval != 0.0f)
+	{
+		keepAliveHandler = construct<KeepAliveHandler>(this);
 
-	if (!keepAliveHandler)
-		return false;
+		if (!keepAliveHandler)
+			return false;
 
-	keepAliveHandler->SetKeepAliveTimer(keepAliveInterval);
+		keepAliveHandler->SetKeepAliveTimer(keepAliveInterval);
+	}
 
 	return true;
 }
@@ -406,7 +409,7 @@ cfuncP TCPClient::GetFunction()
 	return &function;
 }
 
-Socket TCPClient::GetHost() const
+const Socket TCPClient::GetHost() const
 {
 	return host;
 }

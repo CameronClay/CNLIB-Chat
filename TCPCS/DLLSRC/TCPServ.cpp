@@ -850,9 +850,9 @@ IPv TCPServ::AllowConnections(const LIB_TCHAR* port, ConCondition connectionCond
 
 		if (!keepAliveHandler)
 			return ipvnone;
-	}
 
-	keepAliveHandler->SetKeepAliveTimer(keepAliveInterval);
+		keepAliveHandler->SetKeepAliveTimer(keepAliveInterval);
+	}
 
 	shutdownEv = CreateEvent(NULL, TRUE, FALSE, NULL);
 

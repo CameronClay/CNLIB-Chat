@@ -57,7 +57,7 @@ public:
 	cfuncP GetFunction();
 
 	void* GetObj() const override;
-	Socket GetHost() const override;
+	const Socket GetHost() const override;
 
 	UINT GetOpCount() const override;
 	UINT GetMaxSendOps() const override;

@@ -39,7 +39,7 @@ public:
 
 	virtual const SocketOptions GetSockOpts() const = 0;
 
-	virtual Socket GetHost() const = 0;
+	virtual const Socket GetHost() const = 0;
 	virtual void* GetObj() const = 0;
 };
 
