@@ -95,9 +95,9 @@ char* MsgPoolAllocator::alloc(DWORD)
 }
 
 
-BufSendAlloc::BufSendAlloc(UINT maxDataBuffSize, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, int compression, int compressionCO)
+BufSendAlloc::BufSendAlloc(const BufferOptions& buffOpts, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount)
 	:
-	bufferOptions(maxDataBuffSize, compression, compressionCO),
+	bufferOptions(buffOpts),
 	dataPool(bufferOptions, sendBuffCount),
 	dataCompPool(bufferOptions, sendCompBuffCount),
 	msgPool(sendMsgBuffCount)

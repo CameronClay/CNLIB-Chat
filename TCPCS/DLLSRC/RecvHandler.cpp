@@ -130,7 +130,7 @@ char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& b
 
 		DataHeader& header = *(DataHeader*)savedBuff.head;
 		const DWORD bytesToRecv = ((header.size.up.nBytesComp) ? header.size.up.nBytesComp : header.size.up.nBytesDecomp);
-		if ((bytesToRecv == MAXDWORD) || (bytesToRecv == 0)) //unrecoverable error
+		if ((bytesToRecv > buffOpts.GetMaxReadSize()) || (bytesToRecv == 0)) //unrecoverable error, possibly security threat
 			return nullptr;
 
 		DWORD amountAppended = 0;
@@ -163,7 +163,7 @@ char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& b
 
 		DataHeader& header = *(DataHeader*)ptr;
 		const DWORD bytesToRecv = ((header.size.up.nBytesComp) ? header.size.up.nBytesComp : header.size.up.nBytesDecomp);
-		if ((bytesToRecv == MAXDWORD) || (bytesToRecv == 0)) //unrecoverable error
+		if ((bytesToRecv > buffOpts.GetMaxReadSize()) || (bytesToRecv == 0)) //unrecoverable error, possibly security threat
 			return nullptr;
 
 		//If there is a full data block ready for processing

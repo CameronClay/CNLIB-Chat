@@ -5,9 +5,9 @@
 #include "CNLIB/Messages.h"
 #include "CNLIB/MsgHeader.h"
 
-TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, UINT maxPCSendOps, UINT maxDataBuffSize, UINT singleOlPCCount, UINT allOlCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, UINT maxCon, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
+TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, UINT maxPCSendOps, const BufferOptions& buffOpts, const SocketOptions& sockOpts, UINT singleOlPCCount, UINT allOlCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, UINT maxCon, float keepAliveInterval, void* obj)
 {
-	return construct<TCPServ>(msgHandler, conFunc, disFunc, maxPCSendOps, maxDataBuffSize, singleOlPCCount, allOlCount, sendBuffCount, sendCompBuffCount, sendMsgBuffCount, maxCon, compression, compressionCO, keepAliveInterval, sockOpts, obj);
+	return construct<TCPServ>(msgHandler, conFunc, disFunc, maxPCSendOps, buffOpts, sockOpts, singleOlPCCount, allOlCount, sendBuffCount, sendCompBuffCount, sendMsgBuffCount, maxCon, keepAliveInterval, obj);
 }
 void DestroyServer(TCPServInterface*& server)
 {
@@ -703,14 +703,14 @@ void TCPServ::CleanupAcceptEx(HostSocket::AcceptData& acceptData)
 	DecOpCount();
 }
 
-TCPServ::TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, UINT maxPCSendOps, UINT maxDataBuffSize, UINT singleOlPCCount, UINT allOlCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, UINT maxCon, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
+TCPServ::TCPServ(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, UINT maxPCSendOps, const BufferOptions& buffOpts, const SocketOptions& sockOpts, UINT singleOlPCCount, UINT allOlCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, UINT maxCon, float keepAliveInterval, void* obj)
 	:
 	ipv4Host(*this),
 	ipv6Host(*this),
 	clients(nullptr),
 	nClients(0),
 	iocp(nullptr),
-	function(func),
+	function(msgHandler),
 	conFunc(conFunc),
 	connectionCondition(nullptr),
 	disFunc(disFunc),
@@ -719,7 +719,7 @@ TCPServ::TCPServ(sfunc func, ConFunc conFunc, DisconFunc disFunc, UINT maxPCSend
 	maxCon(maxCon),
 	keepAliveInterval(keepAliveInterval),
 	keepAliveHandler(nullptr),
-	bufSendAlloc(maxDataBuffSize, sendBuffCount, sendCompBuffCount, sendMsgBuffCount, compression, compressionCO),
+	bufSendAlloc(buffOpts, sendBuffCount, sendCompBuffCount, sendMsgBuffCount),
 	clientPool(sizeof(ClientDataEx), maxCon),
 	sendOlInfoPool(sizeof(OverlappedSendInfo), allOlCount),
 	sendOlPoolAll(sizeof(OverlappedSend) * maxCon, allOlCount),

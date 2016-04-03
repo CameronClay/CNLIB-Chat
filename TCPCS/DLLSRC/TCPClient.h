@@ -17,7 +17,7 @@ class TCPClient : public TCPClientInterface, public KeepAliveHI, public RecvObse
 {
 public:
 	//cfunc is a message handler, compression 1-9
-	TCPClient(cfunc func, dcfunc disconFunc, UINT maxSendOps, UINT maxDataBuffSize, UINT olCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj);
+	TCPClient(cfunc msgHandler, dcfunc disconFunc, UINT maxSendOps, const BufferOptions& buffOpts, const SocketOptions& sockOpts, UINT olCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, float keepAliveInterval, void* obj);
 	TCPClient(TCPClient&& client);
 	~TCPClient();
 

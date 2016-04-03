@@ -96,5 +96,5 @@ typedef void(*const ConFunc)(TCPServInterface& serv, ClientData* data);
 typedef void(*const DisconFunc)(TCPServInterface& serv, ClientData* data, bool unexpected);
 
 
-CAMSNETLIB TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, UINT maxPCSendOps = 5, UINT maxDataBuffSize = 4096, UINT singleOlPCCount = 10, UINT allOlCount = 30, UINT sendBuffCount = 35, UINT sendCompBuffCount = 15, UINT sendMsgBuffCount = 10, UINT maxCon = 20, int compression = 9, int compressionCO = 2048, float keepAliveInterval = 30.0f, SocketOptions sockOpts = SocketOptions(), void* obj = nullptr);
+CAMSNETLIB TCPServInterface* CreateServer(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, UINT maxPCSendOps = 5, const BufferOptions& buffOpts = BufferOptions(), const SocketOptions& sockOpts = SocketOptions(), UINT singleOlPCCount = 10, UINT allOlCount = 30, UINT sendBuffCount = 35, UINT sendCompBuffCount = 15, UINT sendMsgBuffCount = 10, UINT maxCon = 20, float keepAliveInterval = 30.0f, void* obj = nullptr);
 CAMSNETLIB void DestroyServer(TCPServInterface*& server);

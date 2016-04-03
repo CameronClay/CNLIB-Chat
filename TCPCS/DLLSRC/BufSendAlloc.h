@@ -50,7 +50,7 @@ private:
 class BufSendAlloc : public StreamAllocInterface
 {
 public:
-	BufSendAlloc(UINT maxDataBuffSize = 4096, UINT sendBuffCount = 35, UINT sendCompBuffCount = 15, UINT sendMsgBuffCount = 10, int compression = 9, int compressionCO = 512);
+	BufSendAlloc(const BufferOptions& buffOpts = BufferOptions(), UINT sendBuffCount = 35, UINT sendCompBuffCount = 15, UINT sendMsgBuffCount = 10);
 	BufSendAlloc(const BufSendAlloc&) = delete;
 	BufSendAlloc(BufSendAlloc&& bufSendAlloc);
 	BufSendAlloc& operator=(BufSendAlloc&& bufSendAlloc);

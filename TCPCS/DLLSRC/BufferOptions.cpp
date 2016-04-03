@@ -3,12 +3,13 @@
 #include "CNLIB/File.h"
 #include "CNLIB/MsgHeader.h"
 
-BufferOptions::BufferOptions(UINT maxDataBuffSize, int compression, int compressionCO)
+BufferOptions::BufferOptions(UINT maxDataBuffSize, UINT maxReadSize, int compression, int compressionCO)
 	:
 	pageSize(CalcPageSize()),
 	maxDatBuffSize(CalcMaxDataBuffSize(pageSize, maxDataBuffSize)), //sizeof(size_t) for Element*
 	maxDataSize(maxDatBuffSize - sizeof(DataHeader)),
 	maxDatCompSize(FileMisc::GetCompressedBufferSize(maxDataSize)),
+	maxReadSize(maxReadSize - sizeof(DataHeader)),
 	compression(compression),
 	compressionCO(compressionCO)
 {}
@@ -38,6 +39,10 @@ UINT BufferOptions::GetMaxDataCompSize() const
 UINT BufferOptions::GetMaxDataSize() const
 {
 	return maxDataSize;
+}
+UINT BufferOptions::GetMaxReadSize() const
+{
+	return maxReadSize;
 }
 
 int BufferOptions::GetCompression() const

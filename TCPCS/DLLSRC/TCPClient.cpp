@@ -5,9 +5,9 @@
 #include "CNLIB/File.h"
 #include "CNLIB/MsgHeader.h"
 
-TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, UINT maxSendOps, UINT maxDataBuffSize, UINT olCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
+TCPClientInterface* CreateClient(cfunc msgHandler, dcfunc disconFunc, UINT maxSendOps, const BufferOptions& buffOpts, const SocketOptions& sockOpts, UINT olCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, float keepAliveInterval, void* obj)
 {
-	return construct<TCPClient>(msgHandler, disconFunc, maxSendOps, maxDataBuffSize, olCount, sendBuffCount, sendMsgBuffCount, sendMsgBuffCount, compression, compressionCO, keepAliveInterval, sockOpts, obj);
+	return construct<TCPClient>(msgHandler, disconFunc, maxSendOps, buffOpts, sockOpts, olCount, sendBuffCount, sendCompBuffCount, sendMsgBuffCount, keepAliveInterval, obj);
 }
 
 void DestroyClient(TCPClientInterface*& client)
@@ -118,16 +118,16 @@ void TCPClient::FreeSendOl(OverlappedSendSingle* ol)
 	DecOpCount();
 }
 
-TCPClient::TCPClient(cfunc func, dcfunc disconFunc, UINT maxSendOps, UINT maxDataBuffSize, UINT olCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, int compression, int compressionCO, float keepAliveInterval, SocketOptions sockOpts, void* obj)
+TCPClient::TCPClient(cfunc msgHandler, dcfunc disconFunc, UINT maxSendOps, const BufferOptions& buffOpts, const SocketOptions& sockOpts, UINT olCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, float keepAliveInterval, void* obj)
 	:
-	function(func),
+	function(msgHandler),
 	disconFunc(disconFunc),
 	iocp(nullptr),
 	maxSendOps(maxSendOps + 1),//+1 for recv
 	unexpectedShutdown(true),
 	keepAliveInterval(keepAliveInterval),
 	keepAliveHandler(nullptr),
-	bufSendAlloc(maxDataBuffSize, sendBuffCount, sendCompBuffCount, sendMsgBuffCount, compression, compressionCO),
+	bufSendAlloc(buffOpts, sendBuffCount, sendCompBuffCount, sendMsgBuffCount),
 	recvHandler(GetBufferOptions(), 2, this),
 	olPool(sizeof(OverlappedSendSingle), maxSendOps),
 	opCounter(0),
