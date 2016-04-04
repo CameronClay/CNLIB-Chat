@@ -387,7 +387,8 @@ bool TCPClient::RecvServData(DWORD nThreads, DWORD nConcThreads)
 
 void TCPClient::KeepAlive()
 {
-	host.SendData(nullptr, 0);
+	SendMsg(TYPE_KEEPALIVE, MSG_KEEPALIVE);
+	//host.SendData(nullptr, 0);
 }
 
 void TCPClient::RunDisconFunc()

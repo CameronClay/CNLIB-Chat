@@ -983,10 +983,11 @@ void TCPServ::Shutdown()
 
 void TCPServ::KeepAlive()
 {
-	for (ClientDataEx **ptr = clients, **end = clients + nClients; ptr != end; ptr++)
+	/*for (ClientDataEx **ptr = clients, **end = clients + nClients; ptr != end; ptr++)
 	{
 		(*ptr)->pc.SendData(nullptr, 0);
-	}
+	}*/
+	SendMsg(nullptr, false, TYPE_KEEPALIVE, MSG_KEEPALIVE);
 }
 
 ClientAccess TCPServ::GetClients() const
