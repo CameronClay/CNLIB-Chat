@@ -80,7 +80,7 @@ void Whiteboard::SendBitmap(RectU& rect)
 	((short*)sendInfo.buffer)[0] = TYPE_DATA;
 	((short*)sendInfo.buffer)[1] = MSG_DATA_BITMAP;
 
-	MakeRectPixels(rect, &sendInfo.buffer[MSG_OFFSET]);
+	MakeRectPixels(rect, sendInfo.buffer + MSG_OFFSET);
 
 	serv.SendClientData(sendInfo, nBytes, sendPcs);
 }
@@ -94,7 +94,7 @@ void Whiteboard::SendBitmap(RectU& rect, ClientData* clint, bool single)
 	((short*)sendInfo.buffer)[0] = TYPE_DATA;
 	((short*)sendInfo.buffer)[1] = MSG_DATA_BITMAP;
 
-	MakeRectPixels(rect, &sendInfo.buffer[MSG_OFFSET]);
+	MakeRectPixels(rect, sendInfo.buffer + MSG_OFFSET);
 
 	serv.SendClientData(sendInfo, nBytes, clint, single);
 }

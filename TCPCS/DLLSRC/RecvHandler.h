@@ -11,6 +11,12 @@
 class RecvHandler
 {
 public:
+	enum class ReadError
+	{
+		Success,
+		ReadFailed,
+		UserError
+	};
 	RecvHandler(const BufferOptions& buffOpts, UINT initialCap, RecvObserverI* observer);
 	RecvHandler(RecvHandler&& recvHandler);
 	~RecvHandler();
@@ -19,7 +25,7 @@ public:
 
 	bool StartRecv(Socket& pc);
 
-	bool RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& buffOpts, void* obj = nullptr);
+	ReadError RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& buffOpts, void* obj = nullptr);
 
 	void Reset();
 private:
@@ -40,3 +46,5 @@ private:
 	WSABufRecv *curBuff, *nextBuff;
 	RecvObserverI* observer;
 };
+
+typedef RecvHandler::ReadError ReadError;

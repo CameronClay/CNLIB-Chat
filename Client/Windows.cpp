@@ -1320,6 +1320,7 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			/*wb.GetD3D().BeginFrame();
 			wb.GetD3D().EndFrame();*/
+			wb.GetD3D().Present();
 		}
 		break;
 
@@ -1375,7 +1376,7 @@ INT_PTR CALLBACK ConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 			Connect(str.substr(0, pos).c_str(), str.substr(pos + 1).c_str(), str[0] == _T('[') ? true : false, timeOut);
 			if (client->IsConnected())
 			{
-				client->RecvServData();
+				client->RecvServData(2, 1);
 				auto streamWriter = client->CreateOutStream(sizeof(float), TYPE_VERSION, MSG_VERSION_CHECK);
 				streamWriter.Write(APPVERSION);
 

@@ -70,18 +70,19 @@ void D3D::Initialize(HWND WinHandle)
 
 	BOOL isWindow = IsWindow(hWnd);
 	d3dpp.hDeviceWindow = hWnd;
+	DWORD createFlags = D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE;// | D3DCREATE_MULTITHREADED;
 
 	hr = pDirect3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,
-		D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE, &d3dpp, &pDevice);
+		createFlags, &d3dpp, &pDevice);
 	if (FAILED(hr))
 	{
 		hr = pDirect3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,
-			D3DCREATE_MIXED_VERTEXPROCESSING | D3DCREATE_PUREDEVICE, &d3dpp, &pDevice);
+			createFlags, &d3dpp, &pDevice);
 	}
 	if (FAILED(hr))
 	{
 		hr = pDirect3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,
-			D3DCREATE_SOFTWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE, &d3dpp, &pDevice);
+			createFlags, &d3dpp, &pDevice);
 	}
 	assert(SUCCEEDED(hr));
 
@@ -113,14 +114,6 @@ void D3D::Draw(const RectU &rect, const BYTE *pixelData, const Palette& palette)
 void D3D::BeginFrame()
 {
 	HRESULT hr = pBackBuffer->LockRect(&lockRect, nullptr, NULL);
-	if (hr == D3DERR_WASSTILLDRAWING)
-	{
-		int a = 0;
-	}
-	else if (hr == D3DERR_INVALIDCALL)
-	{
-		int a = 0;
-	}
 	assert(SUCCEEDED(hr));
 }
 void D3D::EndFrame()
@@ -133,9 +126,16 @@ void D3D::EndFrame()
 	assert(SUCCEEDED(hr));
 }
 
+void D3D::Present()
+{
+	HRESULT hr = pDevice->Present(nullptr, nullptr, nullptr, nullptr);
+	assert(SUCCEEDED(hr));
+}
+
 void D3D::Clear(D3DCOLOR clr)
 {
-	pDevice->Clear(0, NULL, D3DCLEAR_TARGET, clr, 0.0f, 0);
+	HRESULT hr = pDevice->Clear(0, NULL, D3DCLEAR_TARGET, clr, 0.0f, 0);
+	assert(SUCCEEDED(hr));
 }
 
 USHORT D3D::GetWidth() const
@@ -243,10 +243,12 @@ Whiteboard::Whiteboard(Whiteboard&& wb)
 void Whiteboard::Initialize(HWND WinHandle)
 {
 	d3d.Initialize(WinHandle);
+	Clear();
+}
 
-	d3d.BeginFrame();
+void Whiteboard::Clear()
+{
 	d3d.Clear(palette.GetRGBColor(palIndex));
-	d3d.EndFrame();
 }
 
 void Whiteboard::Frame(const RectU &rect, const BYTE *pixelData)
@@ -268,12 +270,12 @@ void Whiteboard::SendMouseData(TCPClientInterface* client)
 	{
 		UINT count;
 		const DWORD nBytes = mouse.GetBufferLen(count) + MSG_OFFSET;
-		BuffSendInfo sendInfo = client->GetSendBuffer(&allocator, nBytes);
+		BuffSendInfo sendInfo = client->GetSendBuffer(nBytes);
 		char* buffer = sendInfo.buffer;
 		*((short*)buffer) = TYPE_DATA;
 		*((short*)buffer + 1) = MSG_DATA_MOUSE;
 		mouse.Extract((BYTE*)(buffer + MSG_OFFSET), count);
-		client->SendServData(sendInfo, nBytes, &allocator);
+		client->SendServData(sendInfo, nBytes);
 	}
 }
 

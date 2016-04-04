@@ -41,8 +41,11 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 						continue;
 					}
 					//key->RecvDataCR(bytesTrans, ol);
-					if (!key->RecvDataCR(bytesTrans))
+					const ReadError error = key->RecvDataCR(bytesTrans);
+					if (error == ReadError::ReadFailed)
 						key->CleanupRecvData();
+					else if (error == ReadError::UserError)
+						key->Disconnect();
 				}
 				break;
 			case OpType::sendsingle:
@@ -77,7 +80,7 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 }
 
 
-bool TCPClient::RecvDataCR(DWORD bytesTrans)
+RecvHandler::ReadError TCPClient::RecvDataCR(DWORD bytesTrans)
 {
 	return recvHandler.RecvDataCR(host, bytesTrans, GetBufferOptions(), nullptr);
 }

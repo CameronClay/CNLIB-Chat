@@ -70,30 +70,22 @@ bool RecvHandler::StartRecv(Socket& pc)
 	return StartRecv(pc, curBuff);
 }
 
-bool RecvHandler::RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& buffOpts, void* obj)
+ReadError RecvHandler::RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& buffOpts, void* obj)
 {
-	//spin for a bit if buffer is still being used
-	//or I guess could wrap entire thing in crit sect
-	//guess a sleep would be acceptable because it would wake another iocp thread
 	while (curBuff->used)
 		Sleep(1);
 
 	curBuff->used = true;
 
-	/*long res = pc.ReadDataOl(nextBuff, &ol);
-	int err = WSAGetLastError();
-	if ((res == SOCKET_ERROR) && (err != WSA_IO_PENDING))
-		return false;*/
-
 	if (!StartRecv(pc, nextBuff))
-		return false;
+		return ReadError::ReadFailed;
 
 	char* ptr = curBuff->head;
 
 	do
 	{
 		if (!(ptr = RecvData(bytesTrans, ptr, buffOpts, obj)))
-			return false;
+			return ReadError::UserError;
 	} while (bytesTrans);
 
 	//set next buff used to true so other recv doesnt enter yet
@@ -102,8 +94,8 @@ bool RecvHandler::RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOptions& 
 
 	curBuff->used = false;
 	nextBuff->used = false;
-	
-	return true;
+
+	return ReadError::Success;
 }
 
 char* RecvHandler::RecvData(DWORD& bytesTrans, char* ptr, const BufferOptions& buffOpts, void* obj)

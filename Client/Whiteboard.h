@@ -16,6 +16,7 @@ public:
 	void StartThread(TCPClientInterface* client);
 
 	void Frame(const RectU &rect, const BYTE *pixelData);
+	void Clear();
 	void SendMouseData(TCPClientInterface* client);
 
 	//brushSize is relative
@@ -38,10 +39,12 @@ public:
 		void Draw(const RectU &rect, const BYTE *pixelData, const Palette& palette);
 
 		void Clear(D3DCOLOR clr);
+		void Present();
 
 		void BeginFrame();
 		void EndFrame();
 
+		IDirect3DDevice9* GetDevice(){ return pDevice; }
 		USHORT GetWidth() const;
 		USHORT GetHeight() const;
 	private:
@@ -70,8 +73,6 @@ private:
 	const float interval;
 	HANDLE timer, thread;
 	DWORD threadID;
-
-	BuffHeapAllocator allocator;
 
 	Palette& palette;
 };

@@ -326,11 +326,15 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 						cd.DecOpCount();
 						break;
 					}
-
-					if (!cd.recvHandler.RecvDataCR(cd.pc, bytesTrans, cd.serv.GetBufferOptions(), (void*)key))
+					const ReadError error = cd.recvHandler.RecvDataCR(cd.pc, bytesTrans, cd.serv.GetBufferOptions(), (void*)key);
+					if (error == ReadError::ReadFailed)
 					{
 						cd.serv.DisconnectClient(&cd); //if error with receiving data disconnect client to cause operations to cease
 						cd.DecOpCount();
+					}
+					else if (error == ReadError::UserError)
+					{
+						cd.serv.DisconnectClient(&cd);
 					}
 				}
 				break;

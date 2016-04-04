@@ -70,7 +70,7 @@ public:
 
 	void FreeSendOl(OverlappedSendSingle* ol);
 
-	bool RecvDataCR(DWORD bytesTrans);
+	RecvHandler::ReadError RecvDataCR(DWORD bytesTrans);
 	void SendDataCR(OverlappedSendSingle* ol);
 
 	void CleanupRecvData();
