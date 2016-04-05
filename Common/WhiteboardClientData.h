@@ -234,7 +234,7 @@ struct WBClientData
 {
 	WBClientData()
 		:
-		mServ(50, 17),
+		mServ(50),
 		nVertices(0),
 		tool(Tool::PaintBrush),
 		clrIndex(0),
@@ -247,7 +247,7 @@ struct WBClientData
 
 	WBClientData(USHORT FPS, BYTE defColor)
 		:
-		mServ((FPS < 60 ? 4500 / FPS : 75), (USHORT)((1000.0f / (float)FPS) + 0.5f)),
+		mServ((FPS < 60 ? 4500 / FPS : 75)),
 		nVertices(0),
 		tool(Tool::PaintBrush),
 		clrIndex(0),

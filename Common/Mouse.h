@@ -1,5 +1,6 @@
 #pragma once
-#include "CircularBuffer.h"
+//#include "CircularBuffer.h"
+#include "CNLIB/CritLock.h"
 
 class MouseServer;
 
@@ -11,7 +12,7 @@ typedef unsigned int UINT;
 class MouseEvent
 {
 public:
-	enum Type
+	enum Type : UCHAR
 	{
 		LPress,
 		LRelease,
@@ -79,9 +80,6 @@ public:
 	MouseEvent Peek() const;
 
 	size_t EventCount() const;
-	const MouseEvent& GetEvent(size_t i);
-
-	void Erase(size_t count);
 private:
 	MouseServer& server;
 };
@@ -90,7 +88,7 @@ class MouseServer
 {
 	friend MouseClient;
 public:
-	MouseServer(size_t bufferSize, USHORT interval);
+	MouseServer(USHORT interval);
 	MouseServer(MouseServer&& mServ);
 
 	void OnMouseMove(USHORT x, USHORT y);
@@ -104,9 +102,12 @@ public:
 	void Extract(BYTE *byteBuffer, UINT count);
 	void Insert(BYTE *byteBuffer, DWORD nBytes);
 	UINT GetBufferLen(UINT& count) const;
-private:
-	void WaitForBuffer();
 
-	CircularBuffer<MouseEvent> buffer;
+private:
+	//void WaitForBuffer();
+
+	std::queue<MouseEvent> queue;
+	CritLock bufferLock;
+	//CircularBuffer<MouseEvent> buffer;
 	USHORT interval;
 };

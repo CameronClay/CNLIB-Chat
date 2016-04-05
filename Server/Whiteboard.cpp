@@ -159,7 +159,7 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 
 	for (UINT i = 0; i < evCount; i++)
 	{
-		const MouseEvent ev = mouse.GetEvent(i);
+		const MouseEvent ev = mouse.Read();
 		const Vec2 vect = { (float)ev.GetX(), (float)ev.GetY() };
 
 		switch(ev.GetType())
@@ -254,8 +254,6 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 			break;
 		}
 	}
-
-	mouse.Erase(evCount);
 
 	if (send)
 		SendBitmap(rect);

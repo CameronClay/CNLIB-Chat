@@ -64,25 +64,40 @@ void D3D::Initialize(HWND WinHandle)
 	ZeroMemory(&d3dpp, sizeof(d3dpp));
 	d3dpp.Windowed = TRUE;
 	d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
-	d3dpp.BackBufferFormat = D3DFMT_UNKNOWN;
-	d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
-	d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+	d3dpp.BackBufferFormat = /*D3DFMT_UNKNOWN*/D3DFMT_A8R8G8B8;
+	d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+	d3dpp.Flags = /*D3DPRESENT_INTERVAL_DEFAULT*/D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
 
 	BOOL isWindow = IsWindow(hWnd);
 	d3dpp.hDeviceWindow = hWnd;
-	DWORD createFlags = D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE/* | D3DCREATE_MULTITHREADED*/;
+	const DWORD createFlags = D3DCREATE_PUREDEVICE/* | D3DCREATE_MULTITHREADED*/;
 
 	hr = pDirect3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,
-		createFlags, &d3dpp, &pDevice);
+		createFlags | D3DCREATE_HARDWARE_VERTEXPROCESSING, &d3dpp, &pDevice);
 	if (FAILED(hr))
 	{
 		hr = pDirect3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,
-			createFlags, &d3dpp, &pDevice);
+			createFlags | D3DCREATE_MIXED_VERTEXPROCESSING, &d3dpp, &pDevice);
 	}
 	if (FAILED(hr))
 	{
 		hr = pDirect3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,
-			createFlags, &d3dpp, &pDevice);
+			createFlags | D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &pDevice);
+	}
+	if (FAILED(hr))
+	{
+		hr = pDirect3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_REF, hWnd,
+			createFlags | D3DCREATE_HARDWARE_VERTEXPROCESSING, &d3dpp, &pDevice);
+	}
+	if (FAILED(hr))
+	{
+		hr = pDirect3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_REF, hWnd,
+			createFlags | D3DCREATE_MIXED_VERTEXPROCESSING, &d3dpp, &pDevice);
+	}
+	if (FAILED(hr))
+	{
+		hr = pDirect3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_REF, hWnd,
+			createFlags | D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &pDevice);
 	}
 	assert(SUCCEEDED(hr));
 
@@ -211,7 +226,7 @@ Whiteboard::Whiteboard(TCPClientInterface& clint, Palette& palette, USHORT Width
 	:
 	d3d(Width, Height),
 	clint(clint),
-	mouse((FPS < 60 ? 4500 / FPS : 75), (USHORT)((1000.0f / (float)FPS) + 0.5f)),
+	mouse((FPS < 60 ? 4500 / FPS : 75)),
 	defaultColor(palIndex),
 	palIndex(palIndex),
 	brushThickness(1.0f),
