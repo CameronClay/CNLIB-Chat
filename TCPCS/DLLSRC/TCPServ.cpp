@@ -858,7 +858,10 @@ IPv TCPServ::AllowConnections(const LIB_TCHAR* port, ConCondition connectionCond
 		keepAliveHandler->SetKeepAliveTimer(keepAliveInterval);
 	}
 
-	shutdownEv = CreateEvent(NULL, TRUE, FALSE, NULL);
+	if (!shutdownEv)
+		shutdownEv = CreateEvent(NULL, TRUE, FALSE, NULL);
+	else
+		ResetEvent(shutdownEv);
 
 	return ipv;
 }

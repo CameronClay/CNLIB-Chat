@@ -72,6 +72,8 @@ public:
 
 	RecvHandler::ReadError RecvDataCR(DWORD bytesTrans);
 	void SendDataCR(OverlappedSendSingle* ol);
+	void RecvDataCR(const ReadError error);
+	void CleanupRecv();
 
 	void CleanupRecvData();
 private:

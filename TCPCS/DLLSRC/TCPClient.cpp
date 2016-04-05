@@ -37,15 +37,10 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 					if (bytesTrans == 0)
 					{
 						key->CleanupRecvData();
-						//key->Shutdown();
 						continue;
 					}
-					//key->RecvDataCR(bytesTrans, ol);
-					const ReadError error = key->RecvDataCR(bytesTrans);
-					if (error == ReadError::ReadFailed)
-						key->CleanupRecvData();
-					else if (error == ReadError::UserError)
-						key->Disconnect();
+
+					key->RecvDataCR(key->RecvDataCR(bytesTrans));
 				}
 				break;
 			case OpType::sendsingle:
@@ -65,8 +60,7 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 				}
 				else if (ol->opType == OpType::recv)
 				{
-					key->CleanupRecvData();
-					//key->Shutdown();
+					key->CleanupRecv();
 				}
 			}
 			//else
@@ -102,6 +96,19 @@ void TCPClient::SendDataCR(OverlappedSendSingle* ol)
 			SendServData(opsPending.front(), true);
 		queueLock.Unlock();
 	}
+
+	DecOpCount();
+}
+void TCPClient::RecvDataCR(const ReadError error)
+{
+	if (error == ReadError::ReadFailed)
+		DecOpCount();
+	else if (error == ReadError::UserError)
+		Disconnect();
+}
+void TCPClient::CleanupRecv()
+{
+	DecOpCount();
 }
 
 void TCPClient::CleanupRecvData()
@@ -110,15 +117,14 @@ void TCPClient::CleanupRecvData()
 
 	RunDisconFunc();
 
-	DecOpCount();
+	//Stop sending keepalive packets
+	destruct(keepAliveHandler);
 }
 
 void TCPClient::FreeSendOl(OverlappedSendSingle* ol)
 {
 	bufSendAlloc.FreeBuff(ol->sendBuff);
 	olPool.dealloc(ol);
-
-	DecOpCount();
 }
 
 TCPClient::TCPClient(cfunc msgHandler, dcfunc disconFunc, UINT maxSendOps, const BufferOptions& buffOpts, const SocketOptions& sockOpts, UINT olCount, UINT sendBuffCount, UINT sendCompBuffCount, UINT sendMsgBuffCount, float keepAliveInterval, void* obj)
@@ -334,7 +340,10 @@ bool TCPClient::SendServData(OverlappedSendSingle* ol, bool popQueue)
 void TCPClient::DecOpCount()
 {
 	if (--opCounter == 0)
+	{
+		CleanupRecvData();
 		SetEvent(shutdownEv);
+	}
 }
 
 void TCPClient::SendMsg(short type, short message)
@@ -373,7 +382,10 @@ bool TCPClient::RecvServData(DWORD nThreads, DWORD nConcThreads)
 
 	recvHandler.StartRecv(host);
 
-	shutdownEv = CreateEvent(NULL, TRUE, FALSE, NULL);
+	if (!shutdownEv)
+		shutdownEv = CreateEvent(NULL, TRUE, FALSE, NULL);
+	else
+		ResetEvent(shutdownEv);
 
 	if (keepAliveInterval != 0.0f)
 	{
