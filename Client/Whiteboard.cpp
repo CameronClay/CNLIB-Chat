@@ -70,7 +70,7 @@ void D3D::Initialize(HWND WinHandle)
 
 	BOOL isWindow = IsWindow(hWnd);
 	d3dpp.hDeviceWindow = hWnd;
-	DWORD createFlags = D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE;// | D3DCREATE_MULTITHREADED;
+	DWORD createFlags = D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE/* | D3DCREATE_MULTITHREADED*/;
 
 	hr = pDirect3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,
 		createFlags, &d3dpp, &pDevice);
@@ -99,11 +99,11 @@ void D3D::Initialize(HWND WinHandle)
 }
 void D3D::Draw(const RectU &rect, const BYTE *pixelData, const Palette& palette)
 {
-	const size_t rHeight = rect.bottom - rect.top;
-	const size_t rWidth = rect.right - rect.left;
-	for (size_t y = 0; y < rHeight; y++)
+	const UINT rHeight = rect.bottom - rect.top;
+	const UINT rWidth = rect.right - rect.left;
+	for (UINT y = 0; y < rHeight; y++)
 	{
-		for (size_t x = 0; x < rWidth; x++)
+		for (UINT x = 0; x < rWidth; x++)
 		{
 			D3DCOLOR* d3dSurf = (D3DCOLOR*)((char*)lockRect.pBits + pitch * ((x + rect.left) + (y + rect.top) * width));
 			*d3dSurf = palette.GetRGBColor(pixelData[x + y * rWidth]);

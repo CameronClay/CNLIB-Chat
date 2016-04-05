@@ -147,7 +147,7 @@ void Whiteboard::RemoveClient(ClientData* clint)
 void Whiteboard::PaintBrush(WBClientData& clientData)
 {
 	MouseClient mouse(clientData.mServ);
-	const size_t evCount = mouse.EventCount();
+	const UINT evCount = mouse.EventCount();
 
 	RectU rect;
 	if(clientData.nVertices == 3)
@@ -157,7 +157,7 @@ void Whiteboard::PaintBrush(WBClientData& clientData)
 
 	bool send = false;
 
-	for(size_t i = 0; i < evCount; i++)
+	for (UINT i = 0; i < evCount; i++)
 	{
 		const MouseEvent ev = mouse.GetEvent(i);
 		const Vec2 vect = { (float)ev.GetX(), (float)ev.GetY() };
@@ -439,11 +439,11 @@ void Whiteboard::MakeRectPixels(RectU& rect, char* ptr)
 	memcpy(ptr, &rect, offset);
 	ptr += offset;
 
-	const size_t height = rect.bottom - rect.top;
-	const size_t width = rect.right - rect.left;
-	for(size_t iy = 0; iy < height; iy++)
+	const UINT height = rect.bottom - rect.top;
+	const UINT width = rect.right - rect.left;
+	for (UINT iy = 0; iy < height; iy++)
 	{
-		for(size_t ix = 0; ix < width; ix++)
+		for (UINT ix = 0; ix < width; ix++)
 		{
 			ptr[(iy * width) + ix] = pixels[((iy + rect.top) * params.width) + (ix + rect.left)];
 		}

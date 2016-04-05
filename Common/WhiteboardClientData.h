@@ -282,7 +282,7 @@ struct WBClientData
 
 	MouseServer mServ;
 	Vec2 vertices[3];
-	size_t nVertices;
+	UINT nVertices;
 
 	Tool tool;								// Enums are sizeof(int) 4 bytes
 	BYTE clrIndex;							// Palette color is 1 bytes

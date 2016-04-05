@@ -39,7 +39,7 @@ struct OverlappedExt : OVERLAPPED //dont wanna use virtual func because of mem p
 
 struct OverlappedSendInfo
 {
-	//single param needed for per client queue to know if refCount was incrimented
+	//single param needed for per client queue to know if refCount was incremented
 	OverlappedSendInfo(const WSABufSend& buff, int refCount)
 		:
 		sendBuff(buff),
@@ -54,13 +54,13 @@ struct OverlappedSendInfo
 	}
 
 	WSABufSend sendBuff;
-	class OverlappedSend* head;
+	struct OverlappedSend* head;
 	int refCount;
 };
 
 struct OverlappedSend : OverlappedExt
 {
-	//single param needed for per client queue to know if refCount was incrimented
+	//single param needed for per client queue to know if refCount was incremented
 	OverlappedSend(OverlappedSendInfo* sendInfo)
 		:
 		OverlappedExt(OpType::send),
@@ -90,7 +90,7 @@ struct OverlappedSendSingle : OverlappedExt
 
 //struct OverlappedRecv: OverlappedExt
 //{
-//	//single param needed for per client queue to know if refCount was incrimented
+//	//single param needed for per client queue to know if refCount was incremented
 //	OverlappedRecv()
 //		:
 //		OverlappedExt(OpType::recv),

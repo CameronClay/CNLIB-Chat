@@ -110,7 +110,7 @@ void MouseServer::Extract(BYTE *byteBuffer, UINT count)
 }
 void MouseServer::Insert(BYTE *byteBuffer, DWORD nBytes)
 {
-	const size_t count = nBytes / sizeof(MouseEvent);
+	const UINT count = nBytes / sizeof(MouseEvent);
 	while((int)buffer.max_size() - (int)(buffer.size() + count) < 0)
 		Sleep(interval);
 

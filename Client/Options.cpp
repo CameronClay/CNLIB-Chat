@@ -50,7 +50,7 @@ void Options::Load(const LIB_TCHAR* windowName)
 	}
 
 
-	const size_t pathSize = filePath.size();
+	const UINT pathSize = filePath.size();
 	LIB_TCHAR* buffer = alloc<LIB_TCHAR>(pathSize + 64);
 	_tcscpy(buffer, filePath.c_str());
 

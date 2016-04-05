@@ -23,12 +23,13 @@ public:
 		this->path = path;
 		logList = FileMisc::GetFileNameList(path.c_str(), FILE_ATTRIBUTE_TEMPORARY, false);
 		CompressTempLogs(FileMisc::GetFileNameList(path.c_str(), FILE_ATTRIBUTE_TEMPORARY));
+		currLog = logList.size();
 	}
 
 	void CreateLog()
 	{
 		TCHAR buffer[512];
-		_stprintf(buffer, _T("%s\\Log%.2d.txt"), path.c_str(), logList.size());
+		_stprintf(buffer, _T("%s\\Log%.2d.txt"), path.c_str(), currLog);
 		fileName = buffer;
 
 		log.Open(buffer, FILE_GENERIC_WRITE, FILE_ATTRIBUTE_TEMPORARY, CREATE_ALWAYS);
@@ -64,7 +65,7 @@ public:
 	{
 		File log((path + _T("\\") + logList[index].fileName).c_str(), FILE_GENERIC_READ);
 
-		if(dest)
+		if (dest)
 		{
 			DWORD compLen;
 			log.MoveCursor(sizeof(DWORD));
@@ -92,7 +93,7 @@ public:
 		FileMisc::Remove((path + _T("\\") + logList[index].fileName).c_str());
 
 		//change all log's index above the removed log -1
-		for(int i = index + 1, size = logList.size(); i < size; i++)
+		for (int i = index + 1, size = logList.size(); i < size; i++)
 		{
 			std::tstring curName = path + _T("\\") + logList[i].fileName;
 			std::tstring newName = curName;
@@ -109,7 +110,7 @@ public:
 
 	void ClearLogs()
 	{
-		for(int i = 0, size = logList.size(); i < size; i++)
+		for (int i = 0, size = logList.size(); i < size; i++)
 			FileMisc::Remove((path + _T("\\") + logList[i].fileName).c_str());
 
 		logList.clear();
@@ -134,9 +135,16 @@ private:
 		}
 
 		File log(logName.c_str(), FILE_GENERIC_READ, FILE_FLAG_DELETE_ON_CLOSE);
+		while (!log.IsOpen())
+		{
+			TCHAR buffer[512];
+			_stprintf(buffer, _T("%s\\Log%.2d.txt"), path.c_str(), ++currLog);
+			fileName = logName = buffer;
+			log.Open(logName.c_str(), FILE_GENERIC_READ, FILE_FLAG_DELETE_ON_CLOSE);
+		}
 		const DWORD tempLogSize = (DWORD)log.GetSize() + sizeof(LIB_TCHAR);
 		if (tempLogSize == sizeof(LIB_TCHAR))
-			return {};
+			return{};
 
 		DWORD compLogSize = FileMisc::GetCompressedBufferSize((DWORD)tempLogSize);
 		char* buffer = alloc<char>(tempLogSize + compLogSize);
@@ -158,7 +166,7 @@ private:
 
 		dealloc(buffer);
 
-		return { fd.fileName, fd.dateModified, log.GetSize() };
+		return{ fd.fileName, fd.dateModified, log.GetSize() };
 	}
 	FileMisc::FileData CompressTempLog(const File& file, const std::tstring& fileName)
 	{
@@ -176,6 +184,7 @@ private:
 
 	std::vector<FileMisc::FileData> logList;
 	File log;
+	UINT currLog;
 	std::tstring fileName;
 	std::tstring path;
 };

@@ -164,6 +164,7 @@ HWND CreateWBWindow(USHORT width, USHORT height)
 		wc.hInstance = hInst;
 		wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 		wc.lpszClassName = wbClassName;
+		//wc.hbrBackground = GetStockBrush(BLACK_BRUSH);
 
 		wbAtom = RegisterClass(&wc);
 	}
@@ -206,6 +207,10 @@ HWND CreateWBWindow(USHORT width, USHORT height)
 	}
 
 	ShowWindow(wbHandle, SW_SHOWNORMAL);
+
+	pWhiteboard->GetD3D().Present();
+	client->SendMsg(TYPE_RESPONSE, MSG_RESPONSE_WHITEBOARD_INITED);
+
 	return wbHandle;
 }
 
@@ -1312,16 +1317,16 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		width = wb.GetD3D().GetWidth(), height = wb.GetD3D().GetHeight();
 
-		client->SendMsg(TYPE_RESPONSE, MSG_RESPONSE_WHITEBOARD_INITED);
+		//client->SendMsg(TYPE_RESPONSE, MSG_RESPONSE_WHITEBOARD_INITED);
 		break;
 
 	case WM_ACTIVATE:
-		if (pWhiteboard)
-		{
-			/*wb.GetD3D().BeginFrame();
-			wb.GetD3D().EndFrame();*/
-			wb.GetD3D().Present();
-		}
+		//if (pWhiteboard)
+		//{
+		//	/*wb.GetD3D().BeginFrame();
+		//	wb.GetD3D().EndFrame();*/
+		//	wb.GetD3D().Present();
+		//}
 		break;
 
 	case WM_CLOSE:
@@ -1737,7 +1742,7 @@ INT_PTR CALLBACK Opt_GeneralProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 			SendMessage(flashCount, WM_SETTEXT, 0, (LPARAM)To_String(opts->GetFlashCount()).c_str());
 			EnableWindow(flashCount, opts->FlashTaskbar(hMainWind));
 
-			SetWindowLongPtr(hWnd, DWL_MSGRESULT, PSNRET_NOERROR);
+			SetWindowLongPtr(hWnd, DWLP_MSGRESULT, PSNRET_NOERROR);
 			break;
 		}
 		case PSN_APPLY:
@@ -1765,12 +1770,12 @@ INT_PTR CALLBACK Opt_GeneralProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 			
 			opts->Save(windowName);
 
-			SetWindowLongPtr(hWnd, DWL_MSGRESULT, PSNRET_NOERROR);
+			SetWindowLongPtr(hWnd, DWLP_MSGRESULT, PSNRET_NOERROR);
 			break;
 		}
 		case PSN_RESET:
 		{
-			SetWindowLongPtr(hWnd, DWL_MSGRESULT, PSNRET_NOERROR);
+			SetWindowLongPtr(hWnd, DWLP_MSGRESULT, PSNRET_NOERROR);
 			break;
 		}
 		}
@@ -1816,17 +1821,17 @@ INT_PTR CALLBACK Opt_TextProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 		case PSN_SETACTIVE:
 		{
 			SendMessage(fontDisp, WM_SETTEXT, 0, (LPARAM)_T(""));
-			SetWindowLongPtr(hWnd, DWL_MSGRESULT, PSNRET_NOERROR);
+			SetWindowLongPtr(hWnd, DWLP_MSGRESULT, PSNRET_NOERROR);
 			break;
 		}
 		case PSN_APPLY:
 		{
-			SetWindowLong(hWnd, DWL_MSGRESULT, PSNRET_NOERROR);
+			SetWindowLongPtr(hWnd, DWLP_MSGRESULT, PSNRET_NOERROR);
 			break;
 		}
 		case PSN_RESET:
 		{
-			SetWindowLong(hWnd, DWL_MSGRESULT, PSNRET_NOERROR);
+			SetWindowLongPtr(hWnd, DWLP_MSGRESULT, PSNRET_NOERROR);
 			break;
 		}
 		break;
@@ -1873,17 +1878,17 @@ INT_PTR CALLBACK Opt_FilesProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 		case PSN_SETACTIVE:
 		{
 			SendMessage(pathDisp, WM_SETTEXT, 0, (LPARAM)opts->GetDownloadPath().c_str());
-			SetWindowLongPtr(hWnd, DWL_MSGRESULT, PSNRET_NOERROR);
+			SetWindowLongPtr(hWnd, DWLP_MSGRESULT, PSNRET_NOERROR);
 			break;
 		}
 		case PSN_APPLY:
 		{
-			SetWindowLong(hWnd, DWL_MSGRESULT, PSNRET_NOERROR);
+			SetWindowLongPtr(hWnd, DWLP_MSGRESULT, PSNRET_NOERROR);
 			break;
 		}
 		case PSN_RESET:
 		{
-			SetWindowLong(hWnd, DWL_MSGRESULT, PSNRET_NOERROR);
+			SetWindowLongPtr(hWnd, DWLP_MSGRESULT, PSNRET_NOERROR);
 			break;
 		}
 		break;

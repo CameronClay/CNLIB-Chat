@@ -5,7 +5,11 @@
 #include "zlib/include/zlib.h"
 
 #pragma comment( lib, "shlwapi.lib" )
-#pragma comment( lib, "zlib/lib/zdll.lib" )
+#ifdef _X86_
+#pragma comment( lib, "zlib/lib/x32/zdll" )
+#else
+#pragma comment( lib, "zlib/lib/x64/zdll" )
+#endif
 
 
 FileMisc::FileData::FileData()
@@ -31,7 +35,7 @@ bool FileMisc::FileData::operator<(const FileData& fd) const
 
 bool FileMisc::FileData::operator()(FileData& fd)
 {
-	if(fileName.compare(fd.fileName) == 0)
+	if (fileName.compare(fd.fileName) == 0)
 		return !CompareTime(fd.dateModified, dateModified);
 	return false;
 }
@@ -45,7 +49,8 @@ bool FileMisc::FileData::Valid() const
 File::File(const LIB_TCHAR* fileName, DWORD desiredAccess, DWORD fileAttributes, DWORD creationFlag)
 {
 	bool b = Open(fileName, desiredAccess, fileAttributes, creationFlag);
-	assert(b);
+	if (!b)
+		hnd = nullptr;
 }
 
 File::File()
@@ -67,12 +72,12 @@ File::~File()
 
 bool File::Open(const LIB_TCHAR* fileName, DWORD desiredAccess, DWORD fileAttributes, DWORD creationFlag)
 {
-	return (hnd = CreateFile(fileName, desiredAccess, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, creationFlag, fileAttributes, NULL)) != NULL;
+	return (hnd = CreateFile(fileName, desiredAccess, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, creationFlag, fileAttributes, NULL)) != INVALID_HANDLE_VALUE;
 }
 
 void File::Close()
 {
-	if(hnd)
+	if (hnd)
 	{
 		CloseHandle(hnd);
 		hnd = NULL;
@@ -138,10 +143,10 @@ bool File::ReadString(std::tstring& dest)
 	{
 		Read(&len[i], sizeof(LIB_TCHAR));
 		len.append(_T(":"));//so out of bounds doesnt happen
-	} while(len[i++] != ':');
+	} while (len[i++] != ':');
 
 	UINT strLen = std::stoul(len);
-	if(strLen)
+	if (strLen)
 	{
 		LIB_TCHAR *str = alloc<LIB_TCHAR>(strLen + 1);
 		Read(str, sizeof(LIB_TCHAR) * strLen);
@@ -160,7 +165,7 @@ bool File::ReadDate(SYSTEMTIME& dest)
 	{
 		b = Read(&c, sizeof(LIB_TCHAR)) != 0;
 		buf << (c == '/' || c == ':' ? ' ' : c);
-	} while(c != '\n');
+	} while (c != '\n');
 	buf << '\0';
 
 	memset(&dest, 0, sizeof(SYSTEMTIME));
@@ -180,7 +185,7 @@ bool File::ReadDate(SYSTEMTIME& dest)
 
 bool File::IsOpen() const
 {
-	return (hnd != nullptr);
+	return (hnd != nullptr && hnd != INVALID_HANDLE_VALUE);
 }
 
 DWORD64 File::GetSize() const
@@ -218,9 +223,9 @@ void FileMisc::SetAttrib(const LIB_TCHAR* fileName, DWORD attrib)
 
 void FileMisc::CreateFolder(const LIB_TCHAR* fileName, DWORD fileAttributes)
 {
-	if(!CreateDirectory(fileName, NULL))
+	if (!CreateDirectory(fileName, NULL))
 	{
-		if(GetLastError() == ERROR_PATH_NOT_FOUND)
+		if (GetLastError() == ERROR_PATH_NOT_FOUND)
 		{
 			LIB_TCHAR *buff = _tcsdup(fileName);
 			PathRemoveFileSpec(buff);
@@ -237,10 +242,10 @@ void FileMisc::CreateShortcut(const LIB_TCHAR* target, const LIB_TCHAR* linkName
 	IShellLink *sl; IPersistFile *pf;
 	//CLSID_FolderShortcut
 	HRESULT hr = CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_IShellLink, (void**)&sl);
-	if(SUCCEEDED(hr))
+	if (SUCCEEDED(hr))
 	{
 		LIB_TCHAR buff[MAX_PATH];
-		if(PathIsRelative(target))
+		if (PathIsRelative(target))
 		{
 			GetFullFilePathName(target, buff);
 			sl->SetPath(buff);
@@ -251,7 +256,7 @@ void FileMisc::CreateShortcut(const LIB_TCHAR* target, const LIB_TCHAR* linkName
 		PathRemoveFileSpec(buff);
 		sl->SetWorkingDirectory(buff);
 		hr = sl->QueryInterface(IID_IPersistFile, (void**)&pf);
-		if(SUCCEEDED(hr))
+		if (SUCCEEDED(hr))
 		{
 			WCHAR link[MAX_PATH];
 #ifndef UNICODE
@@ -340,20 +345,20 @@ std::vector<FileMisc::FileData> FileMisc::GetFileNameList(const LIB_TCHAR* folde
 	std::vector<FileData> list;
 
 	HANDLE hnd = FindFirstFile(buffer, &fileSearch);
-	if(hnd != INVALID_HANDLE_VALUE)
+	if (hnd != INVALID_HANDLE_VALUE)
 	{
 		do
 		{
 			if (inclusion ? (fileSearch.dwFileAttributes & filter) : !(fileSearch.dwFileAttributes & filter))
 			{
-				if(fileSearch.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+				if (fileSearch.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
 				{
-					if(_tcscmp(fileSearch.cFileName, _T(".")) != 0 && _tcscmp(fileSearch.cFileName, _T("..")) != 0)
+					if (_tcscmp(fileSearch.cFileName, _T(".")) != 0 && _tcscmp(fileSearch.cFileName, _T("..")) != 0)
 					{
 						//std::tstring temp = folder != "" ? std::tstring( folder ) + std::tstring("\\") : "";
 
 						std::vector<FileData> a = GetFileNameList((std::tstring(folder) + _T("\\") + std::tstring(fileSearch.cFileName)).c_str(), filter, inclusion);
-						for(auto i = a.begin(); i != a.end(); i++)
+						for (auto i = a.begin(); i != a.end(); i++)
 						{
 							list.push_back(FileData(std::tstring(fileSearch.cFileName) + _T("\\") + i->fileName, i->dateModified, i->size));
 						}
@@ -366,7 +371,7 @@ std::vector<FileMisc::FileData> FileMisc::GetFileNameList(const LIB_TCHAR* folde
 					list.push_back(FileData(fileSearch.cFileName, t, DWORD64(fileSearch.nFileSizeHigh) << 32 | fileSearch.nFileSizeLow));
 				}
 			}
-		} while(FindNextFile(hnd, &fileSearch));
+		} while (FindNextFile(hnd, &fileSearch));
 		FindClose(hnd);
 	}
 
@@ -376,27 +381,27 @@ std::vector<FileMisc::FileData> FileMisc::GetFileNameList(const LIB_TCHAR* folde
 bool FileMisc::CompareTime(SYSTEMTIME& t1, SYSTEMTIME& t2)
 {
 	bool res = false;
-	if(t1.wYear > t2.wYear)
+	if (t1.wYear > t2.wYear)
 		res = true;
-	else if(t1.wYear == t2.wYear)
+	else if (t1.wYear == t2.wYear)
 	{
-		if(t1.wMonth > t2.wMonth)
+		if (t1.wMonth > t2.wMonth)
 			res = true;
-		else if(t1.wMonth == t2.wMonth)
+		else if (t1.wMonth == t2.wMonth)
 		{
-			if(t1.wDay > t2.wDay)
+			if (t1.wDay > t2.wDay)
 				res = true;
-			else if(t1.wDay == t2.wDay)
+			else if (t1.wDay == t2.wDay)
 			{
-				if(t1.wHour > t2.wHour)
+				if (t1.wHour > t2.wHour)
 					res = true;
-				else if(t1.wHour == t2.wHour)
+				else if (t1.wHour == t2.wHour)
 				{
-					if(t1.wMinute > t2.wMinute)
+					if (t1.wMinute > t2.wMinute)
 						res = true;
-					else if(t1.wMinute == t2.wMinute)
+					else if (t1.wMinute == t2.wMinute)
 					{
-						if(t1.wSecond > t2.wSecond)
+						if (t1.wSecond > t2.wSecond)
 							res = true;
 					}
 				}
@@ -494,7 +499,7 @@ bool FileMisc::BrowseFont(HWND hwnd, HFONT& hFont, COLORREF& color)
 {
 	LOGFONT log;
 	CHOOSEFONT font = { sizeof(CHOOSEFONT), hwnd, NULL, &log, 0, CF_SCREENFONTS | CF_EFFECTS, RGB(0, 0, 0) };
-	if(ChooseFont(&font))
+	if (ChooseFont(&font))
 	{
 		color = font.rgbColors;
 		hFont = CreateFontIndirect(&log);
@@ -508,7 +513,7 @@ ProgDlg::ProgDlg()
 	pd(nullptr),
 	hasCanceled(false)
 {
-	
+
 }
 
 ProgDlg::ProgDlg(ProgDlg&& progdlg)
@@ -528,7 +533,7 @@ ProgDlg::~ProgDlg()
 
 bool ProgDlg::Start(HWND hwnd, const DWORD maxVal, const LIB_TCHAR* title, const LIB_TCHAR* line0, const LIB_TCHAR* cancelMsg)
 {
-	if(!SUCCEEDED(CoCreateInstance(CLSID_ProgressDialog, NULL, CLSCTX_INPROC_SERVER, IID_IProgressDialog, (void**)&pd)) || pd == nullptr)
+	if (!SUCCEEDED(CoCreateInstance(CLSID_ProgressDialog, NULL, CLSCTX_INPROC_SERVER, IID_IProgressDialog, (void**)&pd)) || pd == nullptr)
 		return false;
 
 	pd->StartProgressDialog(hwnd, NULL, PROGDLG_AUTOTIME, NULL);
@@ -556,7 +561,7 @@ bool ProgDlg::Start(HWND hwnd, const DWORD maxVal, const LIB_TCHAR* title, const
 
 void ProgDlg::Stop()
 {
-	if(pd)
+	if (pd)
 	{
 		pd->StopProgressDialog();
 		pd->Release();
@@ -585,9 +590,9 @@ void ProgDlg::SetProgress(DWORD progress)
 
 bool ProgDlg::Canceled()
 {
-	if(!pd) return true;
+	if (!pd) return true;
 
-	else if(pd->HasUserCancelled() && !hasCanceled)
+	else if (pd->HasUserCancelled() && !hasCanceled)
 	{
 		hasCanceled = true;
 		return true;
