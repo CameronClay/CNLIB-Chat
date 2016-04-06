@@ -751,19 +751,19 @@ void TCPServ::SendDataCR(ClientDataEx& cd, OverlappedSend* ol)
 	if (sendInfo->DecrementRefCount())
 		FreeSendOlInfo(sendInfo);
 
-	cd.SendQueued();
-
 	cd.DecOpCount();
 	DecOpCount();
+
+	cd.SendQueued();
 }	
 void TCPServ::SendDataSingleCR(ClientDataEx& cd, OverlappedSendSingle* ol)
 {
 	FreeSendOlSingle(cd, ol);
 
-	cd.SendQueued();
-
 	cd.DecOpCount();
 	DecOpCount();
+
+	cd.SendQueued();
 }
 void TCPServ::CleanupAcceptEx(HostSocket::AcceptData& acceptData)
 {

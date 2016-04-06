@@ -87,6 +87,7 @@ void TCPClient::OnNotify(char* data, DWORD nBytes, void*)
 void TCPClient::SendDataCR(OverlappedSendSingle* ol)
 {
 	FreeSendOl(ol);
+	DecOpCount();
 
 	//If there are per client operations pending then attempt to complete them
 	if (!opsPending.empty())
@@ -96,8 +97,6 @@ void TCPClient::SendDataCR(OverlappedSendSingle* ol)
 			SendServData(opsPending.front(), true);
 		queueLock.Unlock();
 	}
-
-	DecOpCount();
 }
 void TCPClient::RecvDataCR(const ReadError error)
 {
