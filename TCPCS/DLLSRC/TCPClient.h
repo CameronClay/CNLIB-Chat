@@ -75,6 +75,7 @@ public:
 	void RecvDataCR(const ReadError error);
 	void CleanupRecv();
 
+	void FreePendingOps();
 	void CleanupRecvData();
 private:
 	void OnNotify(char* data, DWORD nBytes, void*) override;

@@ -85,15 +85,18 @@ ReadError RecvHandler::RecvDataCR(Socket& pc, DWORD bytesTrans, const BufferOpti
 	do
 	{
 		if (!(ptr = RecvData(bytesTrans, ptr, buffOpts, obj)))
+		{
+			curBuff->used = false;
 			return ReadError::UserError;
+		}
 	} while (bytesTrans);
 
 	//set next buff used to true so other recv doesnt enter yet
 	nextBuff->used = true;
 	std::swap(curBuff, nextBuff);
 
-	curBuff->used = false;
 	nextBuff->used = false;
+	curBuff->used = false;
 
 	return ReadError::Success;
 }

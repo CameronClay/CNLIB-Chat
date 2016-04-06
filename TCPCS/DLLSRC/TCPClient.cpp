@@ -36,7 +36,7 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 				{
 					if (bytesTrans == 0)
 					{
-						key->CleanupRecvData();
+						key->CleanupRecv();
 						continue;
 					}
 
@@ -102,13 +102,31 @@ void TCPClient::SendDataCR(OverlappedSendSingle* ol)
 void TCPClient::RecvDataCR(const ReadError error)
 {
 	if (error == ReadError::ReadFailed)
+	{
+		Disconnect();
 		DecOpCount();
+	}
 	else if (error == ReadError::UserError)
 		Disconnect();
 }
 void TCPClient::CleanupRecv()
 {
 	DecOpCount();
+}
+void TCPClient::FreePendingOps()
+{
+	if (!opsPending.empty())
+	{
+		queueLock.Lock();
+
+		for (int i = 0, size = opsPending.size(); i < size; i++)
+		{
+			FreeSendOl(opsPending.front());
+			opsPending.pop();
+		}
+
+		queueLock.Unlock();
+	}
 }
 
 void TCPClient::CleanupRecvData()
@@ -117,8 +135,9 @@ void TCPClient::CleanupRecvData()
 
 	RunDisconFunc();
 
+	//causes race conditions on dtor of keepalive
 	//Stop sending keepalive packets
-	destruct(keepAliveHandler);
+	//destruct(keepAliveHandler);
 }
 
 void TCPClient::FreeSendOl(OverlappedSendSingle* ol)
@@ -232,6 +251,9 @@ void TCPClient::Shutdown()
 		//Cancel all outstanding operations
 		Disconnect();
 
+		//Free all pending operations
+		FreePendingOps();
+
 		//Wait for all operations to cease
 		WaitForSingleObject(shutdownEv, INFINITE);
 
@@ -299,9 +321,11 @@ bool TCPClient::SendServData(OverlappedSendSingle* ol, bool popQueue)
 	if (shuttingDown)
 		return false;
 
-	if (host.IsConnected())
+	//opCount check needed incase client is already being removed
+	const UINT opCount = opCounter.load();
+	if (host.IsConnected() && opCount)
 	{
-		if (opCounter.load() < maxSendOps)
+		if (opCount < maxSendOps)
 		{
 			++opCounter;
 
@@ -309,7 +333,7 @@ bool TCPClient::SendServData(OverlappedSendSingle* ol, bool popQueue)
 			long err = WSAGetLastError();
 			if ((res == SOCKET_ERROR) && (err != WSA_IO_PENDING))
 			{
-				FreeSendOl(ol);
+				SendDataCR(ol);
 			}
 			else if (popQueue)
 			{

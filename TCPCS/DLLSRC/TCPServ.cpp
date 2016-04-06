@@ -122,7 +122,7 @@ void ClientDataEx::FreePendingOps()
 
 		for (int i = 0, size = opsPending.size(); i < size; i++)
 		{
-			serv.SendDataSingleCR(*this, opsPending.front());
+			serv.FreeSendOlSingle(*this, opsPending.front());
 			opsPending.pop();
 		}
 
@@ -474,9 +474,10 @@ bool TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSendSingle* ol, bo
 	if (shuttingDown)
 		return false;
 
-	if (clint.pc.IsConnected())
+	const UINT opCount = clint.opCount.load();
+	if (clint.pc.IsConnected() && opCount)
 	{
-		if (clint.opCount.load() < maxPCSendOps)
+		if (opCount < maxPCSendOps)
 		{
 			++clint.opCount;
 			++opCounter;
@@ -493,19 +494,19 @@ bool TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSendSingle* ol, bo
 			}
 			else if (popQueue)
 			{
-				//okay to lock and unlock here
-				clint.lock.Lock();
-
 				//queue the send for later
 				clint.opsPending.pop();
-
-				clint.lock.Unlock();
 			}
 		}
 		else if (!popQueue)
 		{
+			//okay to lock and unlock here
+			clint.lock.Lock();
+
 			//queue the send for later
 			clint.opsPending.emplace(ol);
+
+			clint.lock.Unlock();
 		}
 	}
 	else if (!popQueue)
@@ -547,30 +548,31 @@ bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient,
 		OverlappedSend* ol = sendOlPoolAll.construct<OverlappedSend>(sendInfo);
 		sendInfo->head = ol;
 
-		//UINT globalOpIndex = ++opIndex;
 		opCounter += nClients;
 		for (UINT i = 0; i < nClients; i++)
 		{
 			ClientDataEx* clint = clients[i];
-			++clint->opCount;
 
-			ol[i].Initalize(sendInfo);
-			if (clint != exClient)
+			//opCount check needed incase client is already being removed
+			if (clint->pc.IsConnected() && clint->opCount.load())
 			{
-				res = clint->pc.SendDataOl(&sendInfo->sendBuff, &ol[i]);
-				err = WSAGetLastError();
+				++clint->opCount;
+
+				ol[i].Initalize(sendInfo);
+				if (clint != exClient)
+				{
+					res = clint->pc.SendDataOl(&sendInfo->sendBuff, &ol[i]);
+					err = WSAGetLastError();
+				}
+
+				if (clint == exClient || ((res == SOCKET_ERROR) && (err != WSA_IO_PENDING)))
+				{
+					SendDataCR(*clint, &ol[i]);
+				}
 			}
-
-			if (clint == exClient || ((res == SOCKET_ERROR) && (err != WSA_IO_PENDING)))
+			else
 			{
-				SendDataCR(*clint, &ol[i]);
-				/*if (clint != exClient)
-					clint->DecOpCount();
-
-				DecOpCount();
-
-				if (sendInfo->DecrementRefCount())
-					FreeSendOlInfo(sendInfo);*/
+				--opCounter;
 			}
 		}
 	}
@@ -605,19 +607,28 @@ bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients,
 		for (UINT i = 0; i < nClients; i++)
 		{
 			ClientDataEx& clint = **(clients + i);
-			ol[i].Initalize(sendInfo);
-			++clint.opCount;
 
-			res = clint.pc.SendDataOl(&sendInfo->sendBuff, &ol[i]);
-			err = WSAGetLastError();
-
-			if ((res == SOCKET_ERROR) && (err != WSA_IO_PENDING))
+			//opCount check needed incase client is already being removed
+			if (clint.pc.IsConnected() && clint.opCount.load())
 			{
-				/*clint.DecOpCount();
-				DecOpCount();
-				if (sendInfo->DecrementRefCount())
+				ol[i].Initalize(sendInfo);
+				++clint.opCount;
+
+				res = clint.pc.SendDataOl(&sendInfo->sendBuff, &ol[i]);
+				err = WSAGetLastError();
+
+				if ((res == SOCKET_ERROR) && (err != WSA_IO_PENDING))
+				{
+					/*clint.DecOpCount();
+					DecOpCount();
+					if (sendInfo->DecrementRefCount())
 					FreeSendOlInfo(sendInfo);*/
-				SendDataCR(clint, &ol[i]);
+					SendDataCR(clint, &ol[i]);
+				}
+			}
+			else
+			{
+				--opCounter;
 			}
 		}
 	}
@@ -902,19 +913,18 @@ void TCPServ::RemoveClient(ClientDataEx* client, bool unexpected)
 	clientLock.Lock();
 
 	const UINT index = client->arrayIndex;
-	ClientDataEx*& data = clients[index];
-
 	if(index != (nClients - 1))
 	{
-		std::swap(clients[nClients - 1], data);
-		data->arrayIndex = index;
+		ClientDataEx* end = clients[nClients - 1];
+		std::swap(end, client);
+		end->arrayIndex = index;
 	}
 
 	nClients -= 1;
-	RunDisFunc(client, unexpected);
 
 	clientLock.Unlock();
 
+	RunDisFunc(client, unexpected);
 	client->Cleanup();
 
 	DecOpCount();
