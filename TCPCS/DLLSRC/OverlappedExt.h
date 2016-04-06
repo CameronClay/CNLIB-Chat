@@ -43,19 +43,20 @@ struct OverlappedSendInfo
 	OverlappedSendInfo(const WSABufSend& buff, int refCount)
 		:
 		sendBuff(buff),
-		head(nullptr)
+		head(nullptr),
+		refCount(refCount)
 	{}
 
 
 	//Returns true if need to dealloc sendBuff
 	bool DecrementRefCount()
 	{
-		return InterlockedDecrement((LONG*)&refCount) == 0;
+		return --refCount == 0;
 	}
 
 	WSABufSend sendBuff;
 	struct OverlappedSend* head;
-	int refCount;
+	std::atomic<int> refCount;
 };
 
 struct OverlappedSend : OverlappedExt

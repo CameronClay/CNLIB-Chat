@@ -325,20 +325,16 @@ bool TCPClient::SendServData(OverlappedSendSingle* ol, bool popQueue)
 	const UINT opCount = opCounter.load();
 	if (host.IsConnected() && opCount)
 	{
-		if (opCount < maxSendOps)
+		if ((opCount < maxSendOps) && (popQueue || opsPending.empty()))
 		{
 			++opCounter;
 
 			long res = host.SendDataOl(&ol->sendBuff, ol);
 			long err = WSAGetLastError();
 			if ((res == SOCKET_ERROR) && (err != WSA_IO_PENDING))
-			{
 				SendDataCR(ol);
-			}
 			else if (popQueue)
-			{
 				opsPending.pop();
-			}
 		}
 		else if (!popQueue)
 		{
@@ -346,7 +342,7 @@ bool TCPClient::SendServData(OverlappedSendSingle* ol, bool popQueue)
 			queueLock.Lock();
 
 			//queue the send for later
-			opsPending.emplace(ol);
+			opsPending.push(ol);
 
 			queueLock.Unlock();
 		}

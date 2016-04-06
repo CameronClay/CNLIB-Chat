@@ -36,12 +36,15 @@ public:
 		MemPoolSync<HeapAllocator> olPool;
 		RecvHandler recvHandler;
 		CritLock lock;
-		std::queue<OverlappedSendSingle*> opsPending;
+		std::queue<OverlappedExt*> opsPending;
 
 		void DecOpCount();
 		void FreePendingOps();
 		void Cleanup();
 		void Reset(const Socket& pc, UINT arrayIndex);
+		void PushQueue(OverlappedExt* ol);
+		void SendQueued();
+		//void PushQueue(OverlappedSend* ol);
 
 		//int for alignment
 		enum State : int
@@ -202,6 +205,7 @@ private:
 	bool SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient, bool single);
 	bool SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients, UINT nClients);
 	bool SendClientSingle(ClientDataEx& clint, OverlappedSendSingle* ol, bool popQueue = false);
+	bool SendClientSingle(ClientDataEx& clint, OverlappedSend* ol, bool popQueue = false);
 
 	void DecOpCount();
 
