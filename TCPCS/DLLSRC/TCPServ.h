@@ -96,7 +96,7 @@ public:
 		HostSocket(HostSocket&& host);
 		HostSocket& operator=(HostSocket&& data);
 
-		void Initalize(UINT nConcAccepts);
+		void Initalize(UINT nConcAccepts, const SocketOptions& sockOpts);
 		void Cleanup();
 
 		bool Bind(const LIB_TCHAR* port, bool ipv6);

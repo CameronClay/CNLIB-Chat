@@ -1,29 +1,29 @@
 #include "stdafx.h"
 #include "CNLIB/SocketOptions.h"
 
-SocketOptions::SocketOptions(bool useOwnSBuf, bool useOwnRBuf, bool noDelay)
+SocketOptions::SocketOptions(int tcpSendSize, int tcpRecvSize, bool noDelay)
 	:
-	useOwnSBuf(useOwnSBuf),
-	useOwnRBuf(useOwnRBuf),
+	tcpSendSize(tcpSendSize),
+	tcpRecvSize(tcpRecvSize),
 	noDelay(noDelay)
 {}
 SocketOptions& SocketOptions::operator=(const SocketOptions& sockOpts)
 {
 	if (this != &sockOpts)
 	{
-		useOwnSBuf = sockOpts.useOwnSBuf;
-		useOwnRBuf = sockOpts.useOwnRBuf;
+		tcpSendSize = sockOpts.tcpSendSize;
+		tcpRecvSize = sockOpts.tcpRecvSize;
 		noDelay = sockOpts.noDelay;
 	}
 	return *this;
 }
-bool SocketOptions::UseOwnSBuf() const
+int SocketOptions::TCPSendSize() const
 {
-	return useOwnSBuf;
+	return tcpSendSize;
 }
-bool SocketOptions::UseOwnRBuf() const
+int SocketOptions::TCPRecvSize() const
 {
-	return useOwnRBuf;
+	return tcpRecvSize;
 }
 bool SocketOptions::NoDelay() const
 {

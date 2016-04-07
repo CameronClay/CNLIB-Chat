@@ -198,10 +198,14 @@ HostSocket& HostSocket::operator=(HostSocket&& host)
 	return *this;
 }
 
-void HostSocket::Initalize(UINT nConcAccepts)
+void HostSocket::Initalize(UINT nConcAccepts, const SocketOptions& sockOpts)
 {
 	this->nConcAccepts = nConcAccepts;
 	acceptData = alloc<AcceptData>(nConcAccepts);
+
+	listen.SetNoDelay(sockOpts.NoDelay());
+	listen.SetTCPSendStack(sockOpts.TCPSendSize());
+	listen.SetTCPRecvStack(sockOpts.TCPRecvSize());
 
 	for (UINT i = 0; i < nConcAccepts; i++)
 		acceptData[i].Initalize(this);
@@ -726,17 +730,16 @@ void TCPServ::AcceptConCR(HostSocket::AcceptData& acceptData)
 	sockaddr *localAddr, *remoteAddr;
 	int localLen, remoteLen;
 
-	//Separate addresses and create new socket
-	acceptData.GetAcceptExAddrs(&localAddr, &localLen, &remoteAddr, &remoteLen);
-	//Socket::GetAcceptExAddrs(host.buffer, host.localAddrLen, host.remoteAddrLen, &localAddr, &localLen, &remoteAddr, &remoteLen);
 	Socket socket = acceptData.GetAccept();
+
+	Socket::SetAcceptExContext(socket.GetSocket(), acceptData.GetHostSocket()->GetListen().GetSocket());
+	DWORD err = WSAGetLastError();
+
+	//Separate addresses and set address info
+	acceptData.GetAcceptExAddrs(&localAddr, &localLen, &remoteAddr, &remoteLen);
 	socket.SetAddrInfo(remoteAddr, false);
 
-	//Get ready for another call
 	acceptData.ResetAccept();
-
-	//Queue another acceptol
-	//host.listen.AcceptOl(host.accept, host.buffer, host.localAddrLen, host.remoteAddrLen, ol);
 	acceptData.QueueAccept();
 
 	//If server is not full and has passed the connection condition test
@@ -884,7 +887,7 @@ bool TCPServ::BindHost(HostSocket& host, const LIB_TCHAR* port, bool ipv6, UINT 
 
 	if (b = host.Bind(port, ipv6))
 	{
-		host.Initalize(nConcAccepts);
+		host.Initalize(nConcAccepts, sockOpts);
 		if (b = host.LinkIOCP(*iocp))
 		{
 			host.QueueAccept();
@@ -944,12 +947,12 @@ void TCPServ::AddClient(Socket pc)
 
 	clientLock.Unlock();
 
-	if (sockOpts.NoDelay())
-		pc.SetNoDelay(true);
-	if (sockOpts.UseOwnSBuf())
-		pc.SetTCPSendStack();
-	if (sockOpts.UseOwnRBuf())
-		pc.SetTCPRecvStack();
+	//if (sockOpts.NoDelay())
+	//	pc.SetNoDelay(true);
+	//if (sockOpts.UseOwnSBuf())
+	//	pc.SetTCPSendStack();
+	//if (sockOpts.UseOwnRBuf())
+	//	pc.SetTCPRecvStack();
 
 	iocp->LinkHandle((HANDLE)pc.GetSocket(), cd);
 

@@ -4,11 +4,12 @@
 class CAMSNETLIB SocketOptions
 {
 public:
-	SocketOptions(bool useOwnSBuf = true, bool useOwnRBuf = false, bool noDelay = false);
+	SocketOptions(int tcpSendSize = 0, int tcpRecvSize = 65536, bool noDelay = true);
 	SocketOptions& operator=(const SocketOptions& sockOpts);
-	bool UseOwnSBuf() const;
-	bool UseOwnRBuf() const;
+	int TCPSendSize() const;
+	int TCPRecvSize() const;
 	bool NoDelay() const;
 private:
-	bool useOwnSBuf, useOwnRBuf, noDelay;
+	int tcpSendSize, tcpRecvSize;
+	bool noDelay;
 };

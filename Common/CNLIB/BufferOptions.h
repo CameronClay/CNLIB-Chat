@@ -4,7 +4,7 @@
 class CAMSNETLIB BufferOptions
 {
 public:
-	BufferOptions(UINT maxDataBuffSize = 4096, UINT maxReadSize = 100000, int compression = 9, int compressionCO = 512);
+	BufferOptions(UINT maxDataBuffSize = 4096, UINT maxReadSize = 100000, int compression = 9, int compressionCO = 1024);
 	BufferOptions& operator=(const BufferOptions& bufferOptions);
 
 	UINT GetMaxDataBuffSize() const;

@@ -54,7 +54,7 @@ public:
 	bool Bind(const LIB_TCHAR* port, bool ipv6 = false);
 	Socket AcceptConnection();
 
-	bool Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, float timeout);
+	bool Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, int tcpSendSize = 8192, int tcpRecvSize = 8192, bool noDelay = true, float timeout = 5.0f);
 
 	void Shutdown();
 	void Disconnect();
@@ -63,6 +63,7 @@ public:
 	long SendData(const void* data, DWORD nBytes);
 
 	bool AcceptOl(SOCKET acceptSocket, void* infoBuffer, DWORD localAddrLen, DWORD remoteAddrLen, OVERLAPPED* ol);
+
 	long RecvDataOl(WSABUF* buffer, OVERLAPPED* ol, DWORD flags = 0, UINT bufferCount = 1, LPWSAOVERLAPPED_COMPLETION_ROUTINE cr = NULL);
 	long SendDataOl(WSABUF* buffer, OVERLAPPED* ol, DWORD flags = 0, UINT bufferCount = 1, LPWSAOVERLAPPED_COMPLETION_ROUTINE cr = NULL);
 
@@ -71,6 +72,11 @@ public:
 	bool SetTCPRecvStack(int size = 0);
 	bool SetTCPSendStack(int size = 0);
 	bool SetNoDelay(bool b = true);
+	static bool SetAcceptExContext(SOCKET accept, SOCKET listen);
+
+	bool GetTCPRecvStack(int& size);
+	bool GetTCPSendStack(int& size);
+	bool GetTCPNoDelay(bool& b);
 
 	bool SetBlocking();
 	bool SetNonBlocking();

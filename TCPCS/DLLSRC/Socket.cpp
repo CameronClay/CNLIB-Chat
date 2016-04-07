@@ -144,7 +144,7 @@ Socket Socket::AcceptConnection()
 }
 
 //IP or HostName for dest
-bool Socket::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, float timeout)
+bool Socket::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, int tcpSendSize, int tcpRecvSize, bool noDelay, float timeout)
 {
 	int result = false;
 	ADDRINFOT* addr = 0;
@@ -154,6 +154,10 @@ bool Socket::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, fl
 	if(!result)
 	{
 		Socket temp = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
+
+		temp.SetTCPSendStack(tcpSendSize);
+		temp.SetTCPRecvStack(tcpRecvSize);
+		temp.SetNoDelay(noDelay);
 
 		if (temp.IsConnected())
 		{
@@ -243,6 +247,11 @@ bool Socket::AcceptOl(SOCKET acceptSocket, void* infoBuffer, DWORD localAddrLen,
 	return AcceptEx(pc, acceptSocket, infoBuffer, 0, localAddrLen, remoteAddrLen, NULL, ol);
 }
 
+bool Socket::SetAcceptExContext(SOCKET accept, SOCKET listen)
+{
+	return (setsockopt(accept, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, (const char*)&listen, sizeof(SOCKET)) == 0);
+}
+
 long Socket::RecvDataOl(WSABUF* buffer, OVERLAPPED* ol, DWORD flags, UINT bufferCount, LPWSAOVERLAPPED_COMPLETION_ROUTINE cr)
 {
 	return WSARecv(pc, buffer, bufferCount, NULL, &flags, ol, cr);
@@ -266,11 +275,26 @@ bool Socket::SetTCPSendStack(int size)
 {
 	return (setsockopt(pc, SOL_SOCKET, SO_SNDBUF, (const char*)&size, sizeof(int)) == 0);
 }
-
 bool Socket::SetNoDelay(bool b)
 {
 	BOOL temp = b;
 	return (setsockopt(pc, IPPROTO_TCP, TCP_NODELAY, (const char*)&temp, sizeof(BOOL)) == 0);
+}
+
+bool Socket::GetTCPRecvStack(int& size)
+{
+	int paramSize = sizeof(int);
+	return (getsockopt(pc, SOL_SOCKET, SO_RCVBUF, (char*)&size, &paramSize) == 0);
+}
+bool Socket::GetTCPSendStack(int& size)
+{
+	int paramSize = sizeof(int);
+	return (getsockopt(pc, SOL_SOCKET, SO_SNDBUF, (char*)&size, &paramSize) == 0);
+}
+bool Socket::GetTCPNoDelay(bool& b)
+{
+	int paramSize = sizeof(BOOL);
+	return (getsockopt(pc, IPPROTO_TCP, TCP_NODELAY, (char*)&b, &paramSize) == 0);
 }
 
 bool Socket::SetBlocking()

@@ -229,7 +229,15 @@ bool TCPClient::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6,
 	//reset so it will send correct message
 	SetShutdownReason(true);
 
-	return host.Connect(dest, port, ipv6, timeOut);
+	host = socket(AF_UNSPEC, SOCK_STREAM, IPPROTO_TCP);
+
+	//host.SetNoDelay(sockOpts.NoDelay());
+	//if (sockOpts.UseOwnSBuf())
+	//	host.SetTCPSendStack(sockOpts.UseOwnSBuf());
+	//if (sockOpts.UseOwnRBuf())
+	//	host.SetTCPRecvStack(sockOpts.UseOwnRBuf());
+
+	return host.Connect(dest, port, ipv6, sockOpts.TCPSendSize(), sockOpts.TCPRecvSize(), sockOpts.NoDelay(), timeOut);
 }
 
 void TCPClient::Disconnect()
@@ -386,13 +394,6 @@ bool TCPClient::RecvServData(DWORD nThreads, DWORD nConcThreads)
 	//client can disconnect and iocp wont be cleaned up due to nonblocking disconnect
 	if (!iocp)
 		iocp = construct<IOCP>(nThreads, nConcThreads, IOCPThread);
-
-	if (sockOpts.NoDelay())
-		host.SetNoDelay(true);
-	if (sockOpts.UseOwnSBuf())
-		host.SetTCPSendStack();
-	if (sockOpts.UseOwnRBuf())
-		host.SetTCPRecvStack();
 
 	if (!iocp->LinkHandle((HANDLE)host.GetSocket(), this))
 		return false;
