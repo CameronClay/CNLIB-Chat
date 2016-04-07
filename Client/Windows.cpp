@@ -696,7 +696,7 @@ void WinMainInit()
 
 	InitializeNetworking();
 
-	client = CreateClient(&MsgHandler, &DisconnectHandler, 5, BufferOptions(4096, 100000, 9, 1024));
+	client = CreateClient(&MsgHandler, &DisconnectHandler, 5, BufferOptions(4096, 100000, 9, 1024), SocketOptions(0, 0, true));
 	fileSend = uqpc<FileSend>(construct<FileSend>(*client, hMainWind, &SendFinishedHandler, &SendCanceledHandler));
 	fileReceive = uqpc<FileReceive>(construct<FileReceive>(*client, hMainWind, &ReceiveFinishedHandler, &ReceiveCanceledHandler));
 	opts = uqpc<Options>(construct<Options>(std::tstring(optionsFilePath), CONFIGVERSION));

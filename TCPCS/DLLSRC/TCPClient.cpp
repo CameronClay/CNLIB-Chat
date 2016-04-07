@@ -102,11 +102,11 @@ void TCPClient::RecvDataCR(const ReadError error)
 {
 	if (error == ReadError::ReadFailed)
 	{
-		Disconnect();
+		host.Disconnect();
 		DecOpCount();
 	}
 	else if (error == ReadError::UserError)
-		Disconnect();
+		host.Disconnect();
 }
 void TCPClient::CleanupRecv()
 {
