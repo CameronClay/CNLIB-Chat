@@ -1,4 +1,5 @@
 //Copyright(c) <2015> <Cameron Clay>
+
 #pragma once
 
 //Minimum bytes required when compression is on BESTFIT to choose compression over raw data(compression byte cutoff)

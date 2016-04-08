@@ -1,3 +1,5 @@
+//Copyright (c) <2015> <Cameron Clay>
+
 template<typename T> 
 class StreamWriter::Helper<std::basic_string<T>> : public HelpBase<std::basic_string<T>>
 {
