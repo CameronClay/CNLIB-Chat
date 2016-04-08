@@ -192,8 +192,8 @@ public:
 
 	void AcceptConCR(HostSocket::AcceptData& acceptData);
 	void RecvDataCR(DWORD bytesTrans, ClientDataEx& cd);
-	void SendDataCR(ClientDataEx& cd, OverlappedSend* ol);
-	void SendDataSingleCR(ClientDataEx& cd, OverlappedSendSingle* ol);
+	void SendDataCR(ClientDataEx& cd, OverlappedSend* ol, bool sendQueued);
+	void SendDataSingleCR(ClientDataEx& cd, OverlappedSendSingle* ol, bool sendQueued);
 	void CleanupAcceptEx(HostSocket::AcceptData& acceptData);
 private:
 	void OnNotify(char* data, DWORD nBytes, void* cd) override;

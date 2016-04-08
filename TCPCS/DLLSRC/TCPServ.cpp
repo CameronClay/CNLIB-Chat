@@ -123,7 +123,7 @@ void ClientDataEx::FreePendingOps()
 		for (int i = 0, size = opsPending.size(); i < size; i++)
 		{
 			OverlappedExt* ol = opsPending.front();
-			(ol->opType == OpType::sendsingle) ? serv.FreeSendOlSingle(*this, (OverlappedSendSingle*)ol) : serv.SendDataCR(*this, (OverlappedSend*)ol);
+			(ol->opType == OpType::sendsingle) ? serv.FreeSendOlSingle(*this, (OverlappedSendSingle*)ol) : serv.SendDataCR(*this, (OverlappedSend*)ol, false);
 			opsPending.pop();
 		}
 
@@ -366,13 +366,13 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 				case OpType::send:
 				{
 					ClientDataEx& cd = *(ClientDataEx*)key;
-					cd.serv.SendDataCR(cd, (OverlappedSend*)ol);
+					cd.serv.SendDataCR(cd, (OverlappedSend*)ol, true);
 				}
 				break;
 				case OpType::sendsingle:
 				{
 					ClientDataEx& cd = *(ClientDataEx*)key;
-					cd.serv.SendDataSingleCR(cd, (OverlappedSendSingle*)ol);
+					cd.serv.SendDataSingleCR(cd, (OverlappedSendSingle*)ol, true);
 				}
 				break;
 				case OpType::accept:
@@ -391,12 +391,12 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 				if (ol->opType == OpType::send)
 				{
 					ClientDataEx& cd = *(ClientDataEx*)key;
-					cd.serv.SendDataCR(cd, (OverlappedSend*)ol);
+					cd.serv.SendDataCR(cd, (OverlappedSend*)ol, true);
 				}
 				else if (ol->opType == OpType::sendsingle)
 				{
 					ClientDataEx& cd = *(ClientDataEx*)key;
-					cd.serv.SendDataSingleCR(cd, (OverlappedSendSingle*)ol);
+					cd.serv.SendDataSingleCR(cd, (OverlappedSendSingle*)ol, true);
 				}
 				else if (ol->opType == OpType::recv)
 				{
@@ -510,7 +510,7 @@ bool TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSendSingle* ol, bo
 			long res = clint.pc.SendDataOl(&ol->sendBuff, ol);
 			long err = WSAGetLastError();
 			if ((res == SOCKET_ERROR) && (err != WSA_IO_PENDING))
-				SendDataSingleCR(clint, ol);
+				SendDataSingleCR(clint, ol, false);
 			else if (popQueue)
 				//queue the send for later
 				clint.opsPending.pop();
@@ -546,7 +546,7 @@ bool TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSend* ol, bool pop
 			long res = clint.pc.SendDataOl(&sendInfo->sendBuff, ol);
 			long err = WSAGetLastError();
 			if ((res == SOCKET_ERROR) && (err != WSA_IO_PENDING))
-				SendDataCR(clint, ol);
+				SendDataCR(clint, ol, false);
 			else if (popQueue)
 				//queue the send for later
 				clint.opsPending.pop();
@@ -622,7 +622,7 @@ bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient,
 					}
 
 					if (clint == exClient || ((res == SOCKET_ERROR) && (err != WSA_IO_PENDING)))
-						SendDataCR(*clint, ol + i);
+						SendDataCR(*clint, ol + i, false);
 				}
 			}
 			else
@@ -683,7 +683,7 @@ bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients,
 					err = WSAGetLastError();
 
 					if ((res == SOCKET_ERROR) && (err != WSA_IO_PENDING))
-						SendDataCR(clint, ol + i);
+						SendDataCR(clint, ol + i, false);
 				}
 			}
 			else
@@ -748,7 +748,7 @@ void TCPServ::AcceptConCR(HostSocket::AcceptData& acceptData)
 	else
 		socket.Disconnect();
 }
-void TCPServ::SendDataCR(ClientDataEx& cd, OverlappedSend* ol)
+void TCPServ::SendDataCR(ClientDataEx& cd, OverlappedSend* ol, bool sendQueued)
 {
 	OverlappedSendInfo* sendInfo = ol->sendInfo;
 	if (sendInfo->DecrementRefCount())
@@ -757,16 +757,18 @@ void TCPServ::SendDataCR(ClientDataEx& cd, OverlappedSend* ol)
 	cd.DecOpCount();
 	DecOpCount();
 
-	cd.SendQueued();
+	if (sendQueued)
+		cd.SendQueued();
 }	
-void TCPServ::SendDataSingleCR(ClientDataEx& cd, OverlappedSendSingle* ol)
+void TCPServ::SendDataSingleCR(ClientDataEx& cd, OverlappedSendSingle* ol, bool sendQueued)
 {
 	FreeSendOlSingle(cd, ol);
 
 	cd.DecOpCount();
 	DecOpCount();
 
-	cd.SendQueued();
+	if (sendQueued)
+		cd.SendQueued();
 }
 void TCPServ::CleanupAcceptEx(HostSocket::AcceptData& acceptData)
 {

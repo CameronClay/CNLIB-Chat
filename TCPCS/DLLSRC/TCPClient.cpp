@@ -44,7 +44,7 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 				}
 				break;
 			case OpType::sendsingle:
-				key->SendDataCR((OverlappedSendSingle*)ol);
+				key->SendDataCR((OverlappedSendSingle*)ol, true);
 				break;
 			}
 		}
@@ -56,7 +56,7 @@ static DWORD CALLBACK IOCPThread(LPVOID info)
 				res = true;
 				if (ol->opType == OpType::sendsingle)
 				{
-					key->SendDataCR((OverlappedSendSingle*)ol);
+					key->SendDataCR((OverlappedSendSingle*)ol, true);
 				}
 				else if (ol->opType == OpType::recv)
 				{
@@ -84,13 +84,13 @@ void TCPClient::OnNotify(char* data, DWORD nBytes, void*)
 	(function)(*this, MsgStreamReader{ data, nBytes - MSG_OFFSET });
 }
 
-void TCPClient::SendDataCR(OverlappedSendSingle* ol)
+void TCPClient::SendDataCR(OverlappedSendSingle* ol, bool sendQueued)
 {
 	FreeSendOl(ol);
 	DecOpCount();
 
 	//If there are per client operations pending then attempt to complete them
-	if (!opsPending.empty())
+	if (sendQueued && !opsPending.empty())
 	{
 		queueLock.Lock();
 		if (!opsPending.empty())
@@ -339,7 +339,7 @@ bool TCPClient::SendServData(OverlappedSendSingle* ol, bool popQueue)
 			long res = host.SendDataOl(&ol->sendBuff, ol);
 			long err = WSAGetLastError();
 			if ((res == SOCKET_ERROR) && (err != WSA_IO_PENDING))
-				SendDataCR(ol);
+				SendDataCR(ol, false);
 			else if (popQueue)
 				opsPending.pop();
 		}

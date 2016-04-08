@@ -71,7 +71,7 @@ public:
 	void FreeSendOl(OverlappedSendSingle* ol);
 
 	RecvHandler::ReadError RecvDataCR(DWORD bytesTrans);
-	void SendDataCR(OverlappedSendSingle* ol);
+	void SendDataCR(OverlappedSendSingle* ol, bool sendQueued);
 	void RecvDataCR(const ReadError error);
 	void CleanupRecv();
 
