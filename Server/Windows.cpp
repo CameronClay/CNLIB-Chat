@@ -170,7 +170,8 @@ void DisconnectHandler(TCPServInterface& serv, ClientData* data, bool unexpected
 	auto& streamWriter = serv.CreateOutStream(StreamWriter::SizeType(data->user), TYPE_CHANGE, MSG_CHANGE_DISCONNECT);
 	streamWriter.Write(data->user);
 	
-	serv.SendClientData(streamWriter, data, false);
+	//nullptr because client is already disconnected at this point
+	serv.SendClientData(streamWriter, nullptr, false);
 
 	LIB_TCHAR buffer[128] = {};
 	_stprintf(buffer, _T("(%s) has disconnected!"), (!data->user.empty()) ? data->user.c_str() : _T("unknown"));

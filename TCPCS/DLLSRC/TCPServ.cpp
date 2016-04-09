@@ -970,12 +970,15 @@ void TCPServ::RemoveClient(ClientDataEx* client, bool unexpected)
 
 	clientLock.Lock();
 
-	const UINT index = client->arrayIndex;
-	if(index != (nClients - 1))
+	const UINT index = client->arrayIndex, lastIndex = nClients - 1;
+	if (index != lastIndex)
 	{
-		ClientDataEx* end = clients[nClients - 1];
-		std::swap(end, client);
+		ClientDataEx*& end = clients[lastIndex];
 		end->arrayIndex = index;
+		client->arrayIndex = lastIndex;
+
+		clients[index] = end;
+		end = client;
 	}
 
 	nClients -= 1;

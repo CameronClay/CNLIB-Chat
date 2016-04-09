@@ -264,8 +264,8 @@ int FindClient(const std::tstring& name)
 
 	for(USHORT i = 0; i < count; i++)
 	{
-		SendMessage(listClients, LB_GETTEXT, i, (LPARAM)buffer);
-		if(name.compare(buffer) == 0)
+		int len = SendMessage(listClients, LB_GETTEXT, i, (LPARAM)buffer);
+		if (name.compare(0, len, buffer) == 0)
 		{
 			found = i;
 			break;
