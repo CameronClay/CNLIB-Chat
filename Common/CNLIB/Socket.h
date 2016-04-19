@@ -35,7 +35,7 @@ public:
 
 	struct Hash
 	{
-		UINT operator()(const Socket& sock) const
+		size_t operator()(const Socket& sock) const
 		{
 			return std::hash<SOCKET>()(sock.pc);
 		}

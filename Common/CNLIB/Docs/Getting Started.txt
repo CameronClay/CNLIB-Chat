@@ -2,4 +2,5 @@
 2) Next copy TCPCS.lib to your project
 3) Copy TCPCS.dll to a location relative to your executable
 4) Now all you need to do is link the library to your project by doing: #pragma comment(lib, "TCPCS.lib")
-5) Include necessary header files and get started :)
+5) Include Includes.h before you include any files.
+6) Include necessary header files and get started :)

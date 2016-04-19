@@ -309,6 +309,7 @@
     <ClInclude Include="..\Common\CNLIB\CritLock.h" />
     <ClInclude Include="..\Common\CNLIB\File.h" />
     <ClInclude Include="..\Common\CNLIB\HeapAlloc.h" />
+    <ClInclude Include="..\Common\CNLIB\Includes.h" />
     <ClInclude Include="..\Common\CNLIB\IOCP.h" />
     <ClInclude Include="..\Common\CNLIB\IPV.h" />
     <ClInclude Include="..\Common\CNLIB\MemPool.h" />
@@ -325,7 +326,7 @@
     <ClInclude Include="..\Common\CNLIB\TCPServInterface.h" />
     <ClInclude Include="..\Common\CNLIB\Typedefs.h" />
     <ClInclude Include="..\Common\CNLIB\UPNP.h" />
-    <ClCompile Include="BuffAllocator.cpp" />
+    <ClCompile Include="DLLSRC\BuffAllocator.cpp" />
     <ClCompile Include="DLLSRC\BufferOptions.cpp" />
     <ClInclude Include="DLLSRC\BufSendAlloc.h" />
     <ClInclude Include="DLLSRC\KeepAlive.h" />

@@ -1,9 +1,6 @@
 //Copyright (c) <2015> <Cameron Clay>
 
 #pragma once
-#include <Windows.h>
-#include <memory>
-#include <vector>
 
 template<template<typename> class Allocator = std::allocator>
 //Growable single-thread safe memory pool

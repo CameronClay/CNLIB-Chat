@@ -71,7 +71,3 @@ struct WSABufSend : public WSABufExt
 	}
 	BuffAllocator* alloc;
 };
-
-
-
-
