@@ -60,16 +60,14 @@ void D3D::Initialize(HWND WinHandle)
 	lockRect.pBits = NULL;
 	pDirect3D = Direct3DCreate9(D3D_SDK_VERSION);
 
-	D3DPRESENT_PARAMETERS d3dpp;
-	ZeroMemory(&d3dpp, sizeof(d3dpp));
+	D3DPRESENT_PARAMETERS d3dpp{};
 	d3dpp.Windowed = TRUE;
 	d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
-	d3dpp.BackBufferFormat = /*D3DFMT_UNKNOWN*/D3DFMT_A8R8G8B8;
-	d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
-	d3dpp.Flags = /*D3DPRESENT_INTERVAL_DEFAULT*/D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
-
-	BOOL isWindow = IsWindow(hWnd);
+	d3dpp.BackBufferFormat = D3DFMT_UNKNOWN;
+	d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE; //most likely cause
+	d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
 	d3dpp.hDeviceWindow = hWnd;
+
 	const DWORD createFlags = D3DCREATE_PUREDEVICE/* | D3DCREATE_MULTITHREADED*/;
 
 	hr = pDirect3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,
@@ -86,6 +84,8 @@ void D3D::Initialize(HWND WinHandle)
 	}
 	if (FAILED(hr))
 	{
+		d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
+
 		hr = pDirect3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_REF, hWnd,
 			createFlags | D3DCREATE_HARDWARE_VERTEXPROCESSING, &d3dpp, &pDevice);
 	}

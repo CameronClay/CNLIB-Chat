@@ -208,6 +208,11 @@ HWND CreateWBWindow(USHORT width, USHORT height)
 
 	ShowWindow(wbHandle, SW_SHOWNORMAL);
 
+	pWhiteboard->Initialize(wbHandle);
+
+	if (wbCanDraw)
+		pWhiteboard->StartThread(client);
+
 	pWhiteboard->GetD3D().Present();
 	client->SendMsg(TYPE_RESPONSE, MSG_RESPONSE_WHITEBOARD_INITED);
 
@@ -1310,11 +1315,6 @@ LRESULT CALLBACK WbProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	}
 	case WM_CREATE:
-		wb.Initialize(hWnd);
-
-		if(wbCanDraw)
-			wb.StartThread(client);
-
 		width = wb.GetD3D().GetWidth(), height = wb.GetD3D().GetHeight();
 
 		//client->SendMsg(TYPE_RESPONSE, MSG_RESPONSE_WHITEBOARD_INITED);
