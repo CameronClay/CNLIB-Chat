@@ -649,7 +649,7 @@ void WinMainInit()
 
 	MapPort(port, _T("TCP"), _T("Cam's Serv"));
 
-	serv = CreateServer(&MsgHandler, &ConnectHandler, &DisconnectHandler, 5, BufferOptions(4096, 100000, 9, 1024), SocketOptions(0, 0, true));
+	serv = CreateServer(&MsgHandler, &ConnectHandler, &DisconnectHandler, 5, BufferOptions(4096, 125000, 9, 1024), SocketOptions(0, 0, true));
 
 	LIB_TCHAR portA[6] = {};
 	serv->AllowConnections(_itot(port, portA, 10), CanConnect);

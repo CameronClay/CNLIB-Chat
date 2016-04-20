@@ -229,14 +229,6 @@ bool TCPClient::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6,
 	//reset so it will send correct message
 	SetShutdownReason(true);
 
-	host = socket(AF_UNSPEC, SOCK_STREAM, IPPROTO_TCP);
-
-	//host.SetNoDelay(sockOpts.NoDelay());
-	//if (sockOpts.UseOwnSBuf())
-	//	host.SetTCPSendStack(sockOpts.UseOwnSBuf());
-	//if (sockOpts.UseOwnRBuf())
-	//	host.SetTCPRecvStack(sockOpts.UseOwnRBuf());
-
 	return host.Connect(dest, port, ipv6, sockOpts.TCPSendSize(), sockOpts.TCPRecvSize(), sockOpts.NoDelay(), timeOut);
 }
 
@@ -398,14 +390,14 @@ bool TCPClient::RecvServData(DWORD nThreads, DWORD nConcThreads)
 	if (!iocp->LinkHandle((HANDLE)host.GetSocket(), this))
 		return false;
 
-	++opCounter; //For recv
-
-	recvHandler.StartRecv(host);
-
 	if (!shutdownEv)
 		shutdownEv = CreateEvent(NULL, TRUE, FALSE, NULL);
 	else
 		ResetEvent(shutdownEv);
+
+	++opCounter; //For recv
+	if (!recvHandler.StartRecv(host))
+		DecOpCount();
 
 	if (keepAliveInterval != 0.0f)
 	{

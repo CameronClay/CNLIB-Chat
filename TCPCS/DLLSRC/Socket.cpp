@@ -48,7 +48,7 @@ Socket& Socket::operator= (const Socket& pc)
 {
 	if (this != &pc)
 	{
-		this->~Socket();
+		Disconnect();
 		this->pc = pc.pc;
 		this->info = pc.info;
 	}
@@ -56,9 +56,9 @@ Socket& Socket::operator= (const Socket& pc)
 }
 Socket& Socket::operator= (Socket&& pc)
 {
-	if(this != &pc)
+	if (this != &pc)
 	{
-		this->~Socket();
+		Disconnect();
 		this->pc = pc.pc;
 		this->info = std::move(pc.info);
 		ZeroMemory(&pc, sizeof(Socket));
@@ -129,7 +129,7 @@ bool Socket::Bind(const LIB_TCHAR* port, bool ipv6)
 Socket Socket::AcceptConnection()
 {
 	Socket temp;
-	if(IsConnected())
+	if (IsConnected())
 	{
 		int addrLen = sizeof(sockaddr_in6);
 		sockaddr* addr = (sockaddr*)alloc<sockaddr_in6>();
@@ -151,48 +151,39 @@ bool Socket::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, in
 	ADDRINFOT info = { 0, ipv6 ? AF_INET6 : AF_INET, SOCK_STREAM, IPPROTO_TCP };
 
 	result = GetAddrInfo(dest, port, &info, &addr);
-	if(!result)
+	if (!result)
 	{
 		Socket temp = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
 
 		temp.SetTCPSendStack(tcpSendSize);
 		temp.SetTCPRecvStack(tcpRecvSize);
 		temp.SetNoDelay(noDelay);
+		temp.SetNonBlocking();
 
-		if (temp.IsConnected())
+		result = connect(temp.pc, addr->ai_addr, addr->ai_addrlen);
+		if (result == SOCKET_ERROR)  // connect fails right away
 		{
-			SOCKET tmp = temp.pc;
-			temp.SetNonBlocking();
-			result = connect(tmp, addr->ai_addr, addr->ai_addrlen);
-			if(result == SOCKET_ERROR)  // connect fails right away
+			FD_SET fds;
+			FD_ZERO(&fds);
+			FD_SET(temp.pc, &fds);
+			const u_long sec = (long)floor(timeout);
+			TIMEVAL tv = { sec, long((timeout - sec) * 100000.f) };
+			if (select(0, nullptr, &fds, nullptr, &tv) <= 0)
 			{
-				FD_SET fds;
-				FD_ZERO(&fds);
-				FD_SET(tmp, &fds);
-				u_long sec = (long)floor(timeout);
-				TIMEVAL tv = { sec, long((timeout - sec) * 100000.f) };
-				if(select(0, nullptr, &fds, nullptr, &tv) <= 0)
-					temp.~Socket();  // timed out
-				else
-					temp.SetBlocking();
-			}
-			else
-			{
-				temp.SetBlocking();
+				closesocket(temp.pc);
+				FreeAddrInfo(addr);
+				return false; // probly timed out
 			}
 		}
-		if (temp.IsConnected())
-		{
-			*this = std::move(temp);
 
-			sockaddr* temp = (sockaddr*)alloc<char>(addr->ai_addrlen);
-			memcpy(temp, addr->ai_addr, addr->ai_addrlen);
-			this->info.SetAddr(temp, true);
-		}
+		temp.SetBlocking();
+		*this = std::move(temp);
 
+		sockaddr* buffer = (sockaddr*)alloc<char>(addr->ai_addrlen);
+		memcpy(buffer, addr->ai_addr, addr->ai_addrlen);
+		this->info.SetAddr(buffer, true);
 		FreeAddrInfo(addr);
 	}
-
 	return IsConnected();
 }
 
@@ -238,7 +229,7 @@ long Socket::SendData(const void* data, DWORD nBytes)
 		sent += temp = send(pc, ((char*)data) + sent, nBytes - sent, 0);
 		if (temp == SOCKET_ERROR)
 			return temp;
-	} while(sent != nBytes);
+	} while (sent != nBytes);
 	return sent;
 }
 
