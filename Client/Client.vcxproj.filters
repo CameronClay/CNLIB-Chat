@@ -21,9 +21,6 @@
     <ClCompile Include="Options.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FileTransfer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Whiteboard.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -45,9 +42,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Options.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="FileTransfer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\Format.h">

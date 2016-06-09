@@ -285,7 +285,6 @@
     <ClCompile Include="..\Common\Mouse.cpp" />
     <ClCompile Include="..\Common\Palette.cpp" />
     <ClCompile Include="..\Common\WhiteboardClientData.cpp" />
-    <ClCompile Include="FileTransfer.cpp" />
     <ClCompile Include="Options.cpp" />
     <ClCompile Include="StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -311,7 +310,6 @@
     <ClInclude Include="..\Common\TextDisplay.h" />
     <ClInclude Include="..\Common\Vec2.h" />
     <ClInclude Include="..\Common\WhiteboardClientData.h" />
-    <ClInclude Include="FileTransfer.h" />
     <ClInclude Include="Logs.h" />
     <ClInclude Include="Options.h" />
     <ClInclude Include="resource.h" />

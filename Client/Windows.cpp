@@ -10,7 +10,6 @@
 #include "Format.h"
 #include "TextDisplay.h"
 #include "Options.h"
-#include "FileTransfer.h"
 #include "Palette.h"
 #include "Whiteboard.h"
 #include "DebugHelper.h"
@@ -70,7 +69,7 @@ INT_PTR CALLBACK AuthenticateProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK Opt_GeneralProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK Opt_TextProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK Opt_FilesProc(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK RequestFileProc(HWND, UINT, WPARAM, LPARAM);
+//INT_PTR CALLBACK RequestFileProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK RequestWBProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK TimerProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK WBSettingsProc(HWND, UINT, WPARAM, LPARAM);
@@ -86,8 +85,6 @@ USHORT top = 0, topLen = 0;
 
 TCPClientInterface* client;
 uqpc<Options> opts;
-uqpc<FileSend> fileSend;
-uqpc<FileReceive> fileReceive;
 
 static LIB_TCHAR szWindowClass[] = _T("Client");
 static LIB_TCHAR szTitle[] = _T("Cameron's Client");
@@ -323,21 +320,21 @@ void MsgHandler(TCPClientInterface&, MsgStreamReader streamReader)
 				const std::tstring name = streamReader.Read<std::tstring>();
 				int item = 0;
 
-				if(fileReceive->Running())
-				{
-					if(name.compare(fileReceive->GetUser()) == 0)
-					{
-						fileReceive->StopReceive();
-					}
-				}
-				if(fileSend->Running())
-				{
-					if(name.compare(fileSend->GetUser()) == 0)
-					{
-						fileSend->StopSend();
-						//fileSend->RunCanceled(); not required because of msgloop in sendfiles
-					}
-				}
+				//if(fileReceive->Running())
+				//{
+				//	if(name.compare(fileReceive->GetUser()) == 0)
+				//	{
+				//		fileReceive->StopReceive();
+				//	}
+				//}
+				//if(fileSend->Running())
+				//{
+				//	if(name.compare(fileSend->GetUser()) == 0)
+				//	{
+				//		fileSend->StopSend();
+				//		//fileSend->RunCanceled(); not required because of msgloop in sendfiles
+				//	}
+				//}
 
 				if ((item = FindClient(name)) != -1)
 					SendMessage(listClients, LB_DELETESTRING, item, 0);
@@ -406,24 +403,24 @@ void MsgHandler(TCPClientInterface&, MsgStreamReader streamReader)
 					break;
 				}
 
-				case MSG_RESPONSE_TRANSFER_DECLINED:
-				{
-					fileSend->Stop();//stop instead of stopsend because thread hasnt been created and only vars need cleared
+				//case MSG_RESPONSE_TRANSFER_DECLINED:
+				//{
+				//	fileSend->Stop();//stop instead of stopsend because thread hasnt been created and only vars need cleared
 
-					LIB_TCHAR buffer[255];
-					_stprintf(buffer, _T("%s has declined your transfer request!"), streamReader.Read<std::tstring>().c_str());
-					MessageBox(hMainWind, buffer, _T("DECLINED"), MB_ICONERROR);
-					break;
-				}
+				//	LIB_TCHAR buffer[255];
+				//	_stprintf(buffer, _T("%s has declined your transfer request!"), streamReader.Read<std::tstring>().c_str());
+				//	MessageBox(hMainWind, buffer, _T("DECLINED"), MB_ICONERROR);
+				//	break;
+				//}
 
-				case MSG_RESPONSE_TRANSFER_CONFIRMED:
-				{
-					LIB_TCHAR buffer[255];
-					_stprintf(buffer, _T("%s has confirmed your transfer request!"), streamReader.Read<std::tstring>().c_str());
-					MessageBox(hMainWind, buffer, _T("Success"), MB_OK);
-					fileSend->StartSend();
-					break;
-				}
+				//case MSG_RESPONSE_TRANSFER_CONFIRMED:
+				//{
+				//	LIB_TCHAR buffer[255];
+				//	_stprintf(buffer, _T("%s has confirmed your transfer request!"), streamReader.Read<std::tstring>().c_str());
+				//	MessageBox(hMainWind, buffer, _T("Success"), MB_OK);
+				//	fileSend->StartSend();
+				//	break;
+				//}
 
 				case MSG_RESPONSE_WHITEBOARD_CONFIRMED:
 				{
@@ -445,40 +442,40 @@ void MsgHandler(TCPClientInterface&, MsgStreamReader streamReader)
 			break;
 		}//TYPE_RESPONSE
 
-		case TYPE_FILE:
-		{
-			switch (msg)
-			{
-				case MSG_FILE_LIST:
-				{
-					fileReceive->RecvFileNameList(streamReader, (std::tstring&)opts->GetDownloadPath());//temp cast because filetransfer stuff will be redone
-					break;
-				}
-				case MSG_FILE_DATA:
-				{
-					fileReceive->RecvFile((BYTE*)dat, streamReader.GetDataSize());
-					break;
-				}
-				case MSG_FILE_SEND_CANCELED:
-				{
-					fileReceive->StopReceive();
-					fileReceive->RunCanceled();
-					break;
-				}
-				case MSG_FILE_RECEIVE_CANCELED:
-				{
-					fileSend->StopSend();
-					//fileSend->RunCanceled(); not required because of msgloop in sendfiles
-				}
-			}// MSG_FILE
+		//case TYPE_FILE:
+		//{
+		//	switch (msg)
+		//	{
+		//		case MSG_FILE_LIST:
+		//		{
+		//			fileReceive->RecvFileNameList(streamReader, (std::tstring&)opts->GetDownloadPath());//temp cast because filetransfer stuff will be redone
+		//			break;
+		//		}
+		//		case MSG_FILE_DATA:
+		//		{
+		//			fileReceive->RecvFile((BYTE*)dat, streamReader.GetDataSize());
+		//			break;
+		//		}
+		//		case MSG_FILE_SEND_CANCELED:
+		//		{
+		//			fileReceive->StopReceive();
+		//			fileReceive->RunCanceled();
+		//			break;
+		//		}
+		//		case MSG_FILE_RECEIVE_CANCELED:
+		//		{
+		//			fileSend->StopSend();
+		//			//fileSend->RunCanceled(); not required because of msgloop in sendfiles
+		//		}
+		//	}// MSG_FILE
 
-			break;
-		}//TYPE_FILE
+		//	break;
+		//}//TYPE_FILE
 		case TYPE_REQUEST:
 		{
 			switch (msg)
 			{
-				case MSG_REQUEST_TRANSFER:
+				/*case MSG_REQUEST_TRANSFER:
 				{
 					fileReceive->GetUser() = streamReader.Read<std::tstring>();
 					fileReceive->SetSize(streamReader.Read<double>());
@@ -494,7 +491,7 @@ void MsgHandler(TCPClientInterface&, MsgStreamReader streamReader)
 
 					DialogBoxParam(hInst, MAKEINTRESOURCE(REQUEST), hMainWind, RequestFileProc, (LPARAM)buffer);
 					break;
-				}
+				}*/
 				case MSG_REQUEST_WHITEBOARD:
 				{
 					wbCanDraw = streamReader.Read<bool>();
@@ -520,14 +517,14 @@ void MsgHandler(TCPClientInterface&, MsgStreamReader streamReader)
 				}
 				case MSG_ADMIN_KICK:
 				{
-					if (fileReceive->Running())
+					/*if (fileReceive->Running())
 					{
 						fileReceive->StopReceive();
 					}
 					if (fileSend->Running())
 					{
 						fileSend->StopSend();
-					}
+					}*/
 
 					Flash();
 					LIB_TCHAR buffer[255];
@@ -702,8 +699,8 @@ void WinMainInit()
 	InitializeNetworking();
 
 	client = CreateClient(&MsgHandler, &DisconnectHandler, 5, BufferOptions(4096, 125000, 9, 1024), SocketOptions(0, 0, true));
-	fileSend = uqpc<FileSend>(construct<FileSend>(*client, hMainWind, &SendFinishedHandler, &SendCanceledHandler));
-	fileReceive = uqpc<FileReceive>(construct<FileReceive>(*client, hMainWind, &ReceiveFinishedHandler, &ReceiveCanceledHandler));
+	//fileSend = uqpc<FileSend>(construct<FileSend>(*client, hMainWind, &SendFinishedHandler, &SendCanceledHandler));
+	//fileReceive = uqpc<FileReceive>(construct<FileReceive>(*client, hMainWind, &ReceiveFinishedHandler, &ReceiveCanceledHandler));
 	opts = uqpc<Options>(construct<Options>(std::tstring(optionsFilePath), CONFIGVERSION));
 
 	opts->Load(windowName);
@@ -904,7 +901,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		}
 
-		case ID_SEND_FILES:
+		/*case ID_SEND_FILES:
 		{
 			const UINT i = SendMessage(listClients, LB_GETCURSEL, 0, 0);
 			const UINT len = SendMessage(listClients, LB_GETTEXTLEN, i, 0);
@@ -978,7 +975,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				fileSend->RequestTransfer();
 			}
 			break;
-		}
+		}*/
 
 		case ID_KICK:
 		{
@@ -1138,7 +1135,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						AppendMenu(whiteboard, MF_STRING, ID_WHITEBOARD_KICK, _T("Kick"));
 
 						AppendMenu(hPop, MF_POPUP, (UINT_PTR)admin, _T("Admin"));
-						AppendMenu(hPop, MF_POPUP | (fileSend->Running() ? MF_GRAYED : MF_ENABLED), (UINT_PTR)send, _T("Send"));
+						//AppendMenu(hPop, MF_POPUP | (fileSend->Running() ? MF_GRAYED : MF_ENABLED), (UINT_PTR)send, _T("Send"));
 						AppendMenu(hPop, MF_POPUP | (pWhiteboard == nullptr ? MF_GRAYED : MF_ENABLED), (UINT_PTR)whiteboard, _T("Whiteboard"));
 
 						ClientToScreen(listClients, &pt);
@@ -1906,38 +1903,38 @@ INT_PTR CALLBACK Opt_FilesProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 	return 0;
 }
 
-INT_PTR CALLBACK RequestFileProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	static HWND text;
-	switch (message)
-	{
-	case WM_COMMAND:
-	{
-		const short id = LOWORD(wParam);
-		switch (id)
-		{
-		case IDOK:
-			client->SendMsg(fileReceive->GetUser(), TYPE_RESPONSE, MSG_RESPONSE_TRANSFER_CONFIRMED);
-			EndDialog(hWnd, id);
-			break;
-
-		case IDCANCEL:
-			client->SendMsg(fileReceive->GetUser(), TYPE_RESPONSE, MSG_RESPONSE_TRANSFER_DECLINED);
-			EndDialog(hWnd, id);
-			break;
-
-		}
-		break;
-	}
-
-	case WM_INITDIALOG:
-	{
-		SendMessage(GetDlgItem(hWnd, ID_REQUEST_TEXT), WM_SETTEXT, 0, lParam);
-		return 1;
-	}
-	}
-	return 0;
-}
+//INT_PTR CALLBACK RequestFileProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+//{
+//	static HWND text;
+//	switch (message)
+//	{
+//	case WM_COMMAND:
+//	{
+//		const short id = LOWORD(wParam);
+//		switch (id)
+//		{
+//		case IDOK:
+//			client->SendMsg(fileReceive->GetUser(), TYPE_RESPONSE, MSG_RESPONSE_TRANSFER_CONFIRMED);
+//			EndDialog(hWnd, id);
+//			break;
+//
+//		case IDCANCEL:
+//			client->SendMsg(fileReceive->GetUser(), TYPE_RESPONSE, MSG_RESPONSE_TRANSFER_DECLINED);
+//			EndDialog(hWnd, id);
+//			break;
+//
+//		}
+//		break;
+//	}
+//
+//	case WM_INITDIALOG:
+//	{
+//		SendMessage(GetDlgItem(hWnd, ID_REQUEST_TEXT), WM_SETTEXT, 0, lParam);
+//		return 1;
+//	}
+//	}
+//	return 0;
+//}
 
 INT_PTR CALLBACK RequestWBProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
