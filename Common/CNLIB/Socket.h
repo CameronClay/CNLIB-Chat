@@ -8,21 +8,6 @@
 CAMSNETLIB int InitializeNetworking();
 CAMSNETLIB int CleanupNetworking();
 
-//class CAMSNETLIB Socket
-//{
-//public:
-//	void SetBlocking();
-//	void SetNonBlocking();
-//
-//	void Disconnect();
-//
-//	bool IsConnected() const;
-//
-//	static void GetLocalIP(LIB_TCHAR* dest);
-//	static void HostNameToIP(const LIB_TCHAR* host, LIB_TCHAR* dest, UINT buffSize);
-//};
-
-
 class CAMSNETLIB Socket
 {
 public:

@@ -45,6 +45,12 @@ namespace FileMisc
 	{
 		FileData();
 		FileData(std::tstring fileName, SYSTEMTIME dateModified, DWORD64 size);
+		FileData(const FileData& fd);
+		FileData(FileData&& fd);
+
+		FileData& operator=(const FileData& fd);
+		FileData& operator=(FileData&& fd);
+
 		bool operator==(const FileData& fd) const;
 		bool operator<(const FileData& fd) const;
 		bool operator()(FileData& fd);

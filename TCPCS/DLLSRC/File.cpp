@@ -20,8 +20,50 @@ FileMisc::FileData::FileData()
 {}
 
 FileMisc::FileData::FileData(std::tstring fileName, SYSTEMTIME dateModified, DWORD64 size)
-	: fileName(fileName), dateModified(dateModified), size(size)
+	: 
+	fileName(fileName), 
+	dateModified(dateModified), 
+	size(size)
 {}
+
+FileMisc::FileData::FileData(const FileData& fd)
+	:
+	fileName(fd.fileName),
+	dateModified(fd.dateModified),
+	size(fd.size)
+{}
+
+FileMisc::FileData::FileData(FileData&& fd)
+	:
+	fileName(std::move(fd.fileName)),
+	dateModified(fd.dateModified),
+	size(fd.size)
+{
+	memset(&fd, 0, sizeof(FileData));
+}
+
+FileMisc::FileData& FileMisc::FileData::operator=(const FileData& fd)
+{
+	if (this != &fd)
+	{
+		fileName = fd.fileName;
+		dateModified = fd.dateModified;
+		size = fd.size;
+	}
+	return *this;
+}
+FileMisc::FileData& FileMisc::FileData::operator=(FileData&& fd)
+{
+	if (this != &fd)
+	{
+		fileName = std::move(fd.fileName);
+		dateModified = fd.dateModified;
+		size = fd.size;
+
+		memset(&fd, 0, sizeof(FileData));
+	}
+	return *this;
+}
 
 bool FileMisc::FileData::operator==(const FileData& fd) const
 {
@@ -211,11 +253,6 @@ void File::ChangeDate(const SYSTEMTIME& t)
 	SetFileTime(hnd, nullptr, nullptr, &ft);
 }
 
-void File::SetAttrib(DWORD attrib)
-{
-	// bleh i will leave xD
-}
-
 void FileMisc::SetAttrib(const LIB_TCHAR* fileName, DWORD attrib)
 {
 	SetFileAttributes(fileName, attrib);
@@ -340,8 +377,8 @@ DWORD FileMisc::Decompress(BYTE* dest, DWORD destLen, const BYTE* src, DWORD src
 std::vector<FileMisc::FileData> FileMisc::GetFileNameList(const LIB_TCHAR* folder, DWORD filter, bool inclusion)
 {
 	WIN32_FIND_DATA fileSearch;
-	LIB_TCHAR buffer[MAX_PATH] = {};
-	_stprintf_s(buffer, _T("%s\\*"), folder);
+	TCHAR buffer[MAX_PATH] = {};
+	PathCombine(buffer, folder, _T("*"));
 	std::vector<FileData> list;
 
 	HANDLE hnd = FindFirstFile(buffer, &fileSearch);
@@ -355,13 +392,9 @@ std::vector<FileMisc::FileData> FileMisc::GetFileNameList(const LIB_TCHAR* folde
 				{
 					if (_tcscmp(fileSearch.cFileName, _T(".")) != 0 && _tcscmp(fileSearch.cFileName, _T("..")) != 0)
 					{
-						//std::tstring temp = folder != "" ? std::tstring( folder ) + std::tstring("\\") : "";
-
 						std::vector<FileData> a = GetFileNameList((std::tstring(folder) + _T("\\") + std::tstring(fileSearch.cFileName)).c_str(), filter, inclusion);
-						for (auto i = a.begin(); i != a.end(); i++)
-						{
+						for (auto& i = a.begin(); i != a.end(); i++)
 							list.push_back(FileData(std::tstring(fileSearch.cFileName) + _T("\\") + i->fileName, i->dateModified, i->size));
-						}
 					}
 				}
 				else
