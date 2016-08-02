@@ -300,7 +300,6 @@
     <ClCompile Include="Windows.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Common\CircularBuffer.h" />
     <ClInclude Include="..\Common\ColorDef.h" />
     <ClInclude Include="..\Common\DebugHelper.h" />
     <ClInclude Include="..\Common\Format.h" />

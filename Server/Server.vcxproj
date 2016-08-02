@@ -282,7 +282,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\Common\CircularBuffer.h" />
     <ClInclude Include="..\Common\ColorDef.h" />
     <ClInclude Include="..\Common\Format.h" />
     <ClInclude Include="..\Common\MessagesExt.h" />
@@ -314,10 +313,6 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="..\Rules.txt" />
-    <Text Include="..\ToDo.txt" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TCPCS\TCPCS.vcxproj">

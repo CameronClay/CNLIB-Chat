@@ -68,9 +68,6 @@
     <ClInclude Include="..\Common\Vec2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\CircularBuffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Logs.h">
       <Filter>Header Files</Filter>
     </ClInclude>

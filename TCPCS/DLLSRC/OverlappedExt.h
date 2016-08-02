@@ -29,11 +29,6 @@ struct OverlappedExt : OVERLAPPED //dont wanna use virtual func because of mem p
 		//memset(this, 0, sizeof(OVERLAPPED)); //dont clear optype
 	}
 
-	OverlappedExt(OverlappedExt&& ol)
-		:
-		opType(ol.opType)
-	{}
-
 	OpType opType;
 };
 

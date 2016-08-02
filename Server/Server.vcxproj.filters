@@ -45,9 +45,6 @@
     <ClInclude Include="..\Common\Vec2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\CircularBuffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\TextDisplay.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -76,9 +73,5 @@
       <UniqueIdentifier>{58cb3057-d89a-40b6-9ef4-d574329ea053}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="..\Rules.txt" />
-    <Text Include="..\ToDo.txt" />
   </ItemGroup>
 </Project>

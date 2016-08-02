@@ -1,151 +1,135 @@
 #pragma once
 
-#define PI (float)M_PI
-
-template <typename T>
-inline T sq(T val)
-{
-	return val * val;
-}
-
-
-template <typename T>
-T sgn(T val)
-{
-	return (T)((T)0 <= val) - (val < (T)0);
-}
-
 template <typename T>
 class _Vec2
 {
 public:
-	inline			_Vec2() {}
-	inline			_Vec2( T x,T y )
+	inline _Vec2() {}
+	inline _Vec2( T x,T y )
 		:
 	x( x ),
 	y( y )
 	{}
-	inline			_Vec2( const _Vec2& vect )
+	inline _Vec2( const _Vec2& vect )
 		:
-	_Vec2( vect.x,vect.y )
+		_Vec2( vect.x,vect.y )
 	{}
 	template <typename T2>
-	inline			operator _Vec2< T2 >() const
+	inline operator _Vec2< T2 >() const
 	{
 		return { (T2)x,(T2)y };
 	}
-	inline T		LenSq() const
+	inline T LenSq() const
 	{
 		return *this * *this;
 	}
-	inline T		Len() const
+	inline T Len() const
 	{
 		return sqrt( LenSq() );
 	}
-	inline _Vec2&	Normalize()
+	inline _Vec2& Normalize()
 	{
 		const T length = Len();
 		x /= length;
 		y /= length;
 		return *this;
 	}
-	inline _Vec2&	CCW90()
+	inline _Vec2& CCW90()
 	{
 		T temp = y;
 		y = -x;
 		x = temp;
 		return *this;
 	}
-	inline _Vec2&	CW90()
+	inline _Vec2& CW90()
 	{		
 		T temp = y;
 		y = x;
 		x = -temp;
 		return *this;
 	}
-	inline _Vec2&	Swap( _Vec2& vect )
+	inline _Vec2& Swap( _Vec2& vect )
 	{
 		const _Vec2 temp = vect;
 		vect = *this;
 		*this = temp;
 		return *this;
 	}
-	inline _Vec2	operator-() const
+	inline _Vec2 operator-() const
 	{
 		return _Vec2( -x,-y );
 	}
-	inline _Vec2&	operator=( const _Vec2 &rhs )
+	inline _Vec2& operator=( const _Vec2 &rhs )
 	{
 		this->x = rhs.x;
 		this->y = rhs.y;
 		return *this;
 	}
-	inline _Vec2&	operator+=( const _Vec2 &rhs )
+	inline _Vec2& operator+=( const _Vec2 &rhs )
 	{
 		this->x += rhs.x;
 		this->y += rhs.y;
 		return *this;
 	}
-	inline _Vec2&	operator-=( const _Vec2 &rhs )
+	inline _Vec2& operator-=( const _Vec2 &rhs )
 	{
 		this->x -= rhs.x;
 		this->y -= rhs.y;
 		return *this;
 	}
-	inline T		operator*( const _Vec2 &rhs ) const
+	inline T operator*( const _Vec2 &rhs ) const
 	{
 		return this->x * rhs.x + this->y * rhs.y;
 	}	
-	inline _Vec2	operator+( const _Vec2 &rhs ) const
+	inline _Vec2 operator+( const _Vec2 &rhs ) const
 	{
 		return _Vec2( *this ) += rhs;
 	}
-	inline _Vec2	operator-( const _Vec2 &rhs ) const
+	inline _Vec2 operator-( const _Vec2 &rhs ) const
 	{
 		return _Vec2( *this ) -= rhs;
 	}
-	inline _Vec2&	operator*=( const T &rhs )
+	inline _Vec2& operator*=( const T &rhs )
 	{
 		this->x *= rhs;
 		this->y *= rhs;
 		return *this;
 	}
-	inline _Vec2	operator*( const T &rhs ) const
+	inline _Vec2 operator*( const T &rhs ) const
 	{
 		return _Vec2( *this ) *= rhs;
 	}
-	inline _Vec2&	operator/=( const T &rhs )
+	inline _Vec2& operator/=( const T &rhs )
 	{
 		this->x /= rhs;
 		this->y /= rhs;
 		return *this;
 	}
-	inline _Vec2	operator/( const T &rhs ) const
+	inline _Vec2 operator/( const T &rhs ) const
 	{
 		return _Vec2( *this ) /= rhs;
 	}
-	inline T		CrossWith( const _Vec2 &rhs ) const
+	inline T CrossWith( const _Vec2 &rhs ) const
 	{
 		return x * rhs.y - y * rhs.x;
 	}
-	inline bool		IsInsideRect( const _Vec2 &p1,const _Vec2 & p2 ) const
+	inline bool	IsInsideRect( const _Vec2 &p1,const _Vec2 & p2 ) const
 	{
 		const T medianX = (p1.x + p2.x) / 2.0f;
 		const T medianY = (p1.y + p2.y) / 2.0f;
 		return abs( medianX - x ) <= abs( medianX - p1.x ) &&
 			abs( medianY - y) <= abs( medianY - p1.y );
 	}
-	inline bool		operator==( const _Vec2 &rhs ) const
+	inline bool	operator==( const _Vec2 &rhs ) const
 	{
 		return x == rhs.x && y == rhs.y;
 	}
-	inline bool		operator!=(const _Vec2 &rhs) const
+	inline bool	operator!=(const _Vec2 &rhs) const
 	{
 		return !(*this == rhs);
 	}
 public:
-	T x;
-	T y;
+	T x, y;
 };
 
 typedef _Vec2< float > Vec2;
