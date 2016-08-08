@@ -71,10 +71,10 @@ namespace FileMisc
 	CAMSNETLIB void GetFullFilePathName(const LIB_TCHAR* fileName, LIB_TCHAR* buffer);
 
 	// folder = "" or full directory path, filter = NULL for no filter
-	CAMSNETLIB std::vector<FileMisc::FileData> GetFileNameList(const LIB_TCHAR* folder, DWORD filter = NULL, bool inclusion = true);
+	CAMSNETLIB std::vector<FileMisc::FileData> GetFileNameList(const LIB_TCHAR* folder, DWORD filter = NULL, bool inclusion = false);
 
 	// returns true when t1 > t2, false when t2 <= t1
-	CAMSNETLIB bool CompareTime(SYSTEMTIME& t1, SYSTEMTIME& t2);
+	CAMSNETLIB bool CompareTime(const SYSTEMTIME& t1, const SYSTEMTIME& t2);
 
 	// CSIDL_DESKTOP for desktop, CSIDL_MYDOCUMENTS for documents etc.
 	CAMSNETLIB HRESULT GetFolderPath(int folder, LIB_TCHAR* buffer);

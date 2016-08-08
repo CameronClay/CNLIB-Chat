@@ -5,6 +5,7 @@
 #include "zlib/include/zlib.h"
 
 #pragma comment( lib, "shlwapi.lib" )
+
 #ifdef _X86_
 #pragma comment( lib, "zlib/lib/x32/zdll" )
 #else
@@ -411,7 +412,7 @@ std::vector<FileMisc::FileData> FileMisc::GetFileNameList(const LIB_TCHAR* folde
 	return list;
 }
 
-bool FileMisc::CompareTime(SYSTEMTIME& t1, SYSTEMTIME& t2)
+bool FileMisc::CompareTime(const SYSTEMTIME& t1, const SYSTEMTIME& t2)
 {
 	bool res = false;
 	if (t1.wYear > t2.wYear)
@@ -443,54 +444,6 @@ bool FileMisc::CompareTime(SYSTEMTIME& t1, SYSTEMTIME& t2)
 	}
 	return res;
 }
-
-
-//HKEY File::CreateRegistryKey(HKEY hnd, const LIB_TCHAR* path, DWORD accessRights)
-//{
-//	HKEY key;
-//	RegCreateKeyEx(hnd, path, 0, NULL, 0, accessRights, NULL, &key, NULL);
-//	return key;
-//}
-//
-//bool File::SetRegistryKeyValue(HKEY hnd, const LIB_TCHAR* subKey, const LIB_TCHAR* valueName, DWORD type, const BYTE* data, DWORD nBytes)
-//{
-//	return RegSetKeyValue(hnd, subKey, valueName, type, data, nBytes) == ERROR_SUCCESS ? true : false;
-//}
-//
-//HKEY File::OpenRegistryKey(HKEY hnd, const LIB_TCHAR* subKey, DWORD accessRights)
-//{
-//	HKEY key;
-//	RegOpenKeyEx(hnd, subKey, 0, accessRights, &key);
-//	return key;
-//}
-//
-//bool File::KeyExists(HKEY hnd, const LIB_TCHAR* subKey)
-//{
-//	HKEY key = File::OpenRegistryKey(HKEY_CURRENT_USER, subKey);
-//	if (key == ERROR_SUCCESS)
-//	{
-//		File::CloseRegistryKey(key);
-//		return true;
-//	}
-//	return false;
-//}
-//
-//bool File::SaveKey(HKEY hnd, const LIB_TCHAR* name)
-//{
-//	bool b = (RegSaveKey(hnd, name, NULL) == ERROR_SUCCESS ? true : false);
-//	return b;
-//}
-//
-//void File::CloseRegistryKey(HKEY hnd)
-//{
-//	RegCloseKey(hnd);
-//}
-//
-//bool File::DeleteRegistryKeyValue(HKEY hnd, const LIB_TCHAR* subKey, const LIB_TCHAR* valueName)
-//{
-//	return RegDeleteKeyValue(hnd, subKey, valueName) == ERROR_SUCCESS ? true : false;
-//}
-
 
 bool FileMisc::BrowseFiles(LIB_TCHAR* filePathDest, HWND hwnd, const LIB_TCHAR* fileTypes, DWORD flags, const LIB_TCHAR* windowName)
 {
