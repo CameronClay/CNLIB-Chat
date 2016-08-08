@@ -239,7 +239,7 @@ Whiteboard::Whiteboard(TCPClientInterface& clint, Palette& palette, USHORT Width
 
 Whiteboard::Whiteboard(Whiteboard&& wb)
 	:
-	d3d(wb.d3d),
+	d3d(std::move(wb.d3d)),
 	clint(wb.clint),
 	mouse(std::move(wb.mouse)),
 	defaultColor(wb.defaultColor),

@@ -108,26 +108,6 @@ struct RectU
 		top = Top;
 		bottom = Bottom;
 	}
-	RectU(RectU &&rect)
-	{
-		left = rect.left;
-		top = rect.top;
-		right = rect.right;
-		bottom = rect.bottom;
-
-		ZeroMemory(&rect, sizeof(RectU));
-	}
-
-	RectU &operator=(RectU &&rect)
-	{
-		left = rect.left;
-		top = rect.top;
-		right = rect.right;
-		bottom = rect.bottom;
-
-		ZeroMemory(&rect, sizeof(RectU));
-		return (*this);
-	}
 
 	inline static RectU Create(const Vec2& p0)
 	{
@@ -218,13 +198,6 @@ struct WBParams
 		height(height),
 		fps(fps),
 		clrIndex(clrIndex)
-	{}
-	WBParams(WBParams&& params)
-		:
-		width(params.width),
-		height(params.height),
-		fps(params.fps),
-		clrIndex(params.clrIndex)
 	{}
 	USHORT width, height, fps;
 	BYTE clrIndex;
