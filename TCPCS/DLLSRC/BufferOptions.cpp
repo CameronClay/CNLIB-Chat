@@ -68,7 +68,7 @@ DWORD BufferOptions::CalcPageSize()
 
 UINT BufferOptions::CalcMaxDataBuffSize(DWORD pageSize, UINT maxDataBuffSize)
 {
-	const UINT roundTo = pageSize - sizeof(size_t);
+	const UINT roundTo = pageSize;
 	const UINT roundFrom = maxDataBuffSize - sizeof(size_t);
-	return ((roundFrom + roundTo - 1) / roundTo) * roundTo;
+	return ((roundFrom + roundTo - 1) / roundTo) * roundTo - sizeof(size_t);
 }
