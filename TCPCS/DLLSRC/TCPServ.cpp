@@ -58,7 +58,7 @@ ClientData& ClientData::operator=(ClientData&& data)
 }
 UINT ClientData::GetOpCount() const
 {
-	return ((ClientDataEx*)this)->opCount.load();
+	return ((ClientDataEx*)this)->opCount.load(std::memory_order_acquire);
 }
 
 
@@ -80,7 +80,7 @@ ClientDataEx::ClientDataEx(ClientDataEx&& clint)
 	serv(clint.serv),
 	ol(clint.ol),
 	arrayIndex(clint.arrayIndex),
-	opCount(clint.opCount.load()),
+	opCount(clint.GetOpCount()),
 	olPool(std::move(clint.olPool)),
 	recvHandler(std::move(clint.recvHandler)),
 	opsPending(std::move(clint.opsPending)),
@@ -95,7 +95,7 @@ ClientDataEx& TCPServ::ClientDataEx::operator=(ClientDataEx&& data)
 		__super::operator=(std::forward<ClientData>(data));
 		arrayIndex = data.arrayIndex;
 		ol = data.ol;
-		opCount = data.opCount.load();
+		opCount = data.GetOpCount();
 		olPool = std::move(data.olPool);
 		recvHandler = std::move(data.recvHandler);
 		opsPending = std::move(data.opsPending);
@@ -496,10 +496,13 @@ bool TCPServ::SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, Cli
 
 bool TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSendSingle* ol, bool popQueue)
 {
-	if (shuttingDown)
+	if (ShuttingDown())
+	{
+		FreeSendOlSingle(clint, ol);		
 		return false;
+	}
 
-	const UINT opCount = clint.opCount.load();
+	const UINT opCount = clint.GetOpCount();
 	if (clint.pc.IsConnected() && opCount)
 	{
 		if ((opCount < maxPCSendOps) && (popQueue || clint.opsPending.empty()))
@@ -523,7 +526,6 @@ bool TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSendSingle* ol, bo
 	else if (!popQueue)
 	{
 		FreeSendOlSingle(clint, ol);
-
 		return false;
 	}
 
@@ -531,11 +533,14 @@ bool TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSendSingle* ol, bo
 }
 bool TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSend* ol, bool popQueue)
 {
-	if (shuttingDown)
-		return false;
-
-	const UINT opCount = clint.opCount.load();
 	OverlappedSendInfo* sendInfo = ol->sendInfo;
+	if (ShuttingDown())
+	{
+		FreeSendOlInfo(sendInfo);
+		return false;
+	}
+
+	const UINT opCount = clint.GetOpCount();
 	if (clint.pc.IsConnected() && opCount)
 	{
 		if ((opCount < maxPCSendOps) && (popQueue || clint.opsPending.empty()))
@@ -559,7 +564,6 @@ bool TCPServ::SendClientSingle(ClientDataEx& clint, OverlappedSend* ol, bool pop
 	else if (!popQueue)
 	{
 		FreeSendOlInfo(sendInfo);
-
 		return false;
 	}
 
@@ -570,8 +574,14 @@ bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient,
 {
 	long res = 0, err = 0;
 
-	if (shuttingDown || !sendBuff.head)
+	if (!sendBuff.head)
 		return false;
+
+	if (ShuttingDown())
+	{
+		bufSendAlloc.FreeBuff((WSABufSend&)sendBuff);
+		return false;
+	}
 
 	if (single)
 	{
@@ -597,12 +607,12 @@ bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx* exClient,
 		sendInfo->head = ol;
 
 		opCounter += nClients;
-		for (UINT i = 0; i < nClients; i++)
+		for (UINT i = 0; i < nClients; ++i)
 		{
 			ClientDataEx* clint = clients[i];
 
 			//opCount check needed incase client is already being removed
-			if (clint->pc.IsConnected() && clint->opCount.load())
+			if (clint->pc.IsConnected() && clint->GetOpCount())
 			{
 				ol[i].Initalize(sendInfo);
 				if (!clint->opsPending.empty())
@@ -639,10 +649,10 @@ bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients,
 {
 	long res = 0, err = 0;
 
-	if (shuttingDown || !sendBuff.head)
+	if (!sendBuff.head)
 		return false;
 
-	if (!(clients && nClients))
+	if (ShuttingDown() || !(clients && nClients))
 	{
 		bufSendAlloc.FreeBuff((WSABufSend&)sendBuff);
 		return false;
@@ -661,12 +671,12 @@ bool TCPServ::SendClientData(const WSABufSend& sendBuff, ClientDataEx** clients,
 		sendInfo->head = ol;
 
 		opCounter += nClients;
-		for (UINT i = 0; i < nClients; i++)
+		for (UINT i = 0; i < nClients; ++i)
 		{
 			ClientDataEx& clint = **(clients + i);
 
 			//opCount check needed incase client is already being removed
-			if (clint.pc.IsConnected() && clint.opCount.load())
+			if (clint.pc.IsConnected() && clint.GetOpCount())
 			{
 				ol[i].Initalize(sendInfo);
 				if (!clint.opsPending.empty())
@@ -804,7 +814,7 @@ TCPServ::TCPServ(sfunc msgHandler, ConFunc conFunc, DisconFunc disFunc, UINT max
 {
 	clients = alloc<ClientDataEx*>(maxCon);
 
-	for (UINT i = 0; i < maxCon; i++)
+	for (UINT i = 0; i < maxCon; ++i)
 		clients[i] = clientPool.construct<ClientDataEx>(*this, INVALID_SOCKET, function, 0);
 
 }
@@ -828,11 +838,11 @@ TCPServ::TCPServ(TCPServ&& serv)
 	clientPool(std::move(serv.clientPool)),
 	sendOlInfoPool(std::move(serv.sendOlInfoPool)),
 	sendOlPoolAll(std::move(serv.sendOlPoolAll)),
-	opCounter(serv.opCounter.load()),
+	opCounter(serv.opCounter.load(std::memory_order_acquire)),
 	shutdownEv(serv.shutdownEv),
 	sockOpts(serv.sockOpts),
 	obj(serv.obj),
-	shuttingDown(serv.shuttingDown)
+	shuttingDown(serv.shuttingDown.load(std::memory_order_acquire))
 {
 	ZeroMemory(&serv, sizeof(TCPServ));
 }
@@ -860,11 +870,11 @@ TCPServ& TCPServ::operator=(TCPServ&& serv)
 		clientPool = std::move(serv.clientPool);
 		sendOlInfoPool = std::move(serv.sendOlInfoPool);
 		sendOlPoolAll = std::move(serv.sendOlPoolAll);
-		opCounter = serv.opCounter.load();
+		opCounter = serv.opCounter.load(std::memory_order_acquire);
 		shutdownEv = serv.shutdownEv;
 		sockOpts = serv.sockOpts;
 		obj = serv.obj;
-		shuttingDown = serv.shuttingDown;
+		shuttingDown = serv.shuttingDown.load(std::memory_order_acquire);
 
 		ZeroMemory(&serv, sizeof(TCPServ));
 	}
@@ -1124,7 +1134,7 @@ bool TCPServ::IsConnected() const
 }
 bool TCPServ::ShuttingDown() const
 {
-	return shuttingDown;
+	return shuttingDown.load(std::memory_order_acquire);
 }
 
 const SocketOptions TCPServ::GetSockOpts() const
@@ -1134,7 +1144,7 @@ const SocketOptions TCPServ::GetSockOpts() const
 
 UINT TCPServ::GetOpCount() const
 {
-	return opCounter.load();
+	return opCounter.load(std::memory_order_acquire);
 }
 
 UINT TCPServ::SingleOlPCCount() const

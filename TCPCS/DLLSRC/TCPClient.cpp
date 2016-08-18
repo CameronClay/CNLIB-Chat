@@ -178,11 +178,11 @@ TCPClient::TCPClient(TCPClient&& client)
 	olPool(std::move(client.olPool)),
 	opsPending(std::move(client.opsPending)),
 	queueLock(std::move(client.queueLock)),
-	opCounter(client.opCounter.load()),
+	opCounter(client.GetOpCount()),
 	shutdownEv(client.shutdownEv),
 	sockOpts(client.sockOpts),
 	obj(client.obj),
-	shuttingDown(client.shuttingDown)
+	shuttingDown(client.ShuttingDown())
 {
 	ZeroMemory(&client, sizeof(TCPClient));
 }
@@ -205,11 +205,11 @@ TCPClient& TCPClient::operator=(TCPClient&& client)
 		olPool = std::move(client.olPool);
 		opsPending = std::move(client.opsPending);
 		queueLock = std::move(client.queueLock);
-		opCounter = client.opCounter.load();
+		opCounter = client.GetOpCount();
 		shutdownEv = client.shutdownEv;
 		sockOpts = client.sockOpts;
 		obj = client.obj;
-		shuttingDown = client.shuttingDown;
+		shuttingDown = client.ShuttingDown();
 
 		ZeroMemory(&client, sizeof(TCPClient));
 	}
@@ -317,11 +317,14 @@ bool TCPClient::SendServData(const WSABufSend& sendBuff, bool popQueue)
 }
 bool TCPClient::SendServData(OverlappedSendSingle* ol, bool popQueue)
 {
-	if (shuttingDown)
+	if (ShuttingDown())
+	{
+		FreeSendOl(ol);
 		return false;
+	}
 
 	//opCount check needed incase client is already being removed
-	const UINT opCount = opCounter.load();
+	const UINT opCount = GetOpCount();
 	if (host.IsConnected() && opCount)
 	{
 		if ((opCount < maxSendOps) && (popQueue || opsPending.empty()))
@@ -349,7 +352,6 @@ bool TCPClient::SendServData(OverlappedSendSingle* ol, bool popQueue)
 	else
 	{
 		FreeSendOl(ol);
-
 		return false;
 	}
 
@@ -467,7 +469,7 @@ bool TCPClient::IsConnected() const
 
 UINT TCPClient::GetOpCount() const
 {
-	return opCounter.load();
+	return opCounter.load(std::memory_order_acquire);
 }
 UINT TCPClient::GetMaxSendOps() const
 {
@@ -475,7 +477,7 @@ UINT TCPClient::GetMaxSendOps() const
 }
 bool TCPClient::ShuttingDown() const
 {
-	return shuttingDown;
+	return shuttingDown.load(std::memory_order_acquire);
 }
 
 const SocketOptions TCPClient::GetSockOpts() const
