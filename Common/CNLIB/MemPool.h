@@ -23,9 +23,10 @@ public:
 	{
 		Node(Allocator<char>& allocator, Element*& avail, size_t elementSizeMax, size_t capacity)
 			:
-			data(allocator.allocate((elementSizeMax + Element::OFFSET) * capacity)),
+			bufferSize((elementSizeMax + Element::OFFSET) * capacity),
+			data(allocator.allocate(bufferSize)),
 			begin((Element*)(data + elementSizeMax)),
-			end((Element*)((char*)begin + (elementSizeMax + Element::OFFSET) * (capacity - 1)))
+			end((Element*)((char*)begin + bufferSize - (elementSizeMax + Element::OFFSET)))
 		{
 			Link(avail, elementSizeMax, capacity);
 		}
@@ -68,7 +69,7 @@ public:
 		void FreeNode(Allocator<char>& allocator)
 		{
 			if (data)
-				allocator.deallocate(data, NULL);
+				allocator.deallocate(data, bufferSize);
 		}
 
 		template<typename T>
@@ -82,6 +83,7 @@ public:
 			return (e >= begin) && (e <= end);
 		}
 
+		size_t bufferSize;
 		char* data;
 		Element *begin, *end;
 	};
