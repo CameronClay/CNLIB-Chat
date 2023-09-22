@@ -6,7 +6,7 @@
 
 #include <tchar.h>
 
-#include <memory>
+#include <memory> //shared_pointer
 #include <vector>
 #include <string>
 #include <forward_list>

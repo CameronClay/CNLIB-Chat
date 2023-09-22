@@ -177,28 +177,28 @@ public:
 		typedef HeapAllocator<_Other> other;
 	};
 
-	pointer address(reference _Val) const _NOEXCEPT
+	pointer address(reference _Val) const noexcept
 	{
 		return (_STD addressof(_Val));
 	}
 
-	const_pointer address(const_reference _Val) const _NOEXCEPT
+	const_pointer address(const_reference _Val) const noexcept
 	{
 		return (_STD addressof(_Val));
 	}
 
-	HeapAllocator() _THROW0(){}
+	HeapAllocator() {}
 
-	HeapAllocator(const HeapAllocator<T>&) _THROW0(){}
+	HeapAllocator(const HeapAllocator<T>&) {}
 
-	template<class _Other> HeapAllocator(const HeapAllocator<_Other>&) _THROW0(){}
+	template<class _Other> HeapAllocator(const HeapAllocator<_Other>&) {}
 
 	template<class _Other> HeapAllocator<T>& operator=(const HeapAllocator<_Other>&)
 	{
 		return (*this);
 	}
 
-	size_t max_size() const _THROW0()
+	size_t max_size() const
 	{
 		return ((size_t)(-1) / sizeof(T));
 	}
@@ -271,28 +271,28 @@ public:
 		typedef PageAllignAllocator<_Other> other;
 	};
 
-	pointer address(reference _Val) const _NOEXCEPT
+	pointer address(reference _Val) const noexcept
 	{
 		return (_STD addressof(_Val));
 	}
 
-	const_pointer address(const_reference _Val) const _NOEXCEPT
+	const_pointer address(const_reference _Val) const noexcept
 	{
 		return (_STD addressof(_Val));
 	}
 
-	PageAllignAllocator() _THROW0(){}
+	PageAllignAllocator() {}
 
-	PageAllignAllocator(const PageAllignAllocator<T>&) _THROW0(){}
+	PageAllignAllocator(const PageAllignAllocator<T>&) {}
 
-	template<class _Other> PageAllignAllocator(const PageAllignAllocator<_Other>&) _THROW0(){}
+	template<class _Other> PageAllignAllocator(const PageAllignAllocator<_Other>&) {}
 
 	template<class _Other> PageAllignAllocator<T>& operator=(const PageAllignAllocator<_Other>&)
 	{
 		return (*this);
 	}
 
-	size_t max_size() const _THROW0()
+	size_t max_size() const
 	{
 		return ((size_t)(-1) / sizeof(T));
 	}

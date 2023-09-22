@@ -141,7 +141,7 @@ void ClientDataEx::Reset(const Socket& pc, UINT arrayIndex)
 {
 	this->pc = pc;
 	this->arrayIndex = arrayIndex;
-	if (opCount._My_val != 1)
+	if (opCount != 1)
 		opCount = 1;
 	state = running;
 }

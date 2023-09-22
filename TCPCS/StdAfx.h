@@ -9,3 +9,4 @@
 #include <sstream>
 #include <queue>
 #include <atomic>
+#include <memory>
