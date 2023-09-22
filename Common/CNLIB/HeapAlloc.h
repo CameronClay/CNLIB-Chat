@@ -123,7 +123,7 @@ inline void destructa(T*& p)
 
 template<typename T, typename P, typename... Args> inline T* pmconstruct(P* ptr, Args&&... vals)
 {
-	return new(ptr)T(std::forward<Args>(vals)...);
+	return new(ptr) T(std::forward<Args>(vals)...);
 }
 template<typename T> inline void pmdestruct(T* p)
 {

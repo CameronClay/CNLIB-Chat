@@ -58,7 +58,7 @@ Whiteboard::Whiteboard(Whiteboard &&wb)
 	pixels(wb.pixels),
 	params(std::move(wb.params)),
 	mapSect(wb.mapSect),
-	serv(std::move(wb.serv)),
+	serv(wb.serv),
 	creator(std::move(wb.creator)),
 	interval(wb.interval),
 	timer(wb.timer),

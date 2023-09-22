@@ -3,6 +3,7 @@
 #include <Shlobj.h>
 
 #include <Natupnp.h>
+#include <Windows.h>
 
 #include <tchar.h>
 

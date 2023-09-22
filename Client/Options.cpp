@@ -2,7 +2,7 @@
 #include "Options.h"
 //#include "CNLIB\File.h"
 
-Options::Options(std::tstring& filePath, float currentVers)
+Options::Options(const std::tstring& filePath, float currentVers)
 {
 	Reset(filePath, currentVers);
 }
@@ -126,7 +126,7 @@ void Options::SetDownloadPath(const std::tstring& path)
 	downloadPath = path;
 }
 
-void Options::Reset(std::tstring& filePath, float currentVers)
+void Options::Reset(const std::tstring& filePath, float currentVers)
 {
 	this->filePath = filePath;
 	timeStamps = true;

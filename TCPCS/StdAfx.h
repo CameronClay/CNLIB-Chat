@@ -12,3 +12,4 @@
 #include <memory>
 #include <string>
 #include <cstddef>
+#include <unordered_map>

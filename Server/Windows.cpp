@@ -167,7 +167,7 @@ void DispIPMsg(Socket& pc, const LIB_TCHAR* str)
 
 void DisconnectHandler(TCPServInterface& serv, ClientData* data, bool unexpected)
 {
-	auto& streamWriter = serv.CreateOutStream(StreamWriter::SizeType(data->user), TYPE_CHANGE, MSG_CHANGE_DISCONNECT);
+	auto streamWriter = serv.CreateOutStream(StreamWriter::SizeType(data->user), TYPE_CHANGE, MSG_CHANGE_DISCONNECT);
 	streamWriter.Write(data->user);
 	
 	//nullptr because client is already disconnected at this point

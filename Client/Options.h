@@ -4,7 +4,7 @@
 class Options : public Logs
 {
 public:
-	Options(std::tstring& filePath, float currentVers);
+	Options(const std::tstring& filePath, float currentVers);
 	Options(Options&& opts);
 	~Options();
 
@@ -14,7 +14,7 @@ public:
 	void SetGeneral(bool timeStamps, bool startUp, bool flashTaskbar, bool saveLogs, UCHAR flashCount);
 	void SetDownloadPath(const std::tstring& path);
 
-	void Reset(std::tstring& filePath, float currentVers);
+	void Reset(const std::tstring& filePath, float currentVers);
 
 	bool TimeStamps() const;
 	bool AutoStartup() const;
