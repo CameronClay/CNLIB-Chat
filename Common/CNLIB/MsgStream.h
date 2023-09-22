@@ -12,7 +12,8 @@ public:
 		:
 		begin(data),
 		end(data + capacity + MSG_OFFSET),
-		data(data + MSG_OFFSET)
+		data(data + MSG_OFFSET),
+		capacity(capacity)
 	{}
 	MsgStream(MsgStream&& stream)
 		:
@@ -56,9 +57,10 @@ public:
 protected:
 	const char* begin, *end;
 	char* data;
+	std::size_t capacity;
 };
 
-typedef class MsgStreamWriter : public MsgStream
+class MsgStreamWriter : public MsgStream
 {
 public:
 	//capacity not including MSG_OFFSET
@@ -164,37 +166,38 @@ private:
 	public:
 		Helper(MsgStreamWriter& stream)
 			:
-			HelpBase(stream)
+			HelpBase<T>(stream)
 		{}
 
 		void Write(const T& t)
 		{
-			*(T*)(stream.data) = t;
-			stream.data += sizeof(T);
-			assert(stream.data <= stream.end);
+			*(T*)(this->stream.data) = t;
+			this->stream.data += sizeof(T);
+			assert(this->stream.data <= this->stream.end);
 		}
 		void Write(T* t, UINT count)
 		{
 			const UINT nBytes = count * sizeof(T);
-			memcpy(stream.data, t, nBytes);
-			stream.data += nBytes;
-			assert(stream.data <= stream.end);
+			memcpy(this->stream.data, t, nBytes);
+			this->stream.data += nBytes;
+			assert(this->stream.data <= this->stream.end);
 		}
 		void WriteEnd(T* t)
 		{
-			const UINT nBytes = stream.end - stream.data;
-			memcpy(stream.data, t, nBytes);
-			stream.data += nBytes;
-			assert(stream.data <= stream.end);
+			const UINT nBytes = this->stream.end - this->stream.data;
+			memcpy(this->stream.data, t, nBytes);
+			this->stream.data += nBytes;
+			assert(this->stream.data <= this->stream.end);
 		}
 		static UINT SizeType(const T&)
 		{
 			return sizeof(T);
 		}
 	};
-} StreamWriter;
+};
+using StreamWriter = MsgStreamWriter;
 
-typedef class MsgStreamReader : public MsgStream
+class MsgStreamReader : public MsgStream
 {
 public:
 	MsgStreamReader(char* data, UINT capacity)
@@ -257,36 +260,37 @@ private:
 	public:
 		Helper(MsgStreamReader& stream)
 			:
-			HelpBase(stream)
+			HelpBase<T>(stream)
 		{}
 
 		T Read()
 		{
-			T t = *(T*)stream.data;
-			stream.data += sizeof(T);
-			assert(stream.data <= stream.end);
+			T t = *(T*)this->stream.data;
+			this->stream.data += sizeof(T);
+			assert(this->stream.data <= this->stream.end);
 
 			return t;
 		}
 		T* Read(UINT count)
 		{
 			const UINT nBytes = count * sizeof(T);
-			T* t = (T*)(stream.data);
-			stream.data += nBytes;
-			assert(stream.data <= stream.end);
+			T* t = (T*)(this->stream.data);
+			this->stream.data += nBytes;
+			assert(this->stream.data <= this->stream.end);
 
 			return t;
 		}
 		T* ReadEnd()
 		{
-			const UINT nBytes = stream.end - stream.data;
-			T* t = (T*)(stream.data);
-			stream.data += nBytes;
-			assert(stream.data <= stream.end);
+			const UINT nBytes = this->stream.end - this->stream.data;
+			T* t = (T*)(this->stream.data);
+			this->stream.data += nBytes;
+			assert(this->stream.data <= this->stream.end);
 
 			return t;
 		}
 	};
-} StreamReader;
+};
+using StreamReader = MsgStreamReader;
 
 #include "StreamExt.h"

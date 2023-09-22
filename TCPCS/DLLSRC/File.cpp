@@ -394,7 +394,7 @@ std::vector<FileMisc::FileData> FileMisc::GetFileNameList(const LIB_TCHAR* folde
 					if (_tcscmp(fileSearch.cFileName, _T(".")) != 0 && _tcscmp(fileSearch.cFileName, _T("..")) != 0)
 					{
 						std::vector<FileData> a = GetFileNameList((std::tstring(folder) + _T("\\") + std::tstring(fileSearch.cFileName)).c_str(), filter, inclusion);
-						for (auto& i = a.begin(); i != a.end(); i++)
+						for (auto i = a.begin(); i != a.end(); i++)
 							list.push_back(FileData(std::tstring(fileSearch.cFileName) + _T("\\") + i->fileName, i->dateModified, i->size));
 					}
 				}

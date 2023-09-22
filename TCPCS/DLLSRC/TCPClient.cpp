@@ -194,7 +194,7 @@ TCPClient& TCPClient::operator=(TCPClient&& client)
 
 		host = client.host;
 		function = client.function;
-		(void(*)(TCPClientInterface&, bool))disconFunc = client.disconFunc;
+		*(void(**)(TCPClientInterface&, bool))&disconFunc = client.disconFunc;
 		iocp = std::move(client.iocp);
 		const_cast<UINT&>(maxSendOps) = client.maxSendOps;
 		unexpectedShutdown = client.unexpectedShutdown;

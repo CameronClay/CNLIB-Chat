@@ -274,14 +274,14 @@ public:
 	//allocator should also align to alignment passed here
 	explicit MemPoolSync(size_t elementSize, size_t initialCapacity, size_t alignment = 4, const Allocator<char>& allocator = Allocator<char>())
 		:
-		MemPool(elementSize, initialCapacity, alignment, allocator)
+		MemPool<Allocator>(elementSize, initialCapacity, alignment, allocator)
 	{
 		InitializeCriticalSection(&sect);
 	}
 	MemPoolSync(const MemPoolSync&) = delete;
 	MemPoolSync(MemPoolSync&& memPool)
 		:
-		MemPool(std::forward<MemPool>(memPool)),
+		MemPool<Allocator>(std::move(memPool)),
 		sect(memPool.sect)
 	{
 		memset(&memPool, 0, sizeof(MemPoolSync));
@@ -291,7 +291,7 @@ public:
 	{
 		if (this != &memPool)
 		{
-			__super::operator=(std::forward<MemPool>(memPool));
+			MemPool<Allocator>::operator=(std::move(memPool));
 			sect = memPool.sect;
 
 			memset(&memPool, 0, sizeof(MemPoolSync));
@@ -301,17 +301,17 @@ public:
 
 	~MemPoolSync()
 	{
-		if (elementSizeMax)
+		if (this->elementSizeMax)
 			DeleteCriticalSection(&sect);
 	}
 
 	void* alloc(size_t elementSize)
 	{
 		void* ptr = nullptr;
-		if (FitsInPool(elementSize))
+		if (this->FitsInPool(elementSize))
 		{
 			EnterCriticalSection(&sect);
-			ptr = PoolAlloc();
+			ptr = this->PoolAlloc();
 			LeaveCriticalSection(&sect);
 		}
 		return ptr;
@@ -334,10 +334,10 @@ public:
 	{
 		if (p)
 		{
-			Element* element = (Element*)((char*)p + elementSizeMax);
+			typename MemPool<Allocator>::Element* element = (typename MemPool<Allocator>::Element*)((char*)p + this->elementSizeMax);
 
 			EnterCriticalSection(&sect);
-			PoolDealloc(element);
+			this->PoolDealloc(element);
 			LeaveCriticalSection(&sect);
 
 			p = nullptr;
@@ -350,7 +350,7 @@ public:
 		if (p)
 		{
 			p->~T();
-			dealloc(p);
+			this->dealloc(p);
 		}
 	}
 

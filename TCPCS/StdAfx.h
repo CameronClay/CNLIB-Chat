@@ -10,3 +10,5 @@
 #include <queue>
 #include <atomic>
 #include <memory>
+#include <string>
+#include <cstddef>
