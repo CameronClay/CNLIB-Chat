@@ -15,9 +15,9 @@ target_precompile_headers(server PRIVATE
     StdAfx.h
 )
 
-target_compile_definitions(server PRIVATE UNICODE)
-target_compile_definitions(server PRIVATE _UNICODE)
+#target_compile_definitions(server PRIVATE UNICODE)
+#target_compile_definitions(server PRIVATE _UNICODE)
 
-target_include_directories(server PRIVATE ${CMAKE_SOURCE_DIR}/Common)
+#target_include_directories(server PRIVATE ${CMAKE_SOURCE_DIR}/Common)
 target_include_directories(server PRIVATE ${CMAKE_SOURCE_DIR}/TCPCS/DLLSRC)
 target_link_libraries(server PRIVATE TCPCS)
