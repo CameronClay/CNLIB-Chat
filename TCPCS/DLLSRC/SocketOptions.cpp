@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "Stdafx.h"
 #include "CNLIB/SocketOptions.h"
 
 SocketOptions::SocketOptions(int tcpSendSize, int tcpRecvSize, bool noDelay)

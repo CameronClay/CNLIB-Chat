@@ -1,3 +1,4 @@
+build/
 Debug/
 Release/
 DebugXP/
@@ -13,6 +14,7 @@ ipch/
 *.pdb
 *.idb
 *.aps
+.vs/
 
 
 /Debug/Client.exe
