@@ -9,6 +9,34 @@
 //constructa and destructa are together, for a constructed array : new type[count] var{v1,v2,v3} : constructa<type>(value, value) or constructa<type>(type(), type()) : uqpca/m_casp
 //pmconstruct and pmdestruct are together, for constructing at a specified memory region : new (ptr) T() : pmconstruct<type>(ptr, ...) or pmconstruct <type>(ptr, value) : pmuqp/m_pmsp
 
+
+
+template<typename T, typename P, typename... Args> inline T* pmconstruct(P* ptr, Args&&... vals)
+{
+	return new(ptr) T(std::forward<Args>(vals)...);
+}
+template<typename T> inline void pmdestruct(T* p)
+{
+	if (p)
+		p->~T();
+}
+
+template<typename T, typename... Args> inline T* pmconstructa(T* ptr, Args&&... vals)
+{
+	return new(ptr)T[sizeof...(vals)]{std::forward<Args>(vals)...};
+}
+template<typename T> inline void pmdestructa(T*& p)
+{
+	if (p && !std::is_trivially_destructible<T>())
+	{
+		const size_t count = *((size_t*)p - 1);
+		const size_t size = sizeof(T) * count + sizeof(size_t);
+		for (T *e = p + count; p < e; p++)
+			pmdestruct(p);
+		p = (T*)((char*)p - size);
+	}
+}
+
 class CAMSNETLIB Alloc
 {
 public:
@@ -121,31 +149,6 @@ inline void destructa(T*& p)
 	ProcHeap.destructa(p);
 }
 
-template<typename T, typename P, typename... Args> inline T* pmconstruct(P* ptr, Args&&... vals)
-{
-	return new(ptr) T(std::forward<Args>(vals)...);
-}
-template<typename T> inline void pmdestruct(T* p)
-{
-	if (p)
-		p->~T();
-}
-
-template<typename T, typename... Args> inline T* pmconstructa(T* ptr, Args&&... vals)
-{
-	return new(ptr)T[sizeof...(vals)]{std::forward<Args>(vals)...};
-}
-template<typename T> inline void pmdestructa(T*& p)
-{
-	if (p && !std::is_trivially_destructible<T>())
-	{
-		const size_t count = *((size_t*)p - 1);
-		const size_t size = sizeof(T) * count + sizeof(size_t);
-		for (T *e = p + count; p < e; p++)
-			pmdestruct(p);
-		p = (T*)((char*)p - size);
-	}
-}
 template<class T> class HeapAllocator
 {
 public:
