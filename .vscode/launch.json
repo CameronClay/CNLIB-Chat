@@ -24,7 +24,7 @@
             "type": "cppvsdbg",
             "name": "server.exe [debug]",
             "request": "launch",
-            "program": "${workspaceRoot}/build/client/Debug/server.exe",
+            "program": "${workspaceRoot}/build/server/Debug/server.exe",
             "args": [],
             "cwd": "${fileDirname}",
             "environment": [],
