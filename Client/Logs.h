@@ -92,7 +92,7 @@ public:
 	{
 		FileMisc::Remove((path + _T("\\") + logList[index].fileName).c_str());
 
-		//change all log's index above the removed log -1
+		//change all log's index above the removed log to current_index - 1
 		for (int i = index + 1, size = logList.size(); i < size; i++)
 		{
 			std::tstring curName = path + _T("\\") + logList[i].fileName;

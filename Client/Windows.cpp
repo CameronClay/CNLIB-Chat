@@ -890,10 +890,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			SendMessage(textInput, WM_SETTEXT, 0, (LPARAM)_T(""));
 			EnableWindow(buttonEnter, false);
 
-			std::tstring dest;
-			Format::FormatText(str, dest, user, opts->TimeStamps());
-			textBuffer.WriteLine(dest); 
-			opts->WriteLine(dest);
+				std::tstring dest;
+				Format::FormatText(str, dest, user, opts->TimeStamps());
+				textBuffer.WriteLine(dest); 
+				opts->WriteLine(dest);
 
 			auto streamWriter = client->CreateOutStream(StreamWriter::SizeType(str), TYPE_DATA, MSG_DATA_TEXT);
 			streamWriter.Write(str);
@@ -1727,10 +1727,12 @@ INT_PTR CALLBACK Opt_GeneralProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		}
 		break;
 	}
+	//Sent by a common control to its parent window when an event has occurred or the control requires some information.
 	case WM_NOTIFY:
 	{
 		switch (((LPNMHDR)lParam)->code)
 		{
+		//Notifies a page that it is about to be activated. This notification code is sent in the form of a WM_NOTIFY message.
 		case PSN_SETACTIVE:
 		{
 			CheckDlgButton(hWnd, ID_TIMESTAMPS, opts->TimeStamps() ? BST_CHECKED : BST_UNCHECKED);
@@ -1744,6 +1746,7 @@ INT_PTR CALLBACK Opt_GeneralProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 			SetWindowLongPtr(hWnd, DWLP_MSGRESULT, PSNRET_NOERROR);
 			break;
 		}
+		//Sent to every page in the property sheet to indicate that the user has clicked the OK, Close, or Apply button and wants all changes to take effect. This notification code is sent in the form of a WM_NOTIFY message.
 		case PSN_APPLY:
 		{
 			LIB_TCHAR buffer[4];
@@ -1772,6 +1775,7 @@ INT_PTR CALLBACK Opt_GeneralProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 			SetWindowLongPtr(hWnd, DWLP_MSGRESULT, PSNRET_NOERROR);
 			break;
 		}
+		//Notifies a page that the property sheet is about to be destroyed. This notification code is sent in the form of a WM_NOTIFY message.
 		case PSN_RESET:
 		{
 			SetWindowLongPtr(hWnd, DWLP_MSGRESULT, PSNRET_NOERROR);

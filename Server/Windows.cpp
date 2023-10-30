@@ -635,7 +635,7 @@ void WinMainInit()
 			file.Close();
 			file.Open(optionsFileName, FILE_GENERIC_WRITE, FILE_ATTRIBUTE_HIDDEN, CREATE_ALWAYS);
 			file.Write(&CONFIGVERSION, sizeof(float));
-			file.Write(&port, sizeof(USHORT));
+			file.Write(&DEFAULTPORT, sizeof(USHORT));
 		}
 	}
 
