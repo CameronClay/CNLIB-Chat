@@ -81,6 +81,7 @@ RecvHandler::ReadError TCPClient::RecvDataCR(DWORD bytesTrans)
 
 void TCPClient::OnNotify(char* data, DWORD nBytes, void*)
 {
+    //problem here on disconnect
 	(function)(*this, MsgStreamReader{ data, nBytes - MSG_OFFSET });
 }
 
@@ -234,7 +235,7 @@ bool TCPClient::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6,
 
 void TCPClient::Disconnect()
 {
-	SetShutdownReason(false);
+    SetShutdownReason(false);
 	host.Disconnect();
 }
 
@@ -422,6 +423,7 @@ void TCPClient::KeepAlive()
 
 void TCPClient::RunDisconFunc()
 {
+    //problem here
 	disconFunc(*this, unexpectedShutdown);
 }
 

@@ -25,7 +25,6 @@ target_compile_definitions(TCPCS PUBLIC _UNICODE)
 
 target_include_directories(TCPCS PUBLIC ${CMAKE_SOURCE_DIR}/Common)
 target_link_directories(TCPCS PRIVATE ${CMAKE_SOURCE_DIR}/Common ${CMAKE_SOURCE_DIR}/Common/zlib/lib/x64)
-#target_link_libraries(TCPCS PUBLIC Common)
 target_link_libraries(TCPCS PRIVATE zdll)
 
 target_precompile_headers(TCPCS PRIVATE

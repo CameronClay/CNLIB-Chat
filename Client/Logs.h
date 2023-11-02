@@ -2,6 +2,7 @@
 #include "CNLIB/Typedefs.h"
 #include "CNLIB/File.h"
 #include "CNLIB/HeapAlloc.h"
+#include <algorithm>
 
 class Logs
 {
@@ -11,7 +12,7 @@ public:
 		logList()
 	{}
 	Logs(Logs&& logs)
-		:
+        :
 		logList(std::move(logs.logList))
 	{
 		ZeroMemory(&logs, sizeof(Logs));
@@ -20,16 +21,19 @@ public:
 
 	void LoadLogList(const std::tstring& path)
 	{
-		this->path = path;
+        std::tstring newpath = path;
+        std::replace(std::begin(newpath), std::end(newpath), '/', '\\');
+        this->path = newpath;
+
 		logList = FileMisc::GetFileNameList(path.c_str(), FILE_ATTRIBUTE_TEMPORARY, false);
-		CompressTempLogs(FileMisc::GetFileNameList(path.c_str(), FILE_ATTRIBUTE_TEMPORARY));
+        CompressTempLogs(FileMisc::GetFileNameList(path.c_str(), FILE_ATTRIBUTE_TEMPORARY, true));
 		currLog = logList.size();
 	}
 
 	void CreateLog()
 	{
 		TCHAR buffer[512];
-		_stprintf(buffer, _T("%s\\Log%.2d.txt"), path.c_str(), currLog);
+        _stprintf(buffer, _T("%s\\Log%.2d.txt"), path.c_str(), currLog);
 		fileName = buffer;
 
 		log.Open(buffer, FILE_GENERIC_WRITE, FILE_ATTRIBUTE_TEMPORARY, CREATE_ALWAYS);
@@ -38,11 +42,13 @@ public:
 	void SaveLog()
 	{
 		if (log.IsOpen())
-		{
-			if (log.GetCursor() != 0)
-				CompressTempLog(log, fileName);
-			else
-				FileMisc::Remove(fileName.c_str());
+        {
+            if (log.GetCursor() != 0) {
+                CompressTempLog(log, fileName);
+            }
+            else {
+                RemoveTempLog();
+            }
 		}
 	}
 
@@ -63,7 +69,7 @@ public:
 	//if nBytes is specified copies that many bytes into dest, otherwise outputs the number of bytes into the nBytes var
 	void ReadLog(int index, char* dest = nullptr, DWORD* nBytes = nullptr)
 	{
-		File log((path + _T("\\") + logList[index].fileName).c_str(), FILE_GENERIC_READ);
+        File log((path + _T("\\") + logList[index].fileName).c_str(), FILE_GENERIC_READ);
 
 		if (dest)
 		{
@@ -71,14 +77,14 @@ public:
 			log.MoveCursor(sizeof(DWORD));
 			log.Read((void*)&compLen, sizeof(DWORD));
 
-			char* compBuffer = alloc<char>(compLen);
+            char* compBuffer = alloc<char>(compLen);
 			log.Read(compBuffer, compLen);
 			FileMisc::Decompress((BYTE*)dest, *nBytes, (const BYTE*)compBuffer, compLen);
 			dealloc(compBuffer);
 		}
 		else
 		{
-			log.Read((void*)nBytes, sizeof(DWORD));
+            log.Read((void*)nBytes, sizeof(DWORD));
 		}
 	}
 
@@ -90,19 +96,19 @@ public:
 
 	void RemoveLog(int index)
 	{
-		FileMisc::Remove((path + _T("\\") + logList[index].fileName).c_str());
+        FileMisc::Remove((path + _T("\\") + logList[index].fileName).c_str());
 
-		//change all log's index above the removed log to current_index - 1
+		//change all log's index above the removed log -1
 		for (int i = index + 1, size = logList.size(); i < size; i++)
 		{
-			std::tstring curName = path + _T("\\") + logList[i].fileName;
+            std::tstring curName = path + _T("\\") + logList[i].fileName;
 			std::tstring newName = curName;
 			TCHAR buffer[12];
 			_stprintf(buffer, _T("%.2d"), i - 1);
 			newName.replace(newName.find(_T(".txt")) - 2, 2, buffer);
 
 			FileMisc::MoveOrRename(curName.c_str(), newName.c_str());
-			logList[i].fileName = newName.substr(newName.find_last_of(_T("\\")) + 1);
+            logList[i].fileName = newName.substr(newName.find_last_of(_T("\\")) + 1);
 		}
 
 		logList.erase(logList.begin() + index);
@@ -111,7 +117,7 @@ public:
 	void ClearLogs()
 	{
 		for (int i = 0, size = logList.size(); i < size; i++)
-			FileMisc::Remove((path + _T("\\") + logList[i].fileName).c_str());
+            FileMisc::Remove((path + _T("\\") + logList[i].fileName).c_str());
 
 		logList.clear();
 	}
@@ -131,14 +137,14 @@ private:
 		}
 		else
 		{
-			logName = path + _T("\\") + fd.fileName;
+            logName = path + _T("\\") + fd.fileName;
 		}
 
 		File log(logName.c_str(), FILE_GENERIC_READ, FILE_FLAG_DELETE_ON_CLOSE);
 		while (!log.IsOpen())
 		{
 			TCHAR buffer[512];
-			_stprintf(buffer, _T("%s\\Log%.2d.txt"), path.c_str(), ++currLog);
+            _stprintf(buffer, _T("%s\\Log%.2d.txt"), path.c_str(), ++currLog);
 			fileName = logName = buffer;
 			log.Open(logName.c_str(), FILE_GENERIC_READ, FILE_FLAG_DELETE_ON_CLOSE);
 		}

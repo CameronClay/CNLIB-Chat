@@ -1,24 +1,30 @@
 #include "StdAfx.h"
 #include "Options.h"
-//#include "CNLIB\File.h"
+#include <QCoreApplication>
+#include <QSettings>
+#include <QStandardPaths>
+#include <QFile>
+#include <QDir>
 
-Options::Options(const std::tstring& filePath, float currentVers)
+Options::Options(const QString& optionsDir, const QString& downloadDir)
 {
-	Reset(filePath, currentVers);
+    Reset(optionsDir, downloadDir);
 }
 
 Options::Options(Options&& opts)
-	:
-	Logs(std::forward<Logs>(opts)),
-	filePath(opts.filePath),
-	downloadPath(opts.downloadPath),
-	version(opts.version),
-	timeStamps(opts.timeStamps),
-	startUp(opts.startUp),
-	flashTaskbar(opts.flashTaskbar),
-	saveLogs(opts.saveLogs),
-	flashCount(opts.flashCount),
-	info(opts.info)
+    :
+    Logs(std::move(opts)),
+    optionsDir(std::move(opts.optionsDir)),
+    downloadDir(std::move(opts.downloadDir)),
+    optionsPath(std::move(opts.optionsPath)),
+    version(opts.version),
+    timeStamps(opts.timeStamps),
+    startUp(opts.startUp),
+    flashTaskbar(opts.flashTaskbar),
+    saveLogs(opts.saveLogs),
+    flashCount(opts.flashCount),
+    fontFamily(std::move(opts.fontFamily)),
+    fontSize(opts.fontSize)
 {}
 
 Options::~Options()
@@ -26,124 +32,121 @@ Options::~Options()
 
 void Options::Load(const LIB_TCHAR* windowName)
 {
-	File file(filePath.c_str(), FILE_GENERIC_READ, FILE_ATTRIBUTE_HIDDEN);
+    QFile file(optionsPath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return;
+    }
 
-	const float prevVers = version;
+    QDataStream in(&file);
+    in.setByteOrder(QDataStream::ByteOrder::BigEndian);
+    //in.setEncoding(QStringConverter::Utf8);
 
-	bool b = file.Read(&version, sizeof(float)) == sizeof(float);
-	if(version == prevVers)
-	{
-		b &= (
-			file.ReadString(downloadPath) &&
-			file.Read(&startUp, sizeof(bool)) &&
-			file.Read(&flashTaskbar, sizeof(bool)) &&
-			file.Read(&timeStamps, sizeof(bool)) &&
-			file.Read(&saveLogs, sizeof(bool)) &&
-			file.Read(&flashCount, sizeof(UCHAR))
-			);
-	}
-	else
-	{
-		file.Open(filePath.c_str(), FILE_GENERIC_READ, FILE_ATTRIBUTE_HIDDEN, CREATE_ALWAYS);
-		Reset(filePath, prevVers);
-		Save(windowName);
-	}
+    in >> downloadDir
+        >> startUp
+        >> flashTaskbar
+        >> timeStamps
+        >> saveLogs
+        >> flashCount
+        >> fontFamily
+        >> fontSize;
+    file.close();
 
+    const std::tstring logsDirTStr = logsDir.toStdWString();
+    LoadLogList(logsDirTStr.c_str());
 
-	const UINT pathSize = filePath.size();
-	LIB_TCHAR* buffer = alloc<LIB_TCHAR>(pathSize + 64);
-	_tcscpy(buffer, filePath.c_str());
-
-	PathRemoveFileSpec(buffer);
-
-	_tcscat(buffer, _T("\\Logs"));
-
-	if(!FileMisc::Exists(buffer))
-		FileMisc::CreateFolder(buffer);
-
-	LoadLogList(buffer);
-
-	if (SaveLogs())
-		CreateLog();
-
-	dealloc(buffer);
+    if (SaveLogs()) {
+        CreateLog();
+    }
 }
 
 void Options::Save(const LIB_TCHAR* windowName)
 {
-	File file(filePath.c_str(), FILE_GENERIC_WRITE, FILE_ATTRIBUTE_HIDDEN, CREATE_ALWAYS);
+    QFile file(optionsPath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        return;
+    }
 
+    QDataStream out(&file);
+    out.setByteOrder(QDataStream::ByteOrder::BigEndian);
+    //out.setEncoding(QStringConverter::Utf8);
 
-	file.Write(&version, sizeof(float));
+    out << downloadDir
+        << startUp
+        << flashTaskbar
+        << timeStamps
+        << saveLogs
+        << flashCount
+        << fontFamily
+        << fontSize;
+    file.close();
 
-	file.WriteString(downloadPath);
-
-	file.Write(&startUp, sizeof(bool));
-	file.Write(&flashTaskbar, sizeof(bool));
-	file.Write(&timeStamps, sizeof(bool));
-	file.Write(&saveLogs, sizeof(bool));
-	file.Write(&flashCount, sizeof(UCHAR));
-
-	if(startUp)
-	{
-		LIB_TCHAR path[MAX_PATH];
-		GetModuleFileName(NULL, path, MAX_PATH);
-
-#if NTDDI_VERSION >= NTDDI_VISTA
-		RegSetKeyValue(HKEY_CURRENT_USER, _T("Software\\Microsoft\\Windows\\CurrentVersion\\Run"), windowName, REG_SZ, path, (lstrlen(path) + 1) * sizeof(LIB_TCHAR));
-#else
-		HKEY key;
-		RegCreateKeyEx(HKEY_CURRENT_USER, _T("Software\\Microsoft\\Windows\\CurrentVersion\\Run"), NULL, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &key, NULL);
-		RegSetValueEx(key, windowName, NULL, REG_SZ, (const BYTE*)path, (lstrlen(path) + 1) * sizeof(LIB_TCHAR));
-		RegCloseKey(key);
-#endif
-	}
-
-	else
-	{
-#if NTDDI_VERSION >= NTDDI_VISTA
-		RegDeleteKeyValue(HKEY_CURRENT_USER, _T("Software\\Microsoft\\Windows\\CurrentVersion\\Run"), windowName);
-#else
-		HKEY key;
-		RegOpenKeyEx(HKEY_CURRENT_USER, _T("Software\\Microsoft\\Windows\\CurrentVersion\\Run"), NULL, KEY_WRITE, &key);
-		RegDeleteValue(key, windowName);
-		RegCloseKey(key);
-#endif
-	}
+    StartWithOS(startUp, windowName);
 }
 
-void Options::SetGeneral(bool timeStamps, bool startUp, bool flashTaskbar, bool saveLogs, UCHAR flashCount)
+void Options::StartWithOS(bool startUp, const LIB_TCHAR* windowName) {
+#ifdef Q_OS_WIN
+    //HKEY_LOCAL_MACHINE requires admin privileges
+    QSettings regSettings("HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", QSettings::NativeFormat);
+    if(startUp) {
+        QString appPath = QCoreApplication::applicationFilePath();
+        regSettings.setValue(windowName, appPath);
+    }
+    else {
+        regSettings.remove(windowName);
+    }
+
+    regSettings.sync();
+#endif
+}
+
+void Options::SetGeneral(bool timeStamps, bool startUp, bool flashTaskbar, bool saveLogs, std::size_t flashCount)
 {
-	this->timeStamps = timeStamps;
-	this->startUp = startUp;
+    this->timeStamps   = timeStamps;
+    this->startUp      = startUp;
 	this->flashTaskbar = flashTaskbar;
-	this->saveLogs = saveLogs;
-	this->flashCount = flashCount;
+    this->saveLogs     = saveLogs;
+    this->flashCount   = flashCount;
 }
 
-void Options::SetDownloadPath(const std::tstring& path)
-{
-	downloadPath = path;
+void Options::SetFont(const QString& fontFamily, int fontSize) {
+    this->fontFamily = fontFamily;
+    this->fontSize   = fontSize;
+}
+const QString& Options::GetFontFamily() const {
+    return fontFamily;
+}
+int Options::GetFontSize() const {
+    return fontSize;
 }
 
-void Options::Reset(const std::tstring& filePath, float currentVers)
+void Options::SetDownloadDir(const QString& dir)
 {
-	this->filePath = filePath;
-	timeStamps = true;
-	startUp = false;
-	flashTaskbar = true;
-	saveLogs = true;
-	flashCount = 3;
-	version = currentVers;
+    downloadDir = dir;
+}
 
-	LIB_TCHAR buffer[MAX_PATH] = {};
-	FileMisc::GetFolderPath(CSIDL_MYDOCUMENTS , buffer);
-	downloadPath = buffer;
+void Options::Reset(const QString& optionsDir, const QString& downloadDir)
+{
+    timeStamps     = true;
+    startUp        = false;
+    flashTaskbar   = true;
+    saveLogs       = true;
+    flashCount     = 3;
+    version        = Options::CONFIGVERSION;
 
-	// FLASHWINFO
-	info.cbSize = sizeof(FLASHWINFO);
-	info.dwFlags = FLASHW_ALL | FLASHW_TIMERNOFG;
-	info.dwTimeout = 0;
+    this->optionsDir   = optionsDir;
+    this->downloadDir  = downloadDir;
+    this->logsDir      = QString("%1/%2").arg(optionsDir, QString("Logs"));
+    this->optionsPath  = QString("%1/%2").arg(optionsDir, Options::OPTIONS_FILENAME);
+
+    fontFamily     = QString("Segoe UI");
+    fontSize       = 9;
+
+    if(!QDir(optionsDir).exists()) {
+       QDir().mkpath(optionsDir);
+    }
+    if(!QDir(logsDir).exists()) {
+       QDir().mkpath(logsDir);
+    }
 }
 
 bool Options::TimeStamps() const
@@ -161,25 +164,17 @@ bool Options::SaveLogs() const
 	return saveLogs;
 }
 
-bool Options::FlashTaskbar(HWND hWnd)
+bool Options::FlashTaskbar() const
 {
-	if (flashTaskbar)
-	{
-		info.hwnd = hWnd;
-		info.uCount = flashCount;
-
-		FlashWindowEx(&info);
-	}
-
-	return flashTaskbar;
+    return flashTaskbar;
 }
 
-UINT Options::GetFlashCount() const
+std::size_t Options::GetFlashCount() const
 {
 	return flashCount;
 }
 
-const std::tstring& Options::GetDownloadPath() const
+const QString& Options::GetDownloadDir() const
 {
-	return downloadPath;
+    return downloadDir;
 }
