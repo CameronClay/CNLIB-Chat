@@ -18,16 +18,15 @@ set(PROJECT_SOURCES
     optionsdialog.h optionsdialog.cpp optionsdialog.ui
     viewlogdialog.h viewlogdialog.cpp viewlogdialog.ui
     readlogdialog.h readlogdialog.cpp readlogdialog.ui
-    clientinfo.h
-    clientinfo.cpp
     authenticatedialog.h authenticatedialog.cpp authenticatedialog.ui
-    Options.h
-    Options.cpp
-    #Whiteboard.h
-    #Whiteboard.cpp
-    #../Common/Mouse.cpp
-    #../Common/Palette.cpp
-    #../Common/WhiteboardClientData.cpp
+    whiteboard.h whiteboard.cpp whiteboard.ui
+    startwhiteboarddialog.h startwhiteboarddialog.cpp startwhiteboarddialog.ui
+    invitewhiteboarddialog.h invitewhiteboarddialog.cpp invitewhiteboarddialog.ui
+
+    imginfo.h imginfo.cpp
+    whiteboardinviteparams.h whiteboardinviteparams.cpp
+    clientinfo.h clientinfo.cpp
+    Options.h Options.cpp
     ../Common/WinFirewall.cpp
 )
 

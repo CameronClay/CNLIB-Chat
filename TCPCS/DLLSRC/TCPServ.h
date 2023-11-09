@@ -137,16 +137,16 @@ public:
 	//depending on the value of single
 	bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientData* exClient, bool single) override;
 	bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientData** clients, UINT nClients) override;
-	bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, std::vector<ClientData*>& pcs) override;
+    bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, const std::vector<ClientData*>& pcs) override;
 
 	bool SendClientData(const MsgStreamWriter& streamWriter, ClientData* exClient, bool single) override;
 	bool SendClientData(const MsgStreamWriter& streamWriter, ClientData** clients, UINT nClients) override;
-	bool SendClientData(const MsgStreamWriter& streamWriter, std::vector<ClientData*>& pcs) override;
+    bool SendClientData(const MsgStreamWriter& streamWriter, const std::vector<ClientData*>& pcs) override;
 
 	//Send msg funtions used for requests, replies ect. they do not send data
 	void SendMsg(ClientData* exClient, bool single, short type, short message) override;
 	void SendMsg(ClientData** clients, UINT nClients, short type, short message) override;
-	void SendMsg(std::vector<ClientData*>& pcs, short type, short message) override;
+    void SendMsg(const std::vector<ClientData*>& pcs, short type, short message) override;
 	void SendMsg(const std::tstring& user, short type, short message) override;
 
 	ClientData* FindClient(const std::tstring& user) const override;

@@ -1,5 +1,3 @@
-//Copyright (c) <2015> <Cameron Clay>
-
 #pragma once
 #include "Typedefs.h"
 #include "Socket.h"
@@ -48,15 +46,15 @@ public:
 
 	virtual bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientData* exClient, bool single) = 0;
 	virtual bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientData** clients, UINT nClients) = 0;
-	virtual bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, std::vector<ClientData*>& pcs) = 0;
+    virtual bool SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, const std::vector<ClientData*>& pcs) = 0;
 
 	virtual bool SendClientData(const MsgStreamWriter& streamWriter, ClientData* exClient, bool single) = 0;
 	virtual bool SendClientData(const MsgStreamWriter& streamWriter, ClientData** clients, UINT nClients) = 0;
-	virtual bool SendClientData(const MsgStreamWriter& streamWriter, std::vector<ClientData*>& pcs) = 0;
+    virtual bool SendClientData(const MsgStreamWriter& streamWriter, const std::vector<ClientData*>& pcs) = 0;
 
 	virtual void SendMsg(ClientData* exClient, bool single, short type, short message) = 0;
 	virtual void SendMsg(ClientData** clients, UINT nClients, short type, short message) = 0;
-	virtual void SendMsg(std::vector<ClientData*>& pcs, short type, short message) = 0;
+    virtual void SendMsg(const std::vector<ClientData*>& pcs, short type, short message) = 0;
 	virtual void SendMsg(const std::tstring& user, short type, short message) = 0;
 
 	virtual ClientData* FindClient(const std::tstring& user) const = 0;

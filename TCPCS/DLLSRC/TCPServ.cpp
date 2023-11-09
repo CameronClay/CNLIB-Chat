@@ -467,9 +467,9 @@ bool TCPServ::SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, Cli
 {
 	return SendClientData(buffSendInfo, nBytes, (ClientDataEx**)clients, nClients, false);
 }
-bool TCPServ::SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, std::vector<ClientData*>& pcs)
+bool TCPServ::SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, const std::vector<ClientData*>& pcs)
 {
-	return SendClientData(buffSendInfo, nBytes, pcs.data(), pcs.size());
+    return SendClientData(buffSendInfo, nBytes, (ClientData**)pcs.data(), pcs.size());
 }
 
 bool TCPServ::SendClientData(const MsgStreamWriter& streamWriter, ClientData* exClient, bool single)
@@ -480,9 +480,9 @@ bool TCPServ::SendClientData(const MsgStreamWriter& streamWriter, ClientData** c
 {
 	return SendClientData(streamWriter.GetBuffSendInfo(), streamWriter.GetSize(), (ClientDataEx**)clients, nClients, false);
 }
-bool TCPServ::SendClientData(const MsgStreamWriter& streamWriter, std::vector<ClientData*>& pcs)
+bool TCPServ::SendClientData(const MsgStreamWriter& streamWriter, const std::vector<ClientData*>& pcs)
 {
-	return SendClientData(streamWriter.GetBuffSendInfo(), streamWriter.GetSize(), pcs.data(), pcs.size());
+    return SendClientData(streamWriter.GetBuffSendInfo(), streamWriter.GetSize(), (ClientData**)pcs.data(), pcs.size());
 }
 
 bool TCPServ::SendClientData(const BuffSendInfo& buffSendInfo, DWORD nBytes, ClientDataEx* exClient, bool single, bool msg)
@@ -725,9 +725,9 @@ void TCPServ::SendMsg(ClientData** clients, UINT nClients, short type, short mes
 
 	SendClientData({ (char*)msg, NOCOMPRESSION, 0 }, MSG_OFFSET, (ClientDataEx**)clients, nClients, true);
 }
-void TCPServ::SendMsg(std::vector<ClientData*>& pcs, short type, short message)
+void TCPServ::SendMsg(const std::vector<ClientData*>& pcs, short type, short message)
 {
-	SendMsg(pcs.data(), (USHORT)pcs.size(), type, message);
+    SendMsg((ClientData**)pcs.data(), (USHORT)pcs.size(), type, message);
 }
 void TCPServ::SendMsg(const std::tstring& user, short type, short message)
 {

@@ -13,7 +13,6 @@
 #include "MessagesExt.h"
 #include "Format.h"
 #include "TextDisplay.h"
-//#include "Whiteboard.h"
 
 //Built using QT
 
@@ -59,7 +58,7 @@ void MainWindow::on_actionManage_Admins_triggered() {
 }
 
 void MainWindow::on_actionAbout_triggered() {
-    QMessageBox::about(this, tr("About Server"), tr("TCP chat server built using WNLIB and QT, similar to IRC. Whiteboard is currently unimplemented."));
+    QMessageBox::about(this, tr("About Server"), tr("TCP chat server built using WNLIB and QT, similar to IRC."));
 }
 
 void MainWindow::on_actionAbout_Qt_triggered() {

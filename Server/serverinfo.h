@@ -2,11 +2,12 @@
 #define SERVERINFO_H
 
 #include <mutex>
+#include <memory>
 #include <QtWidgets>
 #include "CNLIB/Typedefs.h"
 #include "CNLIB/TCPServInterface.h"
 #include "TextDisplay.h"
-//#include "Whiteboard.h"
+#include "whiteboard.h"
 
 #include "DragStringListModel.h"
 
@@ -42,9 +43,10 @@ public:
 
     USHORT port = DEFAULTPORT;
 
-    std::mutex fileMut, authentMut, wbMut;
+    std::mutex fileMut, authentMut;
 
     TCPServInterface* serv = nullptr;
+
     //Whiteboard* wb = nullptr;
 
     std::vector<Authent> userList;
@@ -72,6 +74,8 @@ public:
 
 private:
     QString folderPath;
+    std::mutex wbMut;
+    std::unique_ptr<Whiteboard> whiteboard;
 
     static QStringList LoadAdminList();
     bool InitDirectory();
@@ -86,7 +90,6 @@ private:
 
 signals:
     void UpdateLog();
-
 };
 
 #endif // SERVERINFO_H

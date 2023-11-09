@@ -6,9 +6,12 @@
 #include "viewlogdialog.h"
 #include "connectdialog.h"
 #include "authenticatedialog.h"
-
+#include "whiteboard.h"
+#include "startwhiteboarddialog.h"
+#include "invitewhiteboarddialog.h"
 #include <QMainWindow>
 #include <memory>
+#include "whiteboardargs.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -61,6 +64,19 @@ private slots:
     void OnMsgVersionUpToDate();
     void OnMsgVersionOutOfDate();
 
+    void OnMsgResponseWhiteboardConfirmed(const QString& user);
+    void OnMsgResponseWhiteboardDeclined(const QString& user);
+    void OnMsgRequestWhiteboard(const QString& user, const WBInviteParams& inviteParams);
+    void OnMsgWhiteboardActivate(const WhiteboardArgs& wbargs);
+    void OnMsgWhiteboardTerminate();
+    void OnMsgWhiteboardCannotCreate();
+    void OnMsgWhiteboardCannotTerminate();
+    void OnMsgWhiteboardKickUser(const QString& user);
+    void OnMsgWhiteboardDrawLine(const QPoint& start, const QPoint& end, int penWidth, QColor penColor);
+    void OnMsgWhiteboardRequestImage();
+    void OnMsgWhiteboardForwardImage(const ImageInfo& imgInfo);
+    void OnMsgWhiteboardClear(const QColor& clr);
+
     void OnClientDisconnect(bool unexpected);
     void OnClientConnect();
 
@@ -69,7 +85,18 @@ private slots:
     void OnFileReceivedFinished(const QString& user);
     void OnFileReceivedCanceled(const QString& user);
 
-    void OnAdminKick();
+    void OnMenuAdminKick();
+
+    void OnWhiteboardStart(const WhiteboardArgs& args);
+    void OnMenuWhiteboardInvite();
+    void OnMenuWhiteboardKick();
+
+    void OnInviteWhiteboard(const WBInviteParams& params);
+
+    void OnClientClosedWhiteboard();
+
+    void on_actionStart_triggered();
+    void on_actionTerminate_triggered();
 
 private:
     void SetFont(const QFont& font);
@@ -84,6 +111,8 @@ private:
     void InitHandlers();
     void InitMenus();
 
+    void WhiteboardShutdownHelper();
+
     bool eventFilter(QObject *object, QEvent *event);
 
 private:
@@ -93,10 +122,18 @@ private:
     std::unique_ptr<ViewLogDialog> viewLogDialog;
     std::unique_ptr<ConnectDialog> connectDialog;
     std::unique_ptr<AuthenticateDialog> authenticateDialog;
+    std::unique_ptr<Whiteboard> whiteboardDialog;
+    std::unique_ptr<InviteWhiteboardDialog> inviteWhiteboardDialog;
+    std::unique_ptr<StartWhiteboardDialog> startWhiteboardDialog;
     ClientInfo clientInfo;
 
     QMenu* cmenuAdmin;
     QAction* actMenuAdmin;
     QAction* actAdminKick;
+
+    QMenu* cmenuWhiteboard;
+    QAction* actMenuWhiteboard;
+    QAction* actWhiteboardInvite;
+    QAction* actWhiteboardKick;
 };
 #endif // MAINWINDOW_H

@@ -29,9 +29,9 @@ ServerInfo::ServerInfo() {
         SocketOptions(0, 0, true)
     );
 
-    LIB_TCHAR portA[6] = {};
+    const std::tstring ports = std::to_wstring(port);
     serv->AllowConnections(
-        _itot(port, portA, 10),
+        ports.c_str(),
         FuncUtils::WrapperHelper<3, TCPServInterface&, const Socket&>::get_wrapper(std::bind(&ServerInfo::CanConnect, this, std::placeholders::_1, std::placeholders::_2))
     );
 
@@ -232,7 +232,7 @@ void ServerInfo::DisconnectHandler(TCPServInterface& serv, ClientData* data, boo
     serv.SendClientData(streamWriter, nullptr, false);
 
     LIB_TCHAR buffer[128] = {};
-    _stprintf(buffer, _T("(%s) has disconnected!"), (!data->user.empty()) ? data->user.c_str() : _T("unknown"));
+    swprintf_s(buffer, _T("(%s) has disconnected!"), (!data->user.empty()) ? data->user.c_str() : _T("unknown"));
     DispIPMsg(data->pc, buffer);
 }
 
@@ -339,24 +339,25 @@ void ServerInfo::MsgHandler(TCPServInterface& serv, ClientData* const clint, Msg
             RequestTransfer(serv, clint->user, streamReader);
             break;
         }
-//        case MSG_REQUEST_WHITEBOARD:
-//        {
-//            if(IsAdmin(clint->user) || wb->IsCreator(clint->user))
-//            {
-//                const bool canDraw = streamReader.Read<bool>();
-//                const std::tstring name = streamReader.Read<std::tstring>();
-//                auto fClint = serv.FindClient(name);
-//                if(!fClint)
-//                    break;
-//                auto streamWriter = serv.CreateOutStream(StreamWriter::SizeType(canDraw, clint->user), streamReader.GetType(), streamReader.GetMsg());
-//                streamWriter.Write(canDraw);
-//                streamWriter.Write(clint->user);
-//                serv.SendClientData(streamWriter, fClint, true);
-//            }
-//            else
-//                serv.SendMsg(clint->user, TYPE_ADMIN, MSG_ADMIN_NOT);
-//            break;
-//        }
+        case MSG_REQUEST_WHITEBOARD:
+        {
+            if(IsAdmin(clint->user) || whiteboard->IsCreator(QString::fromStdWString(clint->user)))
+            {
+                const bool canDraw = streamReader.Read<bool>();
+                const std::tstring name = streamReader.Read<std::tstring>();
+                auto fClint = serv.FindClient(name);
+                if(!fClint)
+                    break;
+                auto streamWriter = serv.CreateOutStream(StreamWriter::SizeType(canDraw, clint->user), streamReader.GetType(), streamReader.GetMsg());
+                streamWriter.Write(canDraw);
+                streamWriter.Write(clint->user);
+                serv.SendClientData(streamWriter, fClint, true);
+            }
+            else {
+                serv.SendMsg(clint->user, TYPE_ADMIN, MSG_ADMIN_NOT);
+            }
+            break;
+        }
         }
         break;
     }//TYPE_REQUEST
@@ -374,14 +375,6 @@ void ServerInfo::MsgHandler(TCPServInterface& serv, ClientData* const clint, Msg
             streamWriter.Write(str);
 
             serv.SendClientData(streamWriter, clint, false);
-            break;
-        }
-        case MSG_DATA_MOUSE:
-        {
-//            if(wb) {
-//                wb->GetClientData(clint).mServ.Insert((BYTE*)dat, streamReader.GetDataSize());
-//            }
-
             break;
         }
         break;
@@ -420,39 +413,42 @@ void ServerInfo::MsgHandler(TCPServInterface& serv, ClientData* const clint, Msg
             TransferMessageWithName(serv, streamReader.Read<std::tstring>(), clint->user, streamReader);
             break;
         }
-//        case MSG_RESPONSE_WHITEBOARD_CONFIRMED:
-//        {
-//            const WBParams& wbParams = wb->GetParams();
+        case MSG_RESPONSE_WHITEBOARD_CONFIRMED:
+        {
+            const WhiteboardArgs& wbArgs = whiteboard->GetArgs();
 
-//            //Send activate message to new client
-//            auto streamWriter = serv.CreateOutStream(sizeof(WBParams), TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE);
-//            streamWriter.Write(wbParams);
-//            serv.SendClientData(streamWriter, clint, true);
-//            break;
-//        }
-//        case MSG_RESPONSE_WHITEBOARD_INITED:
-//        {
-//            if(!wb->IsCreator(clint->user))
-//            {
-//                //Tell current whiteboard members someone joined
-//                auto streamWriter = serv.CreateOutStream(StreamWriter::SizeType(clint->user), TYPE_RESPONSE, MSG_RESPONSE_WHITEBOARD_CONFIRMED);
-//                streamWriter.Write(clint->user);
-//                serv.SendClientData(streamWriter, wb->GetPcs());
+            //Send activate message to new client
+            auto streamWriter = serv.CreateOutStream(sizeof(WhiteboardArgs), TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE);
+            streamWriter.Write(wbArgs);
+            serv.SendClientData(streamWriter, clint, true);
+            break;
+        }
+        case MSG_RESPONSE_WHITEBOARD_INITED:
+        {
+            if(!whiteboard->IsCreator(QString::fromStdWString(clint->user)))
+            {
+                {
+                    //Tell current whiteboard members someone joined
+                    auto streamWriter = serv.CreateOutStream(StreamWriter::SizeType(clint->user), TYPE_RESPONSE, MSG_RESPONSE_WHITEBOARD_CONFIRMED);
+                    streamWriter.Write(clint->user);
+                    serv.SendClientData(streamWriter, whiteboard->GetClients());
+                }
 
-//                //Add client after so it doesnt send message to joiner
-//                wb->AddClient(clint);
+                //Add client after so it doesnt send message to joiner
+                whiteboard->AddClient(clint);
 
-//                //Send out initial bitmap
-//                const WBParams& wbParams = wb->GetParams();
-//                RectU rect(0, 0, wbParams.width, wbParams.height);
-//                wb->SendBitmap(rect, clint, true);
-//            }
-//            else
-//            {
-//                wb->AddClient(clint);
-//            }
-//            break;
-//        }
+                {
+                    auto streamWriter = serv.CreateOutStream(0u, TYPE_WHITEBOARD, MSG_WHITEBOARD_REQUEST_IMAGE);
+                    serv.SendClientData(streamWriter, whiteboard->GetCreatorClient(), true);
+                }
+
+            }
+            else
+            {
+                whiteboard->AddClient(clint);
+            }
+            break;
+        }
         }
         break;
     }//TYPE_RESPONSE
@@ -529,109 +525,107 @@ void ServerInfo::MsgHandler(TCPServInterface& serv, ClientData* const clint, Msg
     {
         switch (msg)
         {
-//        case MSG_WHITEBOARD_SETTINGS:
-//        {
-//            if (!wb)
-//            {
-//                WBParams params = streamReader.Read<WBParams>();
+        //sent from client when whiteboard is started
+        case MSG_WHITEBOARD_SETTINGS:
+        {
+            if (!whiteboard)
+            {
+                const WhiteboardArgs params = streamReader.Read<WhiteboardArgs>();
 
-//                auto streamWriter = serv.CreateOutStream(sizeof(WBParams), TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE);
-//                streamWriter.Write(params);
-//                serv.SendClientData(streamWriter, clint, true);
+                auto streamWriter = serv.CreateOutStream(sizeof(WhiteboardArgs), TYPE_WHITEBOARD, MSG_WHITEBOARD_ACTIVATE);
+                streamWriter.Write(params);
+                serv.SendClientData(streamWriter, clint, true);
 
-//                wb = construct<Whiteboard>(serv, params, clint->user);
+                std::lock_guard<std::mutex> lock_guard(wbMut);
+                whiteboard = std::make_unique<Whiteboard>(QString::fromStdWString(clint->user), clint, params);
+                //whiteboard->AddClient(clint);
+            }
+            else
+            {
+                serv.SendMsg(clint, true, TYPE_WHITEBOARD, MSG_WHITEBOARD_CANNOTCREATE);
+            }
+            break;
+        }
+        case MSG_WHITEBOARD_TERMINATE:
+        {
+            if(whiteboard->IsCreator(QString::fromStdWString(clint->user)))
+            {
+                const auto clients = whiteboard->GetClients();
+                if(clients.empty())
+                {
+                    serv.SendMsg(clients, TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
+                }
+                std::lock_guard<std::mutex> lock_guard(wbMut);
+                whiteboard.reset();
+            }
+            else
+            {
+                serv.SendMsg(clint, true, TYPE_WHITEBOARD, MSG_WHITEBOARD_CANNOTTERMINATE);
+            }
 
-//                wb->StartThread();
-//            }
-//            else
-//            {
-//                serv.SendMsg(clint, true, TYPE_WHITEBOARD, MSG_WHITEBOARD_CANNOTCREATE);
-//            }
-//            break;
-//        }
-//        case MSG_WHITEBOARD_TERMINATE:
-//        {
-//            if(wb->IsCreator(clint->user))
-//            {
-//                if(!wb->GetPcs().empty())
-//                {
-//                    EnterCriticalSection(wb->GetMapSect());
-//                    serv.SendMsg(wb->GetPcs(), TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
-//                    LeaveCriticalSection(wb->GetMapSect());
-//                }
-//                std::lock_guard<std::mutex> lock_guard(wbMut);
-//                destruct(wb);
-//            }
-//            else
-//            {
-//                serv.SendMsg(clint, true, TYPE_WHITEBOARD, MSG_WHITEBOARD_CANNOTTERMINATE);
-//            }
+            break;
+        }
+        case MSG_WHITEBOARD_KICK:
+        {
+            const std::tstring user = streamReader.Read<std::tstring>();
+            if(IsAdmin(clint->user) || whiteboard->IsCreator(QString::fromStdWString(clint->user)))
+            {
+                if(whiteboard->IsCreator(QString::fromStdWString(user)))//if the user to be kicked is the creator
+                {
+                    serv.SendMsg(clint->user, TYPE_ADMIN, MSG_ADMIN_CANNOTKICK);
+                    break;
+                }
 
-//            break;
-//        }
-//        case MSG_WHITEBOARD_KICK:
-//        {
-//            std::tstring user = streamReader.Read<std::tstring>();
-//            if(IsAdmin(clint->user) || wb->IsCreator(clint->user))
-//            {
-//                if(wb->IsCreator(user))//if the user to be kicked is the creator
-//                {
-//                    serv.SendMsg(clint->user, TYPE_ADMIN, MSG_ADMIN_CANNOTKICK);
-//                    break;
-//                }
+                TransferMessageWithName(serv, user, clint->user, streamReader);
+                break;
+            }
 
-//                TransferMessageWithName(serv, user, clint->user, streamReader);
-//                break;
-//            }
+            serv.SendMsg(clint->user, TYPE_ADMIN, MSG_ADMIN_NOT);
+            break;
+        }
+        case MSG_WHITEBOARD_LEFT:
+        {
+            if (whiteboard)
+            {
+                whiteboard->RemoveClient(clint);
+                if (whiteboard->IsCreator(QString::fromStdWString(clint->user)))
+                {
+                    const auto clients = whiteboard->GetClients();
+                    if(!clients.empty())
+                    {
+                        serv.SendMsg(clients, TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
+                    }
 
-//            serv.SendMsg(clint->user, TYPE_ADMIN, MSG_ADMIN_NOT);
-//            break;
-//        }
-//        case MSG_WHITEBOARD_LEFT:
-//        {
-//            if (wb)
-//            {
-//                wb->RemoveClient(clint);
-//                if (wb->IsCreator(clint->user))
-//                {
-//                    if(!wb->GetPcs().empty())
-//                    {
-//                        EnterCriticalSection(wb->GetMapSect());
-//                        serv.SendMsg(wb->GetPcs(), TYPE_WHITEBOARD, MSG_WHITEBOARD_TERMINATE);
-//                        LeaveCriticalSection(wb->GetMapSect());
-//                    }
+                    std::lock_guard<std::mutex> lock_guard(wbMut);
+                    whiteboard.reset();
+                }
+            }
+            break;
+        }
+        case MSG_WHITEBOARD_FORWARD_IMAGE:
+        case MSG_WHITEBOARD_DRAWLINE:
+        case MSG_WHITEBOARD_CLEAR: {
+            if (whiteboard)
+            {
+                MsgStreamWriter streamWriter = serv.CreateOutStream(streamReader.GetDataSize(), streamReader.GetType(), streamReader.GetMsg());
+                streamWriter.Write(streamReader.GetData(), streamReader.GetDataSize());
 
-//                    std::lock_guard<std::mutex> lock_guard(wbMut);
-//                    destruct(wb);
-//                }
-//            }
-//            break;
-//        }
+                const std::vector<ClientData*> clients = whiteboard->GetClients();
+                for(const auto& client : clients) {
+                    if(client->pc != clint->pc) {
+                        serv.SendClientData(streamWriter, client, true);
+                    }
+                }
+            }
+            break;
+        }
         }
     }//TYPE_WHITEBOARD
     case TYPE_TOOL:
     {
         switch(msg)
         {
-//        case MSG_TOOL_CHANGE:
-//        {
-//            WBClientData& wbClientData = wb->GetClientData(clint);
-//            wbClientData.tool = streamReader.Read<Tool>();
-//            const float sizeAmount = streamReader.Read<float>();
 
-//            wbClientData.prevThickness = wbClientData.thickness;
-//            if(wbClientData.thickness + sizeAmount < WBClientData::MINBRUSHSIZE)
-//                wbClientData.thickness = WBClientData::MAXBRUSHSIZE;
-//            else if(wbClientData.thickness + sizeAmount > WBClientData::MAXBRUSHSIZE)
-//                wbClientData.thickness = WBClientData::MINBRUSHSIZE;
-//            else
-//                wbClientData.thickness += sizeAmount;
-
-//            const BYTE clr = streamReader.Read<BYTE>();
-//            if (clr != WBClientData::UNCHANGEDCOLOR)
-//                wbClientData.clrIndex = clr;
-//            break;
-//        }
         }
         break;
     }//TYPE_TOOL

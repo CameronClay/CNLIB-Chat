@@ -6,11 +6,12 @@
 #include "CNLIB/HeapAlloc.h"
 #include "TextDisplay.h"
 #include "Options.h"
-//#include "Whiteboard.h"
+#include "whiteboardargs.h"
+#include "DragStringListModel.h"
+#include "imginfo.h"
+#include "whiteboardinviteparams.h"
 #include <memory>
 #include <cstddef>
-
-#include "DragStringListModel.h"
 
 static constexpr int INVALID_IDX = -1;
 
@@ -32,14 +33,6 @@ public:
     float timeOut = 5.0f;
 
     std::unique_ptr<DragStringListModel> serverListModel;
-
-    //// Whiteboard declarations
-    //Whiteboard *pWhiteboard = nullptr;
-    //bool wbCanDraw = false;
-    //// Whiteboard declarations end
-
-    HANDLE wbPThread;
-    DWORD wbPThreadID;
 
     TextDisplay textBuffer;
     std::tstring user;
@@ -85,6 +78,19 @@ signals:
     void OnFileSendCanceled(const QString& user);
     void OnFileReceivedFinished(const QString& user);
     void OnFileReceivedCanceled(const QString& user);
+
+    void MsgResponseWhiteboardConfirmed(const QString& user);
+    void MsgResponseWhiteboardDeclined(const QString& user);
+    void MsgRequestWhiteboard(const QString& user, const WBInviteParams& inviteParams);
+    void MsgWhiteboardActivate(const WhiteboardArgs& wbargs);
+    void MsgWhiteboardTerminate();
+    void MsgWhiteboardCannotCreate();
+    void MsgWhiteboardCannotTerminate();
+    void MsgWhiteboardKickUser(const QString& user);
+    void MsgWhiteboardDrawLine(const QPoint& start, const QPoint& end, int penWidth, QColor penColor);
+    void MsgWhiteboardRequestImage();
+    void MsgWhiteboardForwardImage(const ImageInfo& imgInfo);
+    void MsgWhiteboardClear(const QColor& clr);
 };
 
 #endif // CLIENTINFO_H

@@ -1,9 +1,8 @@
-//Copyright (c) <2015> <Cameron Clay>
-
 #pragma once
 #include "HeapAlloc.h"
 #include "Messages.h"
 #include "CNLIB/BuffSendInfo.h"
+#include <cstddef>
 
 class MsgStream
 {
@@ -33,17 +32,17 @@ public:
 		return *((short*)begin + 1);
 	}
 
-	UINT GetSize() const
+	std::size_t GetSize() const
 	{
 		return end - begin;
 	}
-	UINT GetDataSize() const
+	std::size_t GetDataSize() const
 	{
 		//size without MSG_OFFSET
 		return end - (begin + MSG_OFFSET);
 	}
 
-	template<typename T> std::enable_if_t<std::is_arithmetic<T>::value, T> operator[](UINT index) const
+	template<typename T> std::enable_if_t<std::is_arithmetic<T>::value, T> operator[](std::size_t index) const
 	{
 		assert(index <= capacity - MSG_OFFSET);
 		return begin[index + MSG_OFFSET];
@@ -83,7 +82,6 @@ public:
 		return begin;
 	}
 
-
 	template<typename T> void Write(const T& t)
 	{
 		Helper<T>(*this).Write(t);
@@ -110,29 +108,30 @@ public:
 		return (char*)begin;
 	}
 
-	UINT GetSize() const
+	std::size_t GetSize() const
 	{
 		return data - begin;
 	}
-	UINT GetDataSize() const
+	std::size_t GetDataSize() const
 	{
 		//size without MSG_OFFSET
 		return data - (begin + MSG_OFFSET);
 	}
 
-	//no constexpr in vs13 :(
-	template<typename... T>
-	static inline UINT SizeType()
+    template<typename... Ts>
+	static inline constexpr std::size_t SizeType()
 	{
-		return TypeSize<T...>::value;
+        return (sizeof(Ts) + ...);
+        //return TypeSize<Ts...>::value;
 	}
 
-	template<typename... T>
-	static UINT SizeType(const T&... t)
+    template<typename... Ts>
+    static constexpr std::size_t SizeType(const Ts&... ts)
 	{
-		UINT size = 0;
-		for (auto& a : { Helper<T>::SizeType(t)... })
+		std::size_t size = 0;
+        for (auto& a : { Helper<Ts>::SizeType(ts)... }) {
 			size += a;
+		}
 		return size;
 	}
 
@@ -145,9 +144,9 @@ private:
 	BuffSendInfo buffSendInfo;
 
 	template<typename T, typename... V>
-	struct TypeSize : std::integral_constant<UINT, TypeSize<T>::value + TypeSize<V...>::value>{};
+	struct TypeSize : std::integral_constant<std::size_t, TypeSize<T>::value + TypeSize<V...>::value>{};
 	template<typename T>
-	struct TypeSize<T> : std::integral_constant<UINT, sizeof(T)>
+	struct TypeSize<T> : std::integral_constant<std::size_t, sizeof(T)>
 	{ static_assert(std::is_arithmetic<T>::value, "cannot call SizeType<T...>() with a non-arithmetic type"); };
 
 	template<typename T> class HelpBase
@@ -189,7 +188,7 @@ private:
 			this->stream.data += nBytes;
 			assert(this->stream.data <= this->stream.end);
 		}
-		static UINT SizeType(const T&)
+		static constexpr std::size_t SizeType(const T&)
 		{
 			return sizeof(T);
 		}
@@ -234,7 +233,7 @@ public:
 	}
 
 	template<typename T> 
-	std::enable_if_t<std::is_arithmetic<T>::value, T>* Read(UINT count)
+	std::enable_if_t<std::is_arithmetic<T>::value, T>* Read(std::size_t count)
 	{
 		return Helper<T>(*this).Read(count);
 	}

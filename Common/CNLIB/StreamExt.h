@@ -1,5 +1,3 @@
-//Copyright (c) <2015> <Cameron Clay>
-
 template<typename T>
 class StreamWriter::Helper<std::basic_string<T>> : public HelpBase<std::basic_string<T>>
 {
@@ -10,8 +8,8 @@ public:
 		const size_t len = t.size();
 		this->stream.Write(len);
 		this->stream.Write(t.c_str(), len);
-	}
-	static UINT SizeType(const std::basic_string<T>& t)
+    }
+    static constexpr std::size_t SizeType(const std::basic_string<T>& t)
 	{
 		return sizeof(size_t) + t.size() * sizeof(T);
 	}
@@ -39,7 +37,7 @@ public:
 		//Write in reverse order because of Read's order of eval
 		this->stream << t.second << t.first;
 	}
-	static UINT SizeType(const std::pair<T1, T2>& t)
+    static constexpr std::size_t SizeType(const std::pair<T1, T2>& t)
 	{
 		return Helper<T1>::SizeType(t.first) + Helper<T2>::SizeType(t.second);
 	}
@@ -68,9 +66,9 @@ public:
 		for (auto& a : t)
 			this->stream.Write(a);
 	}
-	static UINT SizeType(const std::vector<T>& t)
+    static constexpr std::size_t SizeType(const std::vector<T>& t)
 	{
-		UINT size = sizeof(size_t);
+        std::size_t size = sizeof(size_t);
 		for (auto& a : t)
 			size += Helper<T>::SizeType(a);
 
@@ -106,9 +104,9 @@ public:
 		for (auto& a : t)
 			this->stream.Write(a);
 	}
-	static UINT SizeType(const std::list<T>& t)
+    static constexpr std::size_t SizeType(const std::list<T>& t)
 	{
-		UINT size = sizeof(size_t);
+        std::size_t size = sizeof(size_t);
 		for (auto& a : t)
 			size += Helper<T>::SizeType(a);
 
@@ -144,9 +142,9 @@ public:
 		for (auto& a : t)
 			this->stream.Write(a);
 	}
-	static UINT SizeType(const std::forward_list<T>& t)
+    static constexpr std::size_t SizeType(const std::forward_list<T>& t)
 	{
-		UINT size = sizeof(size_t);
+        std::size_t size = sizeof(size_t);
 		for (auto& a : t)
 			size += Helper<T>::SizeType(a);
 
@@ -181,9 +179,9 @@ public:
 		for (auto& a : t)
 			this->stream.Write(a);
 	}
-	static UINT SizeType(const std::map<Key, T>& t)
+    static constexpr std::size_t SizeType(const std::map<Key, T>& t)
 	{
-		UINT size = sizeof(size_t);
+        std::size_t size = sizeof(size_t);
 		for (auto& a : t)
 			size += Helper<std::pair<Key, T>>::SizeType(a);
 
@@ -218,9 +216,9 @@ public:
 		for (auto& a : t)
 			this->stream.Write(a);
 	}
-	static UINT SizeType(const std::unordered_map<Key, T>& t)
-	{
-		UINT size = sizeof(size_t);
+    static constexpr std::size_t SizeType(const std::unordered_map<Key, T>& t)
+    {
+        std::size_t size = sizeof(size_t);
 		for (auto& a : t)
 			size += Helper<std::pair<Key, T>>::SizeType(a);
 

@@ -1,22 +1,22 @@
 add_library(TCPCS SHARED
     Stdafx.cpp
-    DLLSRC/BuffAllocator.cpp 
-    DLLSRC/BufferOptions.cpp 
-    DLLSRC/BuffSendInfo.cpp 
-    DLLSRC/BufSendAlloc.cpp 
-    DLLSRC/CritLock.cpp 
-    DLLSRC/File.cpp 
-    DLLSRC/HeapAlloc.cpp 
-    DLLSRC/IOCP.cpp 
-    DLLSRC/KeepAlive.cpp 
-    DLLSRC/RecvHandler.cpp 
-    DLLSRC/Socket.cpp 
-    DLLSRC/SocketInfo.cpp 
-    DLLSRC/SocketOptions.cpp 
-    DLLSRC/TCPClient.cpp 
-    DLLSRC/TCPServ.cpp 
-    DLLSRC/Typedefs.cpp 
-    DLLSRC/UPNP.cpp
+    ${CMAKE_SOURCE_DIR}/Common/CNLIB/BuffAllocator.h DLLSRC/BuffAllocator.cpp
+    ${CMAKE_SOURCE_DIR}/Common/CNLIB/BufferOptions.h DLLSRC/BufferOptions.cpp
+    ${CMAKE_SOURCE_DIR}/Common/CNLIB/BuffSendInfo.h  DLLSRC/BuffSendInfo.cpp
+    DLLSRC/BufSendAlloc.h                            DLLSRC/BufSendAlloc.cpp
+    ${CMAKE_SOURCE_DIR}/Common/CNLIB/CritLock.h      DLLSRC/CritLock.cpp
+    ${CMAKE_SOURCE_DIR}/Common/CNLIB/File.h          DLLSRC/File.cpp
+    ${CMAKE_SOURCE_DIR}/Common/CNLIB/HeapAlloc.h     DLLSRC/HeapAlloc.cpp
+    ${CMAKE_SOURCE_DIR}/Common/CNLIB/IOCP.h          DLLSRC/IOCP.cpp
+    DLLSRC/KeepAlive.h                               DLLSRC/KeepAlive.cpp
+    DLLSRC/RecvHandler.h                             DLLSRC/RecvHandler.cpp
+    ${CMAKE_SOURCE_DIR}/Common/CNLIB/Socket.h        DLLSRC/Socket.cpp
+    ${CMAKE_SOURCE_DIR}/Common/CNLIB/SocketInfo.h    DLLSRC/SocketInfo.cpp
+    ${CMAKE_SOURCE_DIR}/Common/CNLIB/SocketOptions.h DLLSRC/SocketOptions.cpp
+    DLLSRC/TCPClient.h                               DLLSRC/TCPClient.cpp
+    DLLSRC/TCPServ.h                                 DLLSRC/TCPServ.cpp
+    ${CMAKE_SOURCE_DIR}/Common/CNLIB/Typedefs.h      DLLSRC/Typedefs.cpp
+    ${CMAKE_SOURCE_DIR}/Common/CNLIB/UPNP.h          DLLSRC/UPNP.cpp
 )
 
 target_compile_definitions(TCPCS PRIVATE TCPCS_EXPORTS)

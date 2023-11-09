@@ -15,11 +15,7 @@ set(PROJECT_SOURCES
     optionsdialog.h optionsdialog.cpp optionsdialog.ui
     manageadminsdialog.h manageadminsdialog.cpp manageadminsdialog.ui
     serverinfo.h serverinfo.cpp
-    #Whiteboard.h
-    #Whiteboard.cpp
-    ../Common/Mouse.cpp
-    ../Common/Palette.cpp
-    ../Common/WhiteboardClientData.cpp
+    whiteboard.h whiteboard.cpp
     ../Common/WinFirewall.cpp
 )
 

@@ -96,6 +96,9 @@
     <addaction name="actionLogs"/>
    </widget>
    <widget class="QMenu" name="menuWhiteboard">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
     <property name="title">
      <string>Whiteboard</string>
     </property>

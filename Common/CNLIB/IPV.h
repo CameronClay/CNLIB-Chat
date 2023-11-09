@@ -1,5 +1,3 @@
-//Copyright (c) <2015> <Cameron Clay>
-
 #pragma once
 
 enum IPv : unsigned short

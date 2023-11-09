@@ -155,16 +155,6 @@ void ClientInfo::MsgHandler(TCPClientInterface&, MsgStreamReader streamReader) {
             emit OnMsgDataText(QString::fromStdWString(str));
             break;
         }
-        case MSG_DATA_BITMAP:
-        {
-//            if(pWhiteboard)
-//            {
-//                RectU rect = streamReader.Read<RectU>();
-//                BYTE* pixels = streamReader.ReadEnd<BYTE>();
-//                pWhiteboard->Frame(rect, pixels);
-//            }
-            break;
-        }
         }
         break;
     }//TYPE_DATA
@@ -188,21 +178,19 @@ void ClientInfo::MsgHandler(TCPClientInterface&, MsgStreamReader streamReader) {
             break;
         }
 
-//        case MSG_RESPONSE_WHITEBOARD_CONFIRMED:
-//        {
-//            LIB_TCHAR buffer[255];
-//            _stprintf(buffer, _T("%s has joined the Whiteboard!"), streamReader.Read<std::tstring>().c_str());
-//            QMessageBox::information(this, tr("Success"), QString::fromWCharArray(buffer));
-//            break;
-//        }
+        case MSG_RESPONSE_WHITEBOARD_CONFIRMED:
+        {
+            const QString user = QString::fromStdWString(streamReader.Read<std::tstring>());
+            emit MsgResponseWhiteboardConfirmed(user);
+            break;
+        }
 
-//        case MSG_RESPONSE_WHITEBOARD_DECLINED:
-//        {
-//            LIB_TCHAR buffer[255];
-//            _stprintf(buffer, _T("%s has declined the whiteboard!"), streamReader.Read<std::tstring>().c_str());
-//            QMessageBox::information(this, tr("DECLINED"), QString::fromWCharArray(buffer));
-//            break;
-//        }
+        case MSG_RESPONSE_WHITEBOARD_DECLINED:
+        {
+            const QString user = QString::fromStdWString(streamReader.Read<std::tstring>());
+            emit MsgResponseWhiteboardDeclined(user);
+            break;
+        }
 
         }// MSG_RESPONSES
         break;
@@ -212,17 +200,14 @@ void ClientInfo::MsgHandler(TCPClientInterface&, MsgStreamReader streamReader) {
     {
         switch (msg)
         {
-//        case MSG_REQUEST_WHITEBOARD:
-//        {
-//            wbCanDraw = streamReader.Read<bool>();
-//            std::tstring name = streamReader.Read<std::tstring>();
+        case MSG_REQUEST_WHITEBOARD:
+        {
+            const WBInviteParams inviteParams = streamReader.Read<WBInviteParams>();
+            const std::tstring name = streamReader.Read<std::tstring>();
 
-//            LIB_TCHAR buffer[255];
-//            _stprintf(buffer, _T("%s wants to display a whiteboard. Can Draw: %s"), name.c_str(), wbCanDraw ? _T("Yes") : _T("No"));
-
-//            //DialogBoxParam(hInst, MAKEINTRESOURCE(REQUEST), hMainWind, RequestWBProc, (LPARAM)buffer);
-//            break;
-//        }
+            emit MsgRequestWhiteboard(QString::fromStdWString(name), inviteParams);
+            break;
+        }
         }// MSG_REQUEST
         break;
     }//TYPE_REQUEST
@@ -270,57 +255,74 @@ void ClientInfo::MsgHandler(TCPClientInterface&, MsgStreamReader streamReader) {
         break;
     }//TYPE_VERSION
 
-//    case TYPE_WHITEBOARD:
-//    {
-//        switch(msg)
-//        {
-//        case MSG_WHITEBOARD_ACTIVATE:
-//        {
-//            WBParams pParams = streamReader.Read<WBParams>();
+    case TYPE_WHITEBOARD:
+    {
+        switch(msg)
+        {
+        case MSG_WHITEBOARD_ACTIVATE:
+        {
+            const WhiteboardArgs wbargs = streamReader.Read<WhiteboardArgs>();
+            emit MsgWhiteboardActivate(wbargs);
 
-//            pWhiteboard = construct<Whiteboard>(
-//                *client,
-//                palette,
-//                pParams.width,
-//                pParams.height,
-//                pParams.fps,
-//                pParams.clrIndex );
+            break;
+        }
+        case MSG_WHITEBOARD_TERMINATE:
+        {
+            emit MsgWhiteboardTerminate();
+            break;
+        }
+        case MSG_WHITEBOARD_CANNOTCREATE:
+        {
+            emit MsgWhiteboardCannotCreate();
+            break;
+        }
+        case MSG_WHITEBOARD_CANNOTTERMINATE:
+        {
+            emit MsgWhiteboardCannotTerminate();
+            break;
+        }
+        case MSG_WHITEBOARD_KICK:
+        {
+            const QString user = QString::fromStdWString(streamReader.Read<std::tstring>());
+            emit MsgWhiteboardKickUser(user);
+            break;
+        }
+        case MSG_WHITEBOARD_DRAWLINE:
+        {
+            const QPoint start = streamReader.Read<QPoint>();
+            const QPoint end = streamReader.Read<QPoint>();
+            const std::size_t penWidth = streamReader.Read<std::size_t>();
+            const QColor penColor = QColor::fromRgb(streamReader.Read<QRgb>());
+            emit MsgWhiteboardDrawLine(start, end, penWidth, penColor);
+            break;
+        }
+        case MSG_WHITEBOARD_REQUEST_IMAGE:
+        {
+            emit MsgWhiteboardRequestImage();
+            break;
+        }
+        case MSG_WHITEBOARD_FORWARD_IMAGE:
+        {
+            const auto fmt = streamReader.Read<QImage::Format>();
+            const auto sz = streamReader.Read<std::size_t>();
+            const auto* data = streamReader.Read<uchar>(sz);
 
-//           // SendMessage( hMainWind, WM_CREATEWIN, ID_WB, (LPARAM)&pParams );
-//            break;
-//        }
-//        case MSG_WHITEBOARD_TERMINATE:
-//        {
-//            // in case user declined
-//            //if(IsWindow(wbHandle))
-//            //{
-//                //SetForegroundWindow(wbHandle);
-//                QMessageBox::warning(this, tr("Whiteboard Status"), tr("Whiteboard has been shutdown!"));
-//                //SendMessage(wbHandle, WM_CLOSE, 0, 0);
-//            //}
-//            break;
-//        }
-//        case MSG_WHITEBOARD_CANNOTCREATE:
-//        {
-//            QMessageBox::warning(this, tr("ERROR"), tr("A whiteboard is already being displayed!"));
-//            break;
-//        }
-//        case MSG_WHITEBOARD_CANNOTTERMINATE:
-//        {
-//            QMessageBox::warning(this, tr("ERROR"), tr("Only whiteboard creator can terminate the whiteboard!"));
-//            break;
-//        }
-//        case MSG_WHITEBOARD_KICK:
-//        {
-//            LIB_TCHAR buffer[255];
-//            _stprintf(buffer, _T("%s has removed you from the whiteboard!"), streamReader.Read<std::tstring>().c_str());
-//            QMessageBox::warning(this, tr("Kicked"), QString::fromWCharArray(buffer));
-//            //SendMessage(wbHandle, WM_CLOSE, 0, 0);
-//            break;
-//        }
-//        }
-//        break;
-//    }
+            std::shared_ptr<uchar[]> dataOwned(new uchar[sz]()); //streamreader data becomes invalided after end of function call so this is needed
+            memcpy(dataOwned.get(), data, sz * sizeof(uchar));
+
+            const ImageInfo imgInfo(sz, fmt, dataOwned);
+            emit MsgWhiteboardForwardImage(imgInfo);
+            break;
+        }
+        case MSG_WHITEBOARD_CLEAR:
+        {
+            const QColor clr = streamReader.Read<QColor>();
+            emit MsgWhiteboardClear(clr);
+            break;
+        }
+        }
+        break;
+    }
     }// TYPE
 }
 

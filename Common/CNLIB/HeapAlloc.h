@@ -1,5 +1,3 @@
-//Copyright (c) <2015> <Cameron Clay>
-
 #pragma once
 #include "Typedefs.h"
 
@@ -8,7 +6,6 @@
 //construct and destruct are together, for a single constructed element : new type var(value) : construct<type>(...) or construct<type>(value) : uqpc/m_csp
 //constructa and destructa are together, for a constructed array : new type[count] var{v1,v2,v3} : constructa<type>(value, value) or constructa<type>(type(), type()) : uqpca/m_casp
 //pmconstruct and pmdestruct are together, for constructing at a specified memory region : new (ptr) T() : pmconstruct<type>(ptr, ...) or pmconstruct <type>(ptr, value) : pmuqp/m_pmsp
-
 
 
 template<typename T, typename P, typename... Args> inline T* pmconstruct(P* ptr, Args&&... vals)
