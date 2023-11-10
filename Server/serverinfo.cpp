@@ -286,17 +286,11 @@ void ServerInfo::MsgHandler(TCPServInterface& serv, ClientData* const clint, Msg
             ClientData* fClient = serv.FindClient(user);
 
             //If user is already connected, reject
-            if(fClient && fClient->user.compare(user) == 0)
-            {
+            if(fClient && fClient->user.compare(user) == 0) {
                 auth = false;
             }
-
-            if (!inList)
-            {
-                //Add name to list
-                userList.push_back(ServerInfo::Authent(user, pass));
+            else if(!inList) {
                 auth = true;
-                AddToList(user, pass);
             }
 
             if (auth)
@@ -311,22 +305,37 @@ void ServerInfo::MsgHandler(TCPServInterface& serv, ClientData* const clint, Msg
                 {
                     if(clients[i] != clint && !clients[i]->user.empty())
                     {
-                        auto streamWriter = serv.CreateOutStream(StreamWriter::SizeType(clients[i]->user), TYPE_CHANGE, MSG_CHANGE_CONNECTINIT);
-                        streamWriter.Write(clients[i]->user);
+                        {
+                            auto streamWriter = serv.CreateOutStream(StreamWriter::SizeType(clients[i]->user), TYPE_CHANGE, MSG_CHANGE_CONNECTINIT);
+                            streamWriter.Write(clients[i]->user);
 
-                        serv.SendClientData(streamWriter, clint, true);
+                            //notify the client that authenticated which users are currently logged into the server
+                            serv.SendClientData(streamWriter, clint, true);
+                        }
+
+                        {
+                            auto streamWriter = serv.CreateOutStream(StreamWriter::SizeType(user), TYPE_CHANGE, MSG_CHANGE_CONNECT);
+                            streamWriter.Write(user);
+
+                            //notify all other clients this client has authenticated/logged in to server
+                            serv.SendClientData(streamWriter, clients[i], true);
+                        }
+
                     }
                 }
-
-                auto streamWriter = serv.CreateOutStream(StreamWriter::SizeType(user), TYPE_CHANGE, MSG_CHANGE_CONNECT);
-                streamWriter.Write(user);
-
-                serv.SendClientData(streamWriter, clint, false);
             }
             else
             {
                 //Decline authentication
                 serv.SendMsg(clint, true, TYPE_RESPONSE, MSG_RESPONSE_AUTH_DECLINED);
+            }
+
+            if (!inList)
+            {
+                //Add name to list
+                userList.push_back(ServerInfo::Authent(user, pass));
+                auth = true;
+                AddToList(user, pass);
             }
 
             break;
