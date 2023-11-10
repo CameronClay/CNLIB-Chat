@@ -331,8 +331,7 @@ void ClientInfo::DisconnectHandler(TCPClientInterface& client, bool unexpected) 
 }
 
 void ClientInfo::Connect(const LIB_TCHAR* dest, const LIB_TCHAR* port, bool ipv6, float timeOut) {
-    if (client->Connect(dest, port, ipv6, timeOut))
-    {
+    if (client->Connect(dest, port, ipv6, timeOut)) {
         //can only modify GUI from GUI thread, need to send signal instead
         emit OnClientConnect();
     }

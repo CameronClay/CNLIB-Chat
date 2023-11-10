@@ -289,7 +289,6 @@ void MainWindow::on_btnEnter_clicked() {
     clientInfo.client->SendServData(streamWriter);
     ui->txtEnter->setText(tr(""));
     ui->txtDisp->setText(QString::fromStdWString(clientInfo.textBuffer.GetText()));
-    //ui->txtDisp->setText(QString("%1\n%2").arg(ui->txtDisp->toPlainText(), strq));
 }
 
 

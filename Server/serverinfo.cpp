@@ -80,8 +80,6 @@ void ServerInfo::TransferMessage(TCPServInterface& serv, MsgStreamReader& stream
         return;
 
     serv.SendMsg(client, true, streamReader.GetType(), streamReader.GetMsg());
-    //auto mStreamOut = serv.CreateOutStream(streamReader.GetType(), streamReader.GetMsg());
-    //serv.SendClientData(mStreamOut, client, true);
 }
 
 void ServerInfo::RequestTransfer(TCPServInterface& serv, const std::tstring& srcUserName, MsgStreamReader& streamReader) {
@@ -346,7 +344,7 @@ void ServerInfo::MsgHandler(TCPServInterface& serv, ClientData* const clint, Msg
                 const bool canDraw = streamReader.Read<bool>();
                 const std::tstring name = streamReader.Read<std::tstring>();
                 auto fClint = serv.FindClient(name);
-                if(!fClint)
+                if(!fClint) //ignore request if they are already participating in whiteboard
                     break;
                 auto streamWriter = serv.CreateOutStream(StreamWriter::SizeType(canDraw, clint->user), streamReader.GetType(), streamReader.GetMsg());
                 streamWriter.Write(canDraw);
@@ -438,6 +436,7 @@ void ServerInfo::MsgHandler(TCPServInterface& serv, ClientData* const clint, Msg
                 whiteboard->AddClient(clint);
 
                 {
+                    //request image from whiteboard creator to send to new client
                     auto streamWriter = serv.CreateOutStream(0u, TYPE_WHITEBOARD, MSG_WHITEBOARD_REQUEST_IMAGE);
                     serv.SendClientData(streamWriter, whiteboard->GetCreatorClient(), true);
                 }
@@ -538,7 +537,6 @@ void ServerInfo::MsgHandler(TCPServInterface& serv, ClientData* const clint, Msg
 
                 std::lock_guard<std::mutex> lock_guard(wbMut);
                 whiteboard = std::make_unique<Whiteboard>(QString::fromStdWString(clint->user), clint, params);
-                //whiteboard->AddClient(clint);
             }
             else
             {
@@ -621,13 +619,5 @@ void ServerInfo::MsgHandler(TCPServInterface& serv, ClientData* const clint, Msg
         }
         }
     }//TYPE_WHITEBOARD
-    case TYPE_TOOL:
-    {
-        switch(msg)
-        {
-
-        }
-        break;
-    }//TYPE_TOOL
     }
 }
