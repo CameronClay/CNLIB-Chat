@@ -294,6 +294,7 @@ void MainWindow::on_btnEnter_clicked() {
 
 void MainWindow::OnMsgChangeConnect(const QString& user) {
     AddClient(user);
+    ui->txtDisp->setText(QString::fromStdWString(clientInfo.textBuffer.GetText()));
 }
 void MainWindow::OnMsgChangeDisconnect(const QString& user, bool shuttingDown) {
     if(!shuttingDown) {
@@ -303,6 +304,7 @@ void MainWindow::OnMsgChangeDisconnect(const QString& user, bool shuttingDown) {
 }
 void MainWindow::OnMsgChangeConnectInit(const QString& user) {
     AddClient(user);
+    ui->txtDisp->setText(QString::fromStdWString(clientInfo.textBuffer.GetText()));
 }
 
 void MainWindow::OnMsgDataText(const QString& str) {
