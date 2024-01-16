@@ -132,9 +132,9 @@ void MainWindow::InitMenus() {
 }
 
 void MainWindow::OnMenuAdminKick() {
-    QStringListModel* model = reinterpret_cast<QStringListModel*>(ui->listClients->model());
-    const std::tstring userKick = model->data(ui->listClients->currentIndex()).toString().toStdWString();
-    clientInfo.client->SendMsg(userKick, TYPE_ADMIN, MSG_ADMIN_KICK);
+    QStringListModel& model = *reinterpret_cast<QStringListModel*>(ui->listClients->model());
+    const std::tstring userToKick = model.data(ui->listClients->currentIndex()).toString().toStdWString();
+    clientInfo.client->SendMsg(userToKick, TYPE_ADMIN, MSG_ADMIN_KICK);
 }
 
 void MainWindow::OnMenuWhiteboardInvite() {
@@ -145,9 +145,9 @@ void MainWindow::OnMenuWhiteboardInvite() {
 
 void MainWindow::OnMenuWhiteboardKick() {
     if(whiteboardDialog->isVisible()) {
-        QStringListModel* model = reinterpret_cast<QStringListModel*>(ui->listClients->model());
-        const std::tstring userKick = model->data(ui->listClients->currentIndex()).toString().toStdWString();
-        clientInfo.client->SendMsg(userKick, TYPE_WHITEBOARD, MSG_WHITEBOARD_KICK);
+        QStringListModel& model = *reinterpret_cast<QStringListModel*>(ui->listClients->model());
+        const std::tstring userToKick = model.data(ui->listClients->currentIndex()).toString().toStdWString();
+        clientInfo.client->SendMsg(userToKick, TYPE_WHITEBOARD, MSG_WHITEBOARD_KICK);
     }
 }
 

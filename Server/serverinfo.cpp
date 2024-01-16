@@ -1,8 +1,7 @@
 #include "serverinfo.h"
-#include "CNLIB/File.h"
 #include "MessagesExt.h"
 #include "Format.h"
-#include "CNLIB/UPNP.h"
+// #include "CNLIB/UPNP.h"
 #include "FuncUtils.h"
 #include <cassert>
 
@@ -62,7 +61,8 @@ void ServerInfo::SendSingleUserData(TCPServInterface& serv, const char* dat, DWO
     serv.SendClientData(msgInfo, nBy, client, true);
 }
 
-void ServerInfo::TransferMessageWithName(TCPServInterface& serv, const std::tstring& user, const std::tstring& srcUserName, MsgStreamReader& streamReader) {
+
+void ServerInfo::TransferMessageWithName(TCPServInterface& serv, const std::tstring& user, const std::tstring& srcUserName, const MsgStreamReader& streamReader) {
     ClientData* client = serv.FindClient(user);
     if(client == nullptr)
         return;
@@ -238,10 +238,10 @@ void ServerInfo::ConnectHandler(TCPServInterface& serv, ClientData* data) {
     DispIPMsg(data->pc, _T(" has connected!"));
 }
 
-void ServerInfo::KickClient(const std::tstring& ititator, ClientData* client) {
-    textBuffer.WriteLine(ititator + _T(" has kicked ") + client->user + _T(" from the server!"));
+void ServerInfo::KickClient(const std::tstring& initiatorName, ClientData* toKick) {
+    textBuffer.WriteLine(initiatorName + _T(" has kicked ") + toKick->user + _T(" from the server!"));
     emit UpdateLog();
-    serv->DisconnectClient(client);
+    serv->DisconnectClient(toKick);
 }
 
 
@@ -466,10 +466,10 @@ void ServerInfo::MsgHandler(TCPServInterface& serv, ClientData* const clint, Msg
         {
         case MSG_ADMIN_KICK:
         {
-            std::tstring user = streamReader.Read<std::tstring>();
+            const std::tstring userToKick = streamReader.Read<std::tstring>();
             if (IsAdmin(clint->user))
             {
-                if (IsAdmin(user))//if the user to be kicked is not an admin
+                if (IsAdmin(userToKick))//if the user to be kicked is not an admin
                 {
                     if (clint->user.compare(GetSuperAdmin().toStdWString()) != 0)//if the user who initiated the kick is not the super admin
                     {
@@ -478,12 +478,10 @@ void ServerInfo::MsgHandler(TCPServInterface& serv, ClientData* const clint, Msg
                     }
 
                     //Disconnect User
-                    TransferMessageWithName(serv, user, clint->user, streamReader);
-                    for(USHORT i = 0; i < nClients; i++)
-                    {
-                        if (clients[i]->user.compare(user) == 0)
-                        {
-                            KickClient(user, clients[i]);
+                    TransferMessageWithName(serv, userToKick, clint->user, streamReader);
+                    for(USHORT i = 0u; i < nClients; i++) {
+                        if (clients[i]->user.compare(userToKick) == 0) {
+                            KickClient(clint->user, clients[i]);
                         }
                     }
 
@@ -492,12 +490,10 @@ void ServerInfo::MsgHandler(TCPServInterface& serv, ClientData* const clint, Msg
                 else
                 {
                     //Disconnect User
-                    TransferMessageWithName(serv, user, clint->user, streamReader);
-                    for(USHORT i = 0; i < nClients; i++)
-                    {
-                        if (clients[i]->user.compare(user) == 0)
-                        {
-                            KickClient(user, clients[i]);
+                    TransferMessageWithName(serv, userToKick, clint->user, streamReader);
+                    for(USHORT i = 0u; i < nClients; i++) {
+                        if (clients[i]->user.compare(userToKick) == 0) {
+                            KickClient(clint->user, clients[i]);
                         }
                     }
                     break;
@@ -574,16 +570,16 @@ void ServerInfo::MsgHandler(TCPServInterface& serv, ClientData* const clint, Msg
         }
         case MSG_WHITEBOARD_KICK:
         {
-            const std::tstring user = streamReader.Read<std::tstring>();
+            const std::tstring userToKick = streamReader.Read<std::tstring>();
             if(IsAdmin(clint->user) || whiteboard->IsCreator(QString::fromStdWString(clint->user)))
             {
-                if(whiteboard->IsCreator(QString::fromStdWString(user)))//if the user to be kicked is the creator
+                if(whiteboard->IsCreator(QString::fromStdWString(userToKick)))//if the user to be kicked is the creator
                 {
                     serv.SendMsg(clint->user, TYPE_ADMIN, MSG_ADMIN_CANNOTKICK);
                     break;
                 }
 
-                TransferMessageWithName(serv, user, clint->user, streamReader);
+                TransferMessageWithName(serv, userToKick, clint->user, streamReader);
                 break;
             }
 

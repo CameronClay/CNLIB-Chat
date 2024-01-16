@@ -61,10 +61,12 @@ public:
 
     QString GetSuperAdmin() const;
 
-    void KickClient(const std::tstring& ititator, ClientData* client);
+    void KickClient(const std::tstring& initiatorName, ClientData* toKick);
 
     void SendSingleUserData(TCPServInterface& serv, const char* dat, DWORD nBytes, char type, char message);
-    void TransferMessageWithName(TCPServInterface& serv, const std::tstring& user, const std::tstring& srcUserName, MsgStreamReader& streamReader);
+
+    //sends message to client with name of user containing srcUserName as the payload
+    void TransferMessageWithName(TCPServInterface& serv, const std::tstring& user, const std::tstring& srcUserName, const MsgStreamReader& streamReader);
     void TransferMessage(TCPServInterface& serv, MsgStreamReader& streamReader);
     void RequestTransfer(TCPServInterface& serv, const std::tstring& srcUserName, MsgStreamReader& streamReader);
 
