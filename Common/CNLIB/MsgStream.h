@@ -122,7 +122,6 @@ public:
 	static inline constexpr std::size_t SizeType()
 	{
         return (sizeof(Ts) + ...);
-        //return TypeSize<Ts...>::value;
 	}
 
     template<typename... Ts>
@@ -142,12 +141,6 @@ public:
 
 private:
 	BuffSendInfo buffSendInfo;
-
-	template<typename T, typename... V>
-	struct TypeSize : std::integral_constant<std::size_t, TypeSize<T>::value + TypeSize<V...>::value>{};
-	template<typename T>
-	struct TypeSize<T> : std::integral_constant<std::size_t, sizeof(T)>
-	{ static_assert(std::is_arithmetic<T>::value, "cannot call SizeType<T...>() with a non-arithmetic type"); };
 
 	template<typename T> class HelpBase
 	{
