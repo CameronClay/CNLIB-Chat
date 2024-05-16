@@ -59,7 +59,7 @@ template<typename T>
 class StreamWriter::Helper<std::vector<T>> : public HelpBase<std::vector<T>>
 {
 public:
-	Helper(StreamWriter& stream) : HelpBase<T>(stream) {}
+	Helper(StreamWriter& stream) : HelpBase<std::vector<T>>(stream) {}
 	void Write(const std::vector<T>& t)
 	{
 		this->stream.Write(t.size());
@@ -80,7 +80,7 @@ template<typename T>
 class StreamReader::Helper<std::vector<T>> : public HelpBase<std::vector<T>>
 {
 public:
-	Helper(StreamReader& stream) : HelpBase<T>(stream) {}
+	Helper(StreamReader& stream) : HelpBase<std::vector<T>>(stream) {}
 	std::vector<T> Read()
 	{
 		const size_t size = this->stream.Read<size_t>();
@@ -97,7 +97,7 @@ template<typename T>
 class StreamWriter::Helper<std::list<T>> : public HelpBase<std::list<T>>
 {
 public:
-	Helper(StreamWriter& stream) : HelpBase<T>(stream) {}
+	Helper(StreamWriter& stream) : HelpBase<std::list<T>>(stream) {}
 	void Write(const std::list<T>& t)
 	{
 		this->stream.Write(t.size());
@@ -118,7 +118,7 @@ template<typename T>
 class StreamReader::Helper<std::list<T>> : public HelpBase<std::list<T>>
 {
 public:
-	Helper(StreamReader& stream) : HelpBase<T>(stream) {}
+	Helper(StreamReader& stream) : HelpBase<std::list<T>>(stream) {}
 	std::list<T> Read()
 	{
 		const size_t size = this->stream.Read<size_t>();
@@ -134,7 +134,7 @@ template<typename T>
 class StreamWriter::Helper<std::forward_list<T>> : public HelpBase<std::forward_list<T>>
 {
 public:
-	Helper(StreamWriter& stream) : HelpBase<T>(stream) {}
+	Helper(StreamWriter& stream) : HelpBase<std::forward_list<T>>(stream) {}
 	void Write(const std::forward_list<T>& t)
 	{
 		const size_t size = std::distance(t.cbegin(), t.cend());
@@ -156,7 +156,7 @@ template<typename T>
 class StreamReader::Helper<std::forward_list<T>> : public HelpBase<std::forward_list<T>>
 {
 public:
-	Helper(StreamReader& stream) : HelpBase<T>(stream) {}
+	Helper(StreamReader& stream) : HelpBase<std::forward_list<T>>(stream) {}
 	std::forward_list<T> Read()
 	{
 		const size_t size = this->stream.Read<size_t>();
@@ -172,7 +172,7 @@ template<typename Key, typename T>
 class StreamWriter::Helper<std::map<Key, T>> : public HelpBase<std::map<Key, T>>
 {
 public:
-	Helper(StreamWriter& stream) : HelpBase<T>(stream) {}
+	Helper(StreamWriter& stream) : HelpBase<std::map<Key, T>>(stream) {}
 	void Write(const std::map<Key, T>& t)
 	{
 		this->stream.Write(t.size());
@@ -193,7 +193,7 @@ template<typename Key, typename T>
 class StreamReader::Helper<std::map<Key, T>> : public HelpBase<std::map<Key, T>>
 {
 public:
-	Helper(StreamReader& stream) : HelpBase<T>(stream) {}
+	Helper(StreamReader& stream) : HelpBase<std::map<Key, T>>(stream) {}
 	std::map<Key, T> Read()
 	{
 		const size_t size = this->stream.Read<size_t>();
@@ -230,7 +230,7 @@ template<typename Key, typename T>
 class StreamReader::Helper<std::unordered_map<Key, T>> : public HelpBase<std::unordered_map<Key, T>>
 {
 public:
-	Helper(StreamReader& stream) : HelpBase<T>(stream) {}
+	Helper(StreamReader& stream) : HelpBase<std::unordered_map<Key, T>>(stream) {}
 	std::unordered_map<Key, T> Read()
 	{
 		const size_t size = this->stream.Read<size_t>();

@@ -42,7 +42,7 @@ namespace FileMisc
 	struct CAMSNETLIB FileData
 	{
 		FileData();
-		FileData(std::tstring fileName, SYSTEMTIME dateModified, DWORD64 size);
+		FileData(const std::tstring& fileName, SYSTEMTIME dateModified, DWORD64 size);
 		FileData(const FileData& fd);
 		FileData(FileData&& fd);
 

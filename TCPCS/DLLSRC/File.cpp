@@ -20,7 +20,7 @@ FileMisc::FileData::FileData()
 	size(0)
 {}
 
-FileMisc::FileData::FileData(std::tstring fileName, SYSTEMTIME dateModified, DWORD64 size)
+FileMisc::FileData::FileData(const std::tstring& fileName, SYSTEMTIME dateModified, DWORD64 size)
 	: 
 	fileName(fileName), 
 	dateModified(dateModified), 
