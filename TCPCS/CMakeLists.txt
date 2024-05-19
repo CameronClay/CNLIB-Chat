@@ -23,6 +23,10 @@ target_compile_definitions(TCPCS PRIVATE TCPCS_EXPORTS)
 target_compile_definitions(TCPCS PUBLIC UNICODE)
 target_compile_definitions(TCPCS PUBLIC _UNICODE)
 
+
+target_link_libraries(TCPCS PRIVATE comctl32)
+target_link_libraries(TCPCS PRIVATE shlwapi)
+
 target_include_directories(TCPCS PUBLIC ${CMAKE_SOURCE_DIR}/Common)
 target_link_directories(TCPCS PRIVATE ${CMAKE_SOURCE_DIR}/Common ${CMAKE_SOURCE_DIR}/Common/zlib/lib/x64)
 target_link_libraries(TCPCS PRIVATE zdll)

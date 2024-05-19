@@ -1,4 +1,6 @@
-#pragma once
+#ifndef OPTIONS_H
+#define OPTIONS_H
+
 #include "Logs.h"
 #include <QString>
 
@@ -45,3 +47,5 @@ private:
     QString fontFamily;
     int fontSize;
 };
+
+#endif

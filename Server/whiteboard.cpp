@@ -6,9 +6,7 @@ Whiteboard::Whiteboard(const QString& creator, ClientData* creatorClient, const 
     creator(creator),
     creatorClient(creatorClient),
     wbArgs(wbArgs)
-{
-
-}
+{}
 
 void Whiteboard::AddClient(ClientData* pc) {
     std::lock_guard lck_guard{clientsMut};

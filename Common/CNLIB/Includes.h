@@ -1,4 +1,6 @@
-#pragma once
+#ifndef INCLUDES_H
+#define INCLUDES_H
+
 #include <ws2tcpip.h>
 #include <Shlobj.h>
 
@@ -16,3 +18,5 @@
 #include <unordered_map>
 
 #include <assert.h>
+
+#endif

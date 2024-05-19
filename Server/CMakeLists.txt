@@ -9,7 +9,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
 set(PROJECT_SOURCES
-    StdAfx.cpp
+    StdAfx.cpp StdAfx.h
     main.cpp
     mainwindow.h mainwindow.cpp mainwindow.ui
     optionsdialog.h optionsdialog.cpp optionsdialog.ui
@@ -75,7 +75,6 @@ target_include_directories(server PRIVATE ${CMAKE_SOURCE_DIR}/MyUtils/)
 target_include_directories(server PRIVATE ${CMAKE_SOURCE_DIR}/TCPCS/DLLSRC)
 target_link_libraries(server PRIVATE TCPCS)
 target_link_libraries(server PRIVATE MyUtils)
-target_link_libraries(server PRIVATE comctl32)
 
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(server)
