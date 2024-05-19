@@ -6,6 +6,9 @@
 messages from server members
 - Supports whiteboard
 
+## Unit Testing
+Unit testing is done using Google Test.
+
 ### Tooling
 - C++
 - QT
@@ -14,3 +17,4 @@ messages from server members
 - Win32 API
 - IO Completion Ports
 - zlib
+- Google Test
