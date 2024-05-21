@@ -13,8 +13,8 @@ messages from server members
 - C++
 - QT
 - CMake
-- vcpkg
 - Win32 API
 - IO Completion Ports
 - zlib
+- vcpkg
 - Google Test
