@@ -7,7 +7,7 @@ messages from server members
 - Supports whiteboard
 
 ### Unit Testing
-Unit testing is done using Google Test.
+- Unit testing is done using Google Test.
 
 ### Tooling
 - C++
